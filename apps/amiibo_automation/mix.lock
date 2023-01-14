@@ -1,0 +1,4 @@
+%{
+  "luerl": {:hex, :luerl, "0.4.0", "6d3191f529286b77b765e790a70cc36b6b27d91e97363afa89e0b7394f5116bd", [:rebar3], [], "hexpm", "e5d9a94e7113d6807f99b06a26cd11050e019336341a1866e29677bc61833219"},
+  "sandbox": {:hex, :sandbox, "0.5.0", "ffce70be253c6d9a38ea24a95fa8f68c4cfe7ea687327ce7dbaf067943f5362b", [:mix], [{:luerl, "~> 0.4.0", [hex: :luerl, repo: "hexpm", optional: false]}], "hexpm", "10f6745f8e2710b79566ed15770851149031723e29b325ab6f14c0b439ede6ff"},
+}
