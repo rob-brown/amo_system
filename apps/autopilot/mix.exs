@@ -21,7 +21,7 @@ defmodule Autopilot.MixProject do
     [
       {:vision, path: "../vision"},
       {:joycontrol, path: "../joycontrol"},
-      {:sandbox, "~> 0.5.0"}
+      {:luerl, "~> 1.0.0"}
     ]
   end
 end
