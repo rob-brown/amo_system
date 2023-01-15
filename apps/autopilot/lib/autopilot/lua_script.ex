@@ -42,6 +42,7 @@ defmodule Autopilot.LuaScript do
   defp add_bindings(state, [{key, value} | rest]) do
     key
     |> to_string()
+    |> List.wrap()
     |> :luerl.set_table(value, state)
     |> add_bindings(rest)
   end
