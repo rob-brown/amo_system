@@ -22,9 +22,8 @@ defmodule Autopilot.Pointer do
       {:ok, position} ->
         {direction, pixels} = vector(position, box)
         duration = move_time(direction, pixels)
-        script = "#{direction}:#{duration}\n"
 
-        Joycontrol.raw_script(script)
+        Joycontrol.command("press #{direction} #{duration}")
 
         # Sleep while the movement is happening.
         Process.sleep(duration)

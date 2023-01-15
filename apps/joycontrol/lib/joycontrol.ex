@@ -14,26 +14,6 @@ defmodule Joycontrol do
     GenServer.cast(@name, {:command, "#{command}\r\n"})
   end
 
-  def run_script(script_file) do
-    path = Path.expand(script_file)
-
-    if File.exists?(path) do
-      Logger.debug("Running #{path}")
-      command = "execute #{path}\r\n"
-      GenServer.cast(@name, {:command, command})
-    else
-      {:error, :enoent}
-    end
-  end
-
-  def raw_script(script) do
-    # Remove trailing new lines
-    script = String.trim_trailing(script)
-    Logger.debug("Running #{script}")
-    command = "execute_raw #{script}\r\n"
-    GenServer.cast(@name, {:command, command})
-  end
-
   def load_amiibo(data) when is_binary(data) and byte_size(data) in [532, 540, 572] do
     Logger.debug("Loading amiibo")
     encoded = Base.encode64(data)
