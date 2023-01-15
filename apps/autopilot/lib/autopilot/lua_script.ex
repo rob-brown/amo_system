@@ -58,68 +58,111 @@ defmodule Autopilot.LuaScript do
     end
   end
 
+  # Expects a file path (relative or absolute) to an amiibo bin file.
   defp load_amiibo_file([path | _], lua_state) do
     binary = path |> Path.expand() |> File.read!()
     Joycontrol.load_amiibo(binary)
     {[], lua_state}
   end
 
+  # Expects a raw amiibo bin data. Must be 532, 540, or 572 bytes.
   defp load_amiibo_binary([binary | _], lua_state) do
     Joycontrol.load_amiibo(binary)
     {[], lua_state}
   end
 
+  # No args. Clears the previously loaded amiibo.
   defp clear_amiibo(_, lua_state) do
     Joycontrol.clear_amiibo()
     {[], lua_state}
   end
 
+  # Expects a path to an existing image file used to find the pointer.
+  # Also takes to {x, y} coordinates. The first is the top-left corner.
+  # The second is the bottom-left corner.
+  # Lua example:
+  #   move_pointer("targets/pointer.png", {100, 200}, {150, 2050})
   defp move_pointer([target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state) do
     Autopilot.Pointer.move({x1..x2, y1..y2}, target)
     {[], lua_state}
   end
 
+  # Expects a duration, either an integer representing milliseconds,
+  # or a string with a "s" or "ms" suffix to indicate time unit.
+  # Lua examples:
+  #   wait("1200ms")
+  #   wait("3s")
+  #   wait(500)
   defp wait([duration | _], lua_state) do
     duration = parse_duration(duration)
     Process.sleep(duration)
     {[], lua_state}
   end
 
+  # Expects a path to an image file. Waits until the image appears,
+  # or the timeout elapses. Returns true if the image is visible.
   defp wait_until_found([target, timeout | _], lua_state)
        when is_binary(target) and is_number(timeout) do
-    Vision.wait_until_found(target, timeout)
-    {[], lua_state}
+    case Vision.wait_until_found(target, timeout) do
+      {:ok, nil} ->
+        {[false], lua_state}
+
+      {:ok, _} ->
+        {[true], lua_state}
+
+      _ ->
+        {[false], lua_state}
+    end
   end
 
+  # Expects a path to an image file. Waits until the image appears,
+  # or the timeout elapses. Returns true if the image is **not** visible.
   defp wait_until_gone([target, timeout | _], lua_state)
        when is_binary(target) and is_number(timeout) do
-    Vision.wait_until_gone(target, timeout)
-    {[], lua_state}
+    case Vision.wait_until_gone(target, timeout) do
+      {:ok, nil} ->
+        {[true], lua_state}
+
+      {:ok, _} ->
+        {[false], lua_state}
+
+      _ ->
+        {[false], lua_state}
+    end
   end
 
+  # Takes a screenshot and saves to the given file path.
   defp capture([save_path | _], lua_state) when is_binary(save_path) do
     Vision.capture(save_path)
     {[], lua_state}
   end
 
-  defp capture_crop([save_path, top, left, bottom, right | _], lua_state)
-       when is_binary(save_path) and is_number(top) and is_number(left) and is_number(bottom) and
-              is_number(right) do
-    Vision.capture_crop(save_path, {top, left}, {bottom, right})
+  # Takes a screenshot, crops it, and saves to the given file path.
+  # Takes two {x, y} coordinates for the crop. The first is the
+  # top-left corner. The other is the bottom-left corner.
+  defp capture_crop([save_path, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state)
+       when is_binary(save_path) and is_number(x1) and is_number(x2) and is_number(y1) and
+              is_number(y2) do
+    Vision.capture_crop(save_path, {y1, x1}, {y2, x2})
     {[], lua_state}
   end
 
+  # Sends an arbitrary command to Joycontrol with the given string.
   defp joycontrol([command | _], lua_state) when is_binary(command) do
     Joycontrol.command(command)
     {[], lua_state}
   end
 
+  # Presses a single button for the given duration in milliseconds.
+  # Lua example:
+  #   press("b", 2000)
   defp press([button, duration | _], lua_state) when is_binary(button) do
     duration = parse_duration(duration)
     Joycontrol.command("press #{button} #{duration}")
     {[], lua_state}
   end
 
+  # Returns true if the given image file is visible.
   defp is_visible([target | _], lua_state) when is_binary(target) do
     case Vision.visible(target) do
       {:ok, nil} ->
@@ -133,6 +176,7 @@ defmodule Autopilot.LuaScript do
     end
   end
 
+  # Returns the number of times the given image file is visible.
   defp count([target | _], lua_state) when is_binary(target) do
     case Vision.count(target) do
       {:ok, n} ->
@@ -143,10 +187,13 @@ defmodule Autopilot.LuaScript do
     end
   end
 
-  defp count_crop([target, top, left, bottom, right | _], lua_state)
-       when is_binary(target) and is_number(top) and is_number(left) and is_number(bottom) and
-              is_number(right) do
-    case Vision.count_crop(target, %{top: top, left: left, bottom: bottom, right: right}) do
+  # Returns the number of times the given image file is visible.
+  # The crop is given as two {x, y} coordinates. The first is the
+  # top-left corner. The other is the bottom left corner.
+  defp count_crop([target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state)
+       when is_binary(target) and is_number(x1) and is_number(x2) and is_number(y1) and
+              is_number(y2) do
+    case Vision.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
       {:ok, n} ->
         {[n], lua_state}
 
