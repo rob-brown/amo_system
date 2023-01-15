@@ -20,7 +20,7 @@ defmodule Autopilot.LuaScript do
     |> add_function("capture_crop", &capture_crop/2)
     |> add_function("joycontrol", &joycontrol/2)
     |> add_function("press", &press/2)
-    |> add_function("visible", &visible/2)
+    |> add_function("is_visible", &is_visible/2)
     |> add_function("count", &count/2)
     |> add_function("count_crop", &count_crop/2)
     |> run(code)
@@ -120,21 +120,39 @@ defmodule Autopilot.LuaScript do
     {[], lua_state}
   end
 
-  defp visible([target | _], lua_state) when is_binary(target) do
-    result = Vision.visible(target)
-    {[result], lua_state}
+  defp is_visible([target | _], lua_state) when is_binary(target) do
+    case Vision.visible(target) do
+      {:ok, nil} ->
+        {[false], lua_state}
+
+      {:ok, _} ->
+        {[true], lua_state}
+
+      _ ->
+        {[false], lua_state}
+    end
   end
 
   defp count([target | _], lua_state) when is_binary(target) do
-    result = Vision.count(target)
-    {[result], lua_state}
+    case Vision.count(target) do
+      {:ok, n} ->
+        {[n], lua_state}
+
+      _ ->
+        {[0], lua_state}
+    end
   end
 
   defp count_crop([target, top, left, bottom, right | _], lua_state)
        when is_binary(target) and is_number(top) and is_number(left) and is_number(bottom) and
               is_number(right) do
-    result = Vision.count_crop(target, %{top: top, left: left, bottom: bottom, right: right})
-    {[result], lua_state}
+    case Vision.count_crop(target, %{top: top, left: left, bottom: bottom, right: right}) do
+      {:ok, n} ->
+        {[n], lua_state}
+
+      _ ->
+        {[0], lua_state}
+    end
   end
 
   @doc """
