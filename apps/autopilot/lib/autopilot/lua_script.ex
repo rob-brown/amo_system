@@ -74,8 +74,8 @@ defmodule Autopilot.LuaScript do
     {[], lua_state}
   end
 
-  defp move_pointer([target, top, left, bottom, right | _], lua_state) do
-    Autopilot.Pointer.move({top..left, bottom..right}, target)
+  defp move_pointer([target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state) do
+    Autopilot.Pointer.move({x1..x2, y1..y2}, target)
     {[], lua_state}
   end
 
