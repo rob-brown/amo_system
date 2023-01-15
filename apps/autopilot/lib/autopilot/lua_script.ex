@@ -13,6 +13,7 @@ defmodule Autopilot.LuaScript do
     |> add_function("wait_until_gone", &wait_until_gone/2)
     |> add_function("capture", &capture/2)
     |> add_function("capture_crop", &capture_crop/2)
+    |> add_function("joycontrol", &joycontrol/2)
     |> add_function("press", &press/2)
     |> add_function("visible", &visible/2)
     |> add_function("count", &count/2)
@@ -46,47 +47,52 @@ defmodule Autopilot.LuaScript do
     {[], lua_state}
   end
 
-  defp wait_until_found(lua_state, [target, timeout | _])
+  defp wait_until_found([target, timeout | _], lua_state)
        when is_binary(target) and is_number(timeout) do
     Vision.wait_until_found(target, timeout)
     {[], lua_state}
   end
 
-  defp wait_until_gone(lua_state, [target, timeout | _])
+  defp wait_until_gone([target, timeout | _], lua_state)
        when is_binary(target) and is_number(timeout) do
     Vision.wait_until_gone(target, timeout)
     {[], lua_state}
   end
 
-  defp capture(lua_state, [save_path | _]) when is_binary(save_path) do
+  defp capture([save_path | _], lua_state) when is_binary(save_path) do
     Vision.capture(save_path)
     {[], lua_state}
   end
 
-  defp capture_crop(lua_state, [save_path, top, left, bottom, right | _])
+  defp capture_crop([save_path, top, left, bottom, right | _], lua_state)
        when is_binary(save_path) and is_number(top) and is_number(left) and is_number(bottom) and
               is_number(right) do
     Vision.capture_crop(save_path, {top, left}, {bottom, right})
     {[], lua_state}
   end
 
-  defp press(lua_state, [button, duration | _]) when is_binary(button) do
+  defp joycontrol([command | _], lua_state) when is_binary(command) do
+    Joycontrol.command(command)
+    {[], lua_state}
+  end
+
+  defp press([button, duration | _], lua_state) when is_binary(button) do
     duration = parse_duration(duration)
     Joycontrol.command("press #{button} #{duration}")
     {[], lua_state}
   end
 
-  defp visible(lua_state, [target | _]) when is_binary(target) do
+  defp visible([target | _], lua_state) when is_binary(target) do
     result = Vision.visible(target)
     {[result], lua_state}
   end
 
-  defp count(lua_state, [target | _]) when is_binary(target) do
+  defp count([target | _], lua_state) when is_binary(target) do
     result = Vision.count(target)
     {[result], lua_state}
   end
 
-  defp count_crop(lua_state, [target, top, left, bottom, right | _])
+  defp count_crop([target, top, left, bottom, right | _], lua_state)
        when is_binary(target) and is_number(top) and is_number(left) and is_number(bottom) and
               is_number(right) do
     result = Vision.count_crop(target, %{top: top, left: left, bottom: bottom, right: right})
