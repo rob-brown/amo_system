@@ -86,6 +86,10 @@ defmodule Vision do
 
   ## GenServer
 
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, [:ok], name: @name)
+  end
+
   def init(_) do
     {:ok, %__MODULE__{port: open_port(), callers: []}}
   end
@@ -93,7 +97,7 @@ defmodule Vision do
   def child_spec(_) do
     %{
       id: __MODULE__,
-      start: {GenServer, :start_link, [__MODULE__, [:ok], [name: @name]]}
+      start: {__MODULE__, :start_link, [:ok]}
     }
   end
 
