@@ -199,7 +199,7 @@ defmodule Vision do
   end
 
   defp executable() do
-    :weapon_ex
+    :vision
     |> :code.priv_dir()
     |> Path.join("vision.py")
     |> Path.expand()
