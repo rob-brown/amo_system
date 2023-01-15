@@ -231,6 +231,8 @@ def _register_commands_with_controller_state(controller_state, cli):
         await controller_state.connect()
         await button_press(controller_state, *args)
 
+    cli.add_command(hold.__name__, hold)
+
     # Press a button command
     async def press(*args):
         """
@@ -246,12 +248,13 @@ def _register_commands_with_controller_state(controller_state, cli):
             raise ValueError('"press" command requires a button and interval!')
 
         button, interval = args
-        time = interval / 1000
+        buttons = [button]
+        time = float(interval) / 1000
         ensure_valid_button(controller_state, button)
 
         # wait until controller is fully connected
         await controller_state.connect()
-        await button_press(controller_state, button, sec=time)
+        await button_push(controller_state, *buttons, sec=time)
 
     cli.add_command(press.__name__, press)
 
