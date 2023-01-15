@@ -30,7 +30,7 @@ defmodule Autopilot.Pointer do
 
         # Call recursively in case corrections need to be made.
         # Or need to move in a different axis.
-        move(box, corrections - 1)
+        move(box, pointer, corrections - 1)
 
       {:error, :not_found} ->
         {:error, :not_found}
