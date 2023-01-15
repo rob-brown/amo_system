@@ -1,4 +1,4 @@
-defmodule AmiiboAutomation.LuaScript do
+defmodule Autopilot.LuaScript do
   def run_file(path) do
     path
     |> Path.expand()

@@ -1,4 +1,4 @@
-defmodule AmiiboAutomation.Pointer do
+defmodule Autopilot.Pointer do
   alias Joycontrol
   alias Vision
 

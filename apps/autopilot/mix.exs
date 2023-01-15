@@ -1,9 +1,9 @@
-defmodule AmiiboAutomation.MixProject do
+defmodule Autopilot.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :amiibo_automation,
+      app: :autopilot,
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
