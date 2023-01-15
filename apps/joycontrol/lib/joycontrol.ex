@@ -28,7 +28,7 @@ defmodule Joycontrol do
 
   ## GenServer
 
-  def start_link(_) do
+  def start_link(_ \\ :ok) do
     GenServer.start_link(__MODULE__, [:ok], name: @name)
   end
 
