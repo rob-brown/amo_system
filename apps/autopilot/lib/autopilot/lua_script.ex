@@ -22,7 +22,8 @@ defmodule Autopilot.LuaScript do
 
   ## Helpers
 
-  defp sleep(lua_state, [duration | _]) when is_number(duration) do
+  defp sleep(lua_state, [duration | _]) do
+    duration = parse_duration(duration)
     Process.sleep(duration)
     lua_state
   end
@@ -51,7 +52,8 @@ defmodule Autopilot.LuaScript do
     lua_state
   end
 
-  defp press(lua_state, [button, duration | _]) when is_binary(button) and is_number(duration) do
+  defp press(lua_state, [button, duration | _]) when is_binary(button) do
+    duration = parse_duration(duration)
     Joycontrol.command("press #{button} #{duration}")
     lua_state
   end
@@ -68,5 +70,45 @@ defmodule Autopilot.LuaScript do
        when is_binary(target) and is_number(top) and is_number(left) and is_number(bottom) and
               is_number(right) do
     Vision.count_crop(target, %{top: top, left: left, bottom: bottom, right: right})
+  end
+
+  @doc """
+  Parses the duration into milliseconds. Assumes milliseconds
+  when no unit present. Decimal points are not allowed.
+
+  Examples:
+
+      iex> Autopilot.LuaScript.parse_duration("1000ms")
+      1000
+
+      iex> Autopilot.LuaScript.parse_duration("10s")
+      10000
+
+      iex> Autopilot.LuaScript.parse_duration("500")
+      500
+
+      iex> Autopilot.LuaScript.parse_duration(1500)
+      1500
+  """
+  def parse_duration(duration) when is_binary(duration) do
+    cond do
+      String.ends_with?(duration, "ms") ->
+        duration
+        |> String.trim_trailing("ms")
+        |> String.to_integer()
+
+      String.ends_with?(duration, "s") ->
+        duration
+        |> String.trim_trailing("s")
+        |> String.to_integer()
+        |> Kernel.*(1000)
+
+      true ->
+        String.to_integer(duration)
+    end
+  end
+
+  def parse_duration(duration) when is_integer(duration) do
+    duration
   end
 end
