@@ -1,11 +1,22 @@
 defmodule Autopilot.LuaScript do
-  def run_file(path) do
+  @moduledoc """
+  A module capable of running automated scripts using bluetooth and computer vision.
+  See the private functions for details of each of the functions.
+  """
+
+  @doc """
+  Reads the given Lua script file and exectutes it. May be given bindings to pass data into the script.
+  """
+  def run_file(path, opts \\ []) do
     path
     |> Path.expand()
     |> File.read!()
-    |> run_string()
+    |> run_string(opts)
   end
 
+  @doc """
+  Interprets the given string as a Lua script. May be given bindings to pass data into the script.
+  """
   def run_string(code, opts \\ []) do
     :luerl_sandbox.init()
     |> add_bindings(Keyword.get(opts, :bindings, []))
@@ -35,6 +46,10 @@ defmodule Autopilot.LuaScript do
 
   ## Helpers
 
+  defguardp is_button(b) when b in ~w(a b x y down left right up minus plus r zr l zl home capture r_stick l_stick)
+
+  defguardp is_amiibo_bin(b) when is_binary(b) and byte_size(b) in [532, 540, 572]
+
   defp add_bindings(state, []) do
     state
   end
@@ -51,6 +66,8 @@ defmodule Autopilot.LuaScript do
     :luerl.set_table([path], function, state)
   end
 
+  # Automation scripts can take long so the script is given
+  # Unlimited time and reductions.
   defp run(state, code) do
     case :luerl_sandbox.run(code, state, 0, [], :infinity) do
       {:error, e} -> {:error, e}
@@ -66,7 +83,7 @@ defmodule Autopilot.LuaScript do
   end
 
   # Expects a raw amiibo bin data. Must be 532, 540, or 572 bytes.
-  defp load_amiibo_binary([binary | _], lua_state) do
+  defp load_amiibo_binary([binary | _], lua_state) when is_amiibo_bin(binary) do
     Joycontrol.load_amiibo(binary)
     {[], lua_state}
   end
@@ -154,12 +171,17 @@ defmodule Autopilot.LuaScript do
   end
 
   # Presses a single button for the given duration in milliseconds.
+  # If no duration, then defaults to 100 ms.
   # Lua example:
   #   press("b", 2000)
-  defp press([button, duration | _], lua_state) when is_binary(button) do
+  defp press([button, duration | _], lua_state) when is_button(button) do
     duration = parse_duration(duration)
     Joycontrol.command("press #{button} #{duration}")
     {[], lua_state}
+  end
+
+  defp press([button], lua_state) do
+    press([button, 100], lua_state)
   end
 
   # Returns true if the given image file is visible.
