@@ -77,14 +77,14 @@ defmodule Joycontrol do
 
   ## Helpers
 
-  # sudo env PYTHONPATH=/home/pi/amiibots/joycontrol python3 run_controller_cli.py PRO_CONTROLLER -r auto
+  # sudo env PYTHONPATH=/home/pi/amiibo_system/apps/joycontrol/joycontrol python3 run_controller_cli.py PRO_CONTROLLER -r auto
 
   defp open_port() do
     Port.open({:spawn_executable, executable()}, port_args())
   end
 
   defp port_args() do
-    with python_path = Path.expand("../../joycontrol", __DIR__),
+    with python_path = Path.expand("../joycontrol", __DIR__),
          args = [
            "env",
            "PYTHONPATH=#{python_path}",
@@ -107,7 +107,7 @@ defmodule Joycontrol do
   end
 
   defp joycontrol_script() do
-    Path.expand("../../run_controller_cli.py", __DIR__)
+    Path.expand("../run_controller_cli.py", __DIR__)
   end
 
   defp should_log?(data) do
