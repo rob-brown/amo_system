@@ -6,9 +6,14 @@ defmodule Autopilot.LuaScript do
     |> run_string()
   end
 
-  def run_string(code) do
+  def run_string(code, opts \\ []) do
     :luerl_sandbox.init()
-    |> add_function("sleep", &sleep/2)
+    |> add_bindings(Keyword.get(opts, :bindings, []))
+    |> add_function("load_amiibo_file", &load_amiibo_file/2)
+    |> add_function("load_amiibo_binary", &load_amiibo_binary/2)
+    |> add_function("clear_amiibo", &clear_amiibo/2)
+    |> add_function("move_pointer", &move_pointer/2)
+    |> add_function("wait", &wait/2)
     |> add_function("wait_until_found", &wait_until_found/2)
     |> add_function("wait_until_gone", &wait_until_gone/2)
     |> add_function("capture", &capture/2)
@@ -30,6 +35,17 @@ defmodule Autopilot.LuaScript do
 
   ## Helpers
 
+  defp add_bindings(state, []) do
+    state
+  end
+
+  defp add_bindings(state, [{key, value} | rest]) do
+    key
+    |> to_string()
+    |> :luerl.set_table(value, state)
+    |> add_bindings(rest)
+  end
+
   defp add_function(state, path, function) when is_binary(path) and is_function(function, 2) do
     :luerl.set_table([path], function, state)
   end
@@ -41,7 +57,28 @@ defmodule Autopilot.LuaScript do
     end
   end
 
-  defp sleep([duration | _], lua_state) do
+  defp load_amiibo_file([path | _], lua_state) do
+    binary = path |> Path.expand() |> File.read!()
+    Joycontrol.load_amiibo(binary)
+    {[], lua_state}
+  end
+
+  defp load_amiibo_binary([binary | _], lua_state) do
+    Joycontrol.load_amiibo(binary)
+    {[], lua_state}
+  end
+
+  defp clear_amiibo(_, lua_state) do
+    Joycontrol.clear_amiibo()
+    {[], lua_state}
+  end
+
+  defp move_pointer([target, top, left, bottom, right | _], lua_state) do
+    Autopilot.Pointer.move({top..left, bottom..right}, target)
+    {[], lua_state}
+  end
+
+  defp wait([duration | _], lua_state) do
     duration = parse_duration(duration)
     Process.sleep(duration)
     {[], lua_state}
