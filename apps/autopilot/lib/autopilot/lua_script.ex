@@ -8,7 +8,7 @@ defmodule Autopilot.LuaScript do
   Reads the given Lua script file and exectutes it. May be given bindings to pass data into the script.
   """
   def run_file(path, opts \\ []) do
-    cwd = path |> Path.expand() |> Path.basename()
+    cwd = path |> Path.expand() |> Path.dirname()
     opts = Keyword.put_new(opts, :cwd, cwd)
 
     path
@@ -131,8 +131,9 @@ defmodule Autopilot.LuaScript do
   # Expects a path to an image file. Waits until the image appears,
   # or the timeout elapses. Returns true if the image is visible.
   defp wait_until_found(cwd) do
-    fn [target, timeout | _], lua_state when is_binary(target) and is_number(timeout) ->
+    fn [target, timeout | _], lua_state when is_binary(target) ->
       target = Path.expand(target, cwd)
+      timeout = parse_duration(timeout)
 
       case Vision.wait_until_found(target, timeout) do
         {:ok, nil} ->
@@ -150,8 +151,9 @@ defmodule Autopilot.LuaScript do
   # Expects a path to an image file. Waits until the image appears,
   # or the timeout elapses. Returns true if the image is **not** visible.
   defp wait_until_gone(cwd) do
-    fn [target, timeout | _], lua_state when is_binary(target) and is_number(timeout) ->
+    fn [target, timeout | _], lua_state when is_binary(target) ->
       target = Path.expand(target, cwd)
+      timeout = parse_duration(timeout)
 
       case Vision.wait_until_gone(target, timeout) do
         {:ok, nil} ->
@@ -201,6 +203,7 @@ defmodule Autopilot.LuaScript do
   defp press([button, duration | _], lua_state) when is_button(button) do
     duration = parse_duration(duration)
     Joycontrol.command("press #{button} #{duration}")
+    Process.sleep(duration)
     {[], lua_state}
   end
 
