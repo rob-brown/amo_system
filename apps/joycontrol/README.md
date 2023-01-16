@@ -2,6 +2,9 @@
 
 This package is a wrapper around [poohl/joycontrol](https://github.com/Poohl/joycontrol).
 
+This code was written specifically to run on a Raspberry Pi. It may not work on other
+platforms or with other bluetooth radios.
+
 Including this package will **not** automatically start the process for interacting with bluetooth.
 Depending on your use case you many not want to start the bluetooth process when your application launches.
 When starting `Joycontrol`, you should start it in a supervision tree. It's common for the connection to be dropped.
@@ -27,6 +30,3 @@ defmodule MyApp.Application do
   end
 end
 ```
-
-This code was written specifically to run on a Raspberry Pi. It may not work on other
-platforms or with other bluetooth radios.
