@@ -8,6 +8,9 @@ defmodule Autopilot.LuaScript do
   Reads the given Lua script file and exectutes it. May be given bindings to pass data into the script.
   """
   def run_file(path, opts \\ []) do
+    cwd = path |> Path.expand() |> Path.basename()
+    opts = Keyword.put_new(opts, :cwd, cwd)
+
     path
     |> Path.expand()
     |> File.read!()
@@ -18,22 +21,24 @@ defmodule Autopilot.LuaScript do
   Interprets the given string as a Lua script. May be given bindings to pass data into the script.
   """
   def run_string(code, opts \\ []) do
+    cwd = Keyword.get(opts, :cwd, File.cwd!())
+
     :luerl_sandbox.init()
     |> add_bindings(Keyword.get(opts, :bindings, []))
-    |> add_function("load_amiibo_file", &load_amiibo_file/2)
+    |> add_function("load_amiibo_file", load_amiibo_file(cwd))
     |> add_function("load_amiibo_binary", &load_amiibo_binary/2)
     |> add_function("clear_amiibo", &clear_amiibo/2)
-    |> add_function("move_pointer", &move_pointer/2)
+    |> add_function("move_pointer", move_pointer(cwd))
     |> add_function("wait", &wait/2)
-    |> add_function("wait_until_found", &wait_until_found/2)
-    |> add_function("wait_until_gone", &wait_until_gone/2)
-    |> add_function("capture", &capture/2)
-    |> add_function("capture_crop", &capture_crop/2)
+    |> add_function("wait_until_found", wait_until_found(cwd))
+    |> add_function("wait_until_gone", wait_until_gone(cwd))
+    |> add_function("capture", capture(cwd))
+    |> add_function("capture_crop", capture_crop(cwd))
     |> add_function("joycontrol", &joycontrol/2)
     |> add_function("press", &press/2)
-    |> add_function("is_visible", &is_visible/2)
-    |> add_function("count", &count/2)
-    |> add_function("count_crop", &count_crop/2)
+    |> add_function("is_visible", is_visible(cwd))
+    |> add_function("count", count(cwd))
+    |> add_function("count_crop", count_crop(cwd))
     |> run(code)
     |> case do
       {:error, reason} ->
@@ -46,9 +51,11 @@ defmodule Autopilot.LuaScript do
 
   ## Helpers
 
-  defguardp is_button(b) when b in ~w(a b x y down left right up minus plus r zr l zl home capture r_stick l_stick)
+  defguardp is_button(b)
+            when is_bitstring(b) and
+                   b in ~w(a b x y down left right up minus plus r zr l zl home capture r_stick l_stick)
 
-  defguardp is_amiibo_bin(b) when is_binary(b) and byte_size(b) in [532, 540, 572]
+  defguardp is_amiibo_bin(b) when is_bitstring(b) and byte_size(b) in [532, 540, 572]
 
   defp add_bindings(state, []) do
     state
@@ -76,10 +83,12 @@ defmodule Autopilot.LuaScript do
   end
 
   # Expects a file path (relative or absolute) to an amiibo bin file.
-  defp load_amiibo_file([path | _], lua_state) do
-    binary = path |> Path.expand() |> File.read!()
-    Joycontrol.load_amiibo(binary)
-    {[], lua_state}
+  defp load_amiibo_file(cwd) do
+    fn [path | _], lua_state ->
+      binary = path |> Path.expand(cwd) |> File.read!()
+      Joycontrol.load_amiibo(binary)
+      {[], lua_state}
+    end
   end
 
   # Expects a raw amiibo bin data. Must be 532, 540, or 572 bytes.
@@ -99,9 +108,12 @@ defmodule Autopilot.LuaScript do
   # The second is the bottom-left corner.
   # Lua example:
   #   move_pointer("targets/pointer.png", {100, 200}, {150, 2050})
-  defp move_pointer([target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state) do
-    Autopilot.Pointer.move({x1..x2, y1..y2}, target)
-    {[], lua_state}
+  defp move_pointer(cwd) do
+    fn [target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state ->
+      target = Path.expand(target, cwd)
+      Autopilot.Pointer.move({x1..x2, y1..y2}, target)
+      {[], lua_state}
+    end
   end
 
   # Expects a duration, either an integer representing milliseconds,
@@ -118,50 +130,62 @@ defmodule Autopilot.LuaScript do
 
   # Expects a path to an image file. Waits until the image appears,
   # or the timeout elapses. Returns true if the image is visible.
-  defp wait_until_found([target, timeout | _], lua_state)
-       when is_binary(target) and is_number(timeout) do
-    case Vision.wait_until_found(target, timeout) do
-      {:ok, nil} ->
-        {[false], lua_state}
+  defp wait_until_found(cwd) do
+    fn [target, timeout | _], lua_state when is_binary(target) and is_number(timeout) ->
+      target = Path.expand(target, cwd)
 
-      {:ok, _} ->
-        {[true], lua_state}
+      case Vision.wait_until_found(target, timeout) do
+        {:ok, nil} ->
+          {[false], lua_state}
 
-      _ ->
-        {[false], lua_state}
+        {:ok, _} ->
+          {[true], lua_state}
+
+        _ ->
+          {[false], lua_state}
+      end
     end
   end
 
   # Expects a path to an image file. Waits until the image appears,
   # or the timeout elapses. Returns true if the image is **not** visible.
-  defp wait_until_gone([target, timeout | _], lua_state)
-       when is_binary(target) and is_number(timeout) do
-    case Vision.wait_until_gone(target, timeout) do
-      {:ok, nil} ->
-        {[true], lua_state}
+  defp wait_until_gone(cwd) do
+    fn [target, timeout | _], lua_state when is_binary(target) and is_number(timeout) ->
+      target = Path.expand(target, cwd)
 
-      {:ok, _} ->
-        {[false], lua_state}
+      case Vision.wait_until_gone(target, timeout) do
+        {:ok, nil} ->
+          {[true], lua_state}
 
-      _ ->
-        {[false], lua_state}
+        {:ok, _} ->
+          {[false], lua_state}
+
+        _ ->
+          {[false], lua_state}
+      end
     end
   end
 
   # Takes a screenshot and saves to the given file path.
-  defp capture([save_path | _], lua_state) when is_binary(save_path) do
-    Vision.capture(save_path)
-    {[], lua_state}
+  defp capture(cwd) do
+    fn [save_path | _], lua_state when is_binary(save_path) ->
+      save_path = Path.expand(save_path, cwd)
+      Vision.capture(save_path)
+      {[], lua_state}
+    end
   end
 
   # Takes a screenshot, crops it, and saves to the given file path.
   # Takes two {x, y} coordinates for the crop. The first is the
   # top-left corner. The other is the bottom-left corner.
-  defp capture_crop([save_path, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state)
+  defp capture_crop(cwd) do
+    fn [save_path, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state
        when is_binary(save_path) and is_number(x1) and is_number(x2) and is_number(y1) and
-              is_number(y2) do
-    Vision.capture_crop(save_path, {y1, x1}, {y2, x2})
-    {[], lua_state}
+              is_number(y2) ->
+      save_path = Path.expand(save_path, cwd)
+      Vision.capture_crop(save_path, {y1, x1}, {y2, x2})
+      {[], lua_state}
+    end
   end
 
   # Sends an arbitrary command to Joycontrol with the given string.
@@ -185,42 +209,54 @@ defmodule Autopilot.LuaScript do
   end
 
   # Returns true if the given image file is visible.
-  defp is_visible([target | _], lua_state) when is_binary(target) do
-    case Vision.visible(target) do
-      {:ok, nil} ->
-        {[false], lua_state}
+  defp is_visible(cwd) do
+    fn [target | _], lua_state when is_binary(target) ->
+      target = Path.expand(target, cwd)
 
-      {:ok, _} ->
-        {[true], lua_state}
+      case Vision.visible(target) do
+        {:ok, nil} ->
+          {[false], lua_state}
 
-      _ ->
-        {[false], lua_state}
+        {:ok, _} ->
+          {[true], lua_state}
+
+        _ ->
+          {[false], lua_state}
+      end
     end
   end
 
   # Returns the number of times the given image file is visible.
-  defp count([target | _], lua_state) when is_binary(target) do
-    case Vision.count(target) do
-      {:ok, n} ->
-        {[n], lua_state}
+  defp count(cwd) do
+    fn [target | _], lua_state when is_binary(target) ->
+      target = Path.expand(target, cwd)
 
-      _ ->
-        {[0], lua_state}
+      case Vision.count(target) do
+        {:ok, n} ->
+          {[n], lua_state}
+
+        _ ->
+          {[0], lua_state}
+      end
     end
   end
 
   # Returns the number of times the given image file is visible.
   # The crop is given as two {x, y} coordinates. The first is the
   # top-left corner. The other is the bottom left corner.
-  defp count_crop([target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state)
+  defp count_crop(cwd) do
+    fn [target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state
        when is_binary(target) and is_number(x1) and is_number(x2) and is_number(y1) and
-              is_number(y2) do
-    case Vision.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
-      {:ok, n} ->
-        {[n], lua_state}
+              is_number(y2) ->
+      target = Path.expand(target, cwd)
 
-      _ ->
-        {[0], lua_state}
+      case Vision.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
+        {:ok, n} ->
+          {[n], lua_state}
+
+        _ ->
+          {[0], lua_state}
+      end
     end
   end
 
