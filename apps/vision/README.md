@@ -1,21 +1,31 @@
 # Vision
 
-**TODO: Add description**
+This package is designed to make automation via computer vision easy. It's designed
+to work with the [Genki Shadowcast](https://www.genkithings.com/products/shadowcast).
+Though other external capture cards may still work.
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `vision` to your list of dependencies in `mix.exs`:
+Including this package will **not** automatically start the process for interacting
+with the capture card.  Depending on your use case you many not want to start the
+process when your application launches. When starting `Vision`, you should start it
+in a supervision tree.  If you start it with your application, then it will look like
+this:
 
 ```elixir
-def deps do
-  [
-    {:vision, "~> 0.1.0"}
-  ]
+defmodule MyApp.Application do
+  @moduledoc false
+
+  use Application
+
+  @impl true
+  def start(_type, _args) do
+    children = [
+      Vision,
+      # Other processes here.
+    ]
+
+    # Should I use :one_for_all?
+    opts = [strategy: :one_for_one, name: MyApp.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/vision>.
-
