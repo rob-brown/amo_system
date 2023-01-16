@@ -5,9 +5,9 @@ to work with the [Genki Shadowcast](https://www.genkithings.com/products/shadowc
 Though other external capture cards may still work.
 
 Including this package will **not** automatically start the process for interacting
-with the capture card.  Depending on your use case you many not want to start the
+with the capture card. Depending on your use case you many not want to start the
 process when your application launches. When starting `Vision`, you should start it
-in a supervision tree.  If you start it with your application, then it will look like
+in a supervision tree. If you start it with your application, then it will look like
 this:
 
 ```elixir
@@ -29,3 +29,7 @@ defmodule MyApp.Application do
   end
 end
 ```
+
+Be aware that any images you use for tracking are resolution dependent. If you change
+the capture card to be a different resolution, then you will need to update any images
+you use.
