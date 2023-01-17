@@ -54,7 +54,8 @@ defmodule TournamentRunner.SquadStrikeRunner do
   end
 
   defp ready_to_fight?() do
-    Vision.count(Image.squad_fp()) == {:ok, 6}
+    Vision.count(Image.squad_fp()) == {:ok, 6} and
+      Vision.count(Image.squad_cpu()) == {:ok, 0}
   end
 
   defp determine_winner() do
