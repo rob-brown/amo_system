@@ -7,7 +7,8 @@ defmodule TournamentRunner.Application do
   def start(_type, _args) do
     children = [
       Joycontrol,
-      Vision
+      Vision,
+      TournamentRunner.CommandQueue
     ]
 
     opts = [strategy: :one_for_one, name: TournamentRunner.Supervisor]
