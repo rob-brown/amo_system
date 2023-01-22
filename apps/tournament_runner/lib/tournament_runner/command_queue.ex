@@ -12,6 +12,10 @@ defmodule TournamentRunner.CommandQueue do
 
   @name __MODULE__
 
+  def queue_automation(driver) do
+    GenServer.cast(@name, {:enqueue, {:run_automation, driver}})
+  end
+
   def queue_match(fp1, fp2, fun) when is_function(fun, 2) do
     fp1 = read_amiibo(fp1)
     fp2 = read_amiibo(fp2)
@@ -44,7 +48,7 @@ defmodule TournamentRunner.CommandQueue do
     GenServer.cast(@name, {:enqueue, :reset_amiibo_state})
   end
 
-  def run_function(fun) when is_function(fun, 0) do
+  def queue_function(fun) when is_function(fun, 0) do
     GenServer.cast(@name, {:enqueue, {:run_function, fun}})
   end
 
@@ -127,6 +131,17 @@ defmodule TournamentRunner.CommandQueue do
   end
 
   ## Helpers
+
+  defp run_command({:run_automation, driver = %module{}}) do
+    me = self()
+
+    Task.start(fn ->
+      module.run(driver)
+      GenServer.cast(me, :process_command)
+    end)
+
+    :wait
+  end
 
   defp run_command({:run_match, players, fun}) do
     me = self()

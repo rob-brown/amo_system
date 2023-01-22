@@ -96,7 +96,7 @@ defmodule TournamentRunner.SquadStrike do
 
     CommandQueue.queue_squad_strike(fp_team1, fp_team2, score_reporter(storage, match))
 
-    CommandQueue.run_function(fn ->
+    CommandQueue.queue_function(fn ->
       __MODULE__.run(storage)
     end)
   end

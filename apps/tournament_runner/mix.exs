@@ -21,7 +21,8 @@ defmodule TournamentRunner.MixProject do
   defp deps do
     [
       {:autopilot, path: "../autopilot"},
-      {:challonge, path: "../challonge"}
+      {:challonge, path: "../challonge"},
+      {:submission_info, path: "../submission_info"}
     ]
   end
 end
