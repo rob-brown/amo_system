@@ -1,6 +1,4 @@
 defmodule SubmissionInfo.AmiiboParser do
-  defstruct [:trainer, :contact, :team_name, :amiibo]
-
   alias SubmissionInfo.Amiibo
 
   def parse_tsv(path) do
