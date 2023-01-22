@@ -3,9 +3,8 @@ defmodule TournamentRunner.CommandQueue do
 
   require Logger
 
-  alias TournamentRunner.MatchRunner
-  alias TournamentRunner.SquadStrikeRunner
   alias TournamentRunner.Queue
+  alias TournamentRunner.Script
 
   @enforce_keys [:queue, :running?]
   defstruct [:queue, :running?]
@@ -14,34 +13,6 @@ defmodule TournamentRunner.CommandQueue do
 
   def queue_automation(driver) do
     GenServer.cast(@name, {:enqueue, {:run_automation, driver}})
-  end
-
-  def queue_match(fp1, fp2, fun) when is_function(fun, 2) do
-    fp1 = read_amiibo(fp1)
-    fp2 = read_amiibo(fp2)
-
-    if fp1 != nil and fp2 != nil do
-      GenServer.cast(@name, {:enqueue, {:run_match, {fp1, fp2}, fun}})
-    else
-      {:error, :enoexist}
-    end
-  end
-
-  def queue_squad_strike([fp1, fp2, fp3], [fp4, fp5, fp6], fun) when is_function(fun, 2) do
-    fp1 = read_amiibo(fp1)
-    fp2 = read_amiibo(fp2)
-    fp3 = read_amiibo(fp3)
-    fp4 = read_amiibo(fp4)
-    fp5 = read_amiibo(fp5)
-    fp6 = read_amiibo(fp6)
-
-    valid? = Enum.all?([fp1, fp2, fp3, fp4, fp5, fp6], &(&1 != nil))
-
-    if valid? do
-      GenServer.cast(@name, {:enqueue, {:run_squad, {[fp1, fp2, fp3], [fp4, fp5, fp6]}, fun}})
-    else
-      {:error, :enoexist}
-    end
   end
 
   def reset_amiibo_state() do
@@ -114,12 +85,10 @@ defmodule TournamentRunner.CommandQueue do
 
   def handle_continue(:process_command, state) do
     if Queue.empty?(state.queue) do
-IO.puts("empty queue")
       new_state = %__MODULE__{state | running?: false}
       {:noreply, new_state}
     else
       {q, command} = Queue.pop_front(state.queue)
-IO.inspect(command, label: "command")
       new_state = %__MODULE__{state | queue: q}
 
       case run_command(command) do
@@ -145,35 +114,12 @@ IO.inspect(command, label: "command")
     :wait
   end
 
-  defp run_command({:run_match, players, fun}) do
-    me = self()
-
-    Task.start(fn ->
-      MatchRunner.run(players, fun)
-      GenServer.cast(me, :process_command)
-    end)
-
-    :wait
-  end
-
-  defp run_command({:run_squad, players, fun}) do
-    me = self()
-
-    Task.start(fn ->
-      SquadStrikeRunner.run(players, fun)
-      GenServer.cast(me, :process_command)
-    end)
-
-    :wait
-  end
-
   defp run_command(:reset_amiibo_state) do
     me = self()
 
     # I could watch for the task to complete or timeout if needed.
     Task.start(fn ->
-      priv = :code.priv_dir(:tournament_runner)
-      Autopilot.LuaScript.run_file(Path.join(priv, "clear_amiibo_cache.lua"))
+      Script.clear_amiibo_cache()
       GenServer.cast(me, :process_command)
     end)
 
@@ -183,30 +129,5 @@ IO.inspect(command, label: "command")
   defp run_command({:run_function, fun}) do
     fun.()
     :run_next
-  end
-
-  defp read_amiibo({:file, path}) do
-    path = Path.expand(path)
-
-    if File.exists?(path) do
-      File.read!(path)
-    else
-      Logger.error("Invalid amiibo at #{path}")
-      nil
-    end
-  end
-
-  # 532 bytes may not be supported.
-  defp read_amiibo({:memory, bytes}) when byte_size(bytes) in [532, 540, 572] do
-    bytes
-  end
-
-  defp read_amiibo(path) when is_binary(path) do
-    read_amiibo({:file, path})
-  end
-
-  defp read_amiibo(input) do
-    Logger.error("Invalid amiibo #{inspect(input)}")
-    nil
   end
 end
