@@ -25,7 +25,5 @@ press("a")
 wait("2s")
 -- Wait for amiibo to be read.
 wait_until_found("ready_to_fight.png", "4s")
--- Start the match.
-press("plus")
 -- Clear the amiibo to avoid problems later.
 clear_amiibo()
