@@ -52,5 +52,8 @@ wait("5s")
 -- Move pointer out of the way to count the loaded FPs.
 press("up", "400ms")
 
+-- Take a screenshot to later check if any matchups loaded wrong.
+press("capture")
+
 -- Clear the amiibo to avoid problems later.
 clear_amiibo()

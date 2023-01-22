@@ -114,10 +114,12 @@ defmodule TournamentRunner.CommandQueue do
 
   def handle_continue(:process_command, state) do
     if Queue.empty?(state.queue) do
+IO.puts("empty queue")
       new_state = %__MODULE__{state | running?: false}
       {:noreply, new_state}
     else
       {q, command} = Queue.pop_front(state.queue)
+IO.inspect(command, label: "command")
       new_state = %__MODULE__{state | queue: q}
 
       case run_command(command) do

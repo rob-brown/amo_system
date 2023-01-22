@@ -1,5 +1,4 @@
-defmodule TournamentRunner.SquadStrikeDriver do
-  @enforce_keys [:storage]
+defmodule TournamentRunner.Driver.SquadStrike do
   defstruct [
     :tournament,
     :teams,
@@ -12,6 +11,8 @@ defmodule TournamentRunner.SquadStrikeDriver do
 
   alias TournamentRunner.Storage
   alias TournamentRunner.CommandQueue
+  alias TournamentRunner.Image
+  alias TournamentRunner.Script
   alias SubmissionInfo.Team
   alias SubmissionInfo.EntriesParser
   alias Challonge.Tournament
@@ -19,6 +20,9 @@ defmodule TournamentRunner.SquadStrikeDriver do
   alias Challonge.Match
 
   @tsv_suffix "-entries.tsv"
+  @match_duration :timer.seconds(450)
+
+  @behaviour TournamentRunner.Driver
 
   def create_tournament(storage = %Storage{module: __MODULE__}, options \\ []) do
     {:ok, tournament_name, teams} = initial_info(storage)
@@ -26,14 +30,14 @@ defmodule TournamentRunner.SquadStrikeDriver do
     {:ok, tournament} =
       Challonge.retry(fn -> Challonge.create_tournament(tournament_name, options) end)
 
-    state = %__MODULE__{state | tournament: tournament, teams: teams}
+    state = %__MODULE__{tournament: tournament, teams: teams}
     Storage.save(storage, state)
     state
   end
 
   def add_participants(storage = %Storage{module: __MODULE__}) do
     state = Storage.restore(storage)
-    %State{tournament: %Tournament{}} = state
+    %__MODULE__{tournament: %Tournament{}} = state
 
     participants = Enum.map(state.teams, &challonge_participant/1)
     :ok = Challonge.retry(fn -> Challonge.add_participants(state.tournament, participants) end)
@@ -51,11 +55,11 @@ defmodule TournamentRunner.SquadStrikeDriver do
 
   def start_tournament(storage = %Storage{module: __MODULE__}) do
     state = Storage.restore(storage)
-    %State{tournament: %Tournament{}} = state
-    :ok = Challonge.retry(fn -> Challonge.start_tournament(driver.tournament) end)
+    %__MODULE__{tournament: %Tournament{}} = state
+    :ok = Challonge.retry(fn -> Challonge.start_tournament(state.tournament) end)
 
-    Storage.save(storage, driver)
-    sync_with_challonge(driver)
+    Storage.save(storage, state)
+    sync_with_challonge(storage)
   end
 
   def resume(storage = %Storage{module: __MODULE__}) do
@@ -97,7 +101,9 @@ defmodule TournamentRunner.SquadStrikeDriver do
       [match | _] ->
         team1 = Map.get(state.teams_by_id, match.p1_id)
         team2 = Map.get(state.teams_by_id, match.p2_id)
-        scores = run(team1, team2)
+        fp_team1 = Enum.map(team1.amiibo, &(&1.binary))
+        fp_team2 = Enum.map(team2.amiibo, &(&1.binary))
+        scores = run(fp_team1, fp_team2)
         report_scores(storage, match, scores)
 
       _ ->
@@ -105,14 +111,14 @@ defmodule TournamentRunner.SquadStrikeDriver do
     end
   end
 
-  defp run(players, retry_count \\ 3)
+  defp run(team1, team2, retry_count \\ 3)
 
-  defp run(_, 0) do
+  defp run(_, _, 0) do
     Logger.error("Retries exhausted")
     {:skip, :skip}
   end
 
-  defp run({[fp1, fp2, fp3], [fp4, fp5, fp6]}, retry_count) do
+  defp run([fp1, fp2, fp3], [fp4, fp5, fp6], retry_count) do
     try do
       Script.load_squad_strike(
         bindings: [
@@ -143,7 +149,7 @@ defmodule TournamentRunner.SquadStrikeDriver do
         Joycontrol.clear_amiibo()
         Script.close_game()
         Script.launch_ssbu_to_squad_strike()
-        run({[fp1, fp2, fp3], [fp4, fp5, fp6]}, fun, retry_count - 1)
+        run([fp1, fp2, fp3], [fp4, fp5, fp6], retry_count - 1)
     end
   end
 
@@ -220,7 +226,12 @@ defmodule TournamentRunner.SquadStrikeDriver do
         {:error, reason}
 
       matches ->
-        new_state = State.set_remaining_matches(state, matches)
+        remaining_matches =
+          matches
+          |> Enum.filter(&(&1.winner_id == nil and &1.p1_id != nil and &1.p2_id != nil))
+          |> Enum.sort_by(&abs(&1.round))
+
+        new_state = %__MODULE__{state | remaining_matches: remaining_matches}
         Storage.save(storage, new_state)
         :ok
     end
@@ -252,6 +263,7 @@ defmodule TournamentRunner.SquadStrikeDriver do
 
   defp report_scores(storage, match, {score1, score2}) do
     state = Storage.restore(storage)
+    score = Score.new(score1, score2)
 
     new_state = %__MODULE__{
       state
@@ -260,5 +272,6 @@ defmodule TournamentRunner.SquadStrikeDriver do
     }
 
     Storage.save(storage, new_state)
+    sync_with_challonge(storage)
   end
 end

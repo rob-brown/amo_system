@@ -21,8 +21,8 @@ defmodule TournamentRunner.Storage do
     end
   end
 
-  def save(%__MODULE__{dir: dir, module: module}, state) do
-    file_name = module.save_file_name()
+  def save(storage = %__MODULE__{dir: dir, module: module}, state) do
+    file_name = module.save_file_name(storage)
 
     dir
     |> Path.join(file_name)
@@ -36,8 +36,8 @@ defmodule TournamentRunner.Storage do
     end
   end
 
-  def restore(%__MODULE__{dir: dir, module: module}) do
-    file_name = module.save_file_name(module.new())
+  def restore(storage = %__MODULE__{dir: dir, module: module}) do
+    file_name = module.save_file_name(storage)
 
     dir
     |> Path.join(file_name)
@@ -54,8 +54,6 @@ defmodule TournamentRunner.Storage do
 
   @impl Driver
   def run(storage = %__MODULE__{module: module}) do
-    storage
-    |> restore()
-    |> module.run()
+    module.run(storage)
   end
 end
