@@ -101,8 +101,8 @@ defmodule TournamentRunner.Driver.SquadStrike do
       [match | _] ->
         team1 = Map.get(state.teams_by_id, match.p1_id)
         team2 = Map.get(state.teams_by_id, match.p2_id)
-        fp_team1 = Enum.map(team1.amiibo, &(&1.binary))
-        fp_team2 = Enum.map(team2.amiibo, &(&1.binary))
+        fp_team1 = Enum.map(team1.amiibo, & &1.binary)
+        fp_team2 = Enum.map(team2.amiibo, & &1.binary)
         scores = run(fp_team1, fp_team2)
         report_scores(storage, match, scores)
 
@@ -175,14 +175,13 @@ defmodule TournamentRunner.Driver.SquadStrike do
   end
 
   defp add_binaries(team, bin_dir) do
-    %Team{
-      team
-      | amiibo:
-          Enum.map(
-            team.amiibo,
-            &Map.put_new(&1, :binary, SubmissionInfo.binary_for_amiibo(&1, team.trainer, bin_dir))
-          )
-    }
+    amiibo =
+      Enum.map(
+        team.amiibo,
+        &Map.put_new(&1, :binary, SubmissionInfo.binary_for_amiibo(&1, team.trainer, bin_dir))
+      )
+
+    %Team{team | amiibo: amiibo}
   end
 
   defp challonge_participant(team = %Team{}) do
