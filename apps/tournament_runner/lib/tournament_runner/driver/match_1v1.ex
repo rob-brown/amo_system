@@ -26,6 +26,8 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
   # TODO: Create option for best of 3.
 
+  # TODO: Clear the amiibo cache.
+
   def create_tournament(storage = %Storage{module: __MODULE__}, options \\ []) do
     {:ok, tournament_name, amiibo} = initial_info(storage)
 
