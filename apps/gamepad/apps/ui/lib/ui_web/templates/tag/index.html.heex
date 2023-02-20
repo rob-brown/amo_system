@@ -1,0 +1,28 @@
+<h1>Create New Tag</h1>
+
+<%= render "form.html", Map.put(assigns, :action, Routes.tag_path(@conn, :create)) %>
+
+<h1>Existing Tags</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for tag <- @tags do %>
+    <tr>
+      <td><%= tag.display_name %> (<%= Enum.count(tag.amiibo) %> amiibo)</td>
+
+      <td>
+        <span><%= link "Rename", to: Routes.tag_path(@conn, :edit, tag) %></span>
+        |
+        <span><%= link "Delete", to: Routes.tag_path(@conn, :delete, tag), method: :delete, data: [confirm: "Are you sure you want to delete the tag '#{tag.display_name}'?"] %></span>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>

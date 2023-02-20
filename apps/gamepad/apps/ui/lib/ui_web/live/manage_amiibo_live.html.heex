@@ -1,0 +1,10 @@
+<div class="tab-bar">
+  <.tab title="Browse" id="browse" tab={@tab}/>
+  <.tab title={"Queue (#{Enum.count(@queued_amiibo)})"} id="queue" tab={@tab}/>
+</div>
+<%= case @tab do %>
+  <% "browse" -> %>
+    <UiWeb.Browser.render queued_amiibo={@queued_amiibo} modal={@modal} file_data={@file_data} uploads={@uploads} search_results={@search_results} query={@query} tag_manager_data={@tag_manager_data}/>
+  <% "queue" -> %>
+    <UiWeb.Queue.render queued_amiibo={@queued_amiibo} loaded_amiibo_id={@loaded_amiibo_id}/>
+<% end %>

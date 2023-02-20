@@ -1,0 +1,29 @@
+<div>
+  <h2>Paired Devices</h2>
+  <%= if Enum.empty?(@paired_devices) do %>
+    None
+  <% else %>
+    <ul>
+      <%= for {mac, name} <- @paired_devices do %>
+        <li>
+          <%= name %> (<%= mac %>)
+          <%= unless @connected? do %>
+            <button phx-click="connect" phx-value-mac={mac}>Connect</button>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+  <div>
+    <button phx-click="refresh">Refresh</button>
+    <%= if @connected? do %>
+      <button phx-click="disconnect">Disconnect</button>
+    <% else %>
+      <button phx-click="pair_and_connect">Pair and Connect</button>
+    <% end %>
+    <button phx-click="reset">Reset Bluetooth</button>
+    <button phx-click="reboot">Reboot Gamepad</button>
+  </div>
+  <h2>Info</h2>
+  <pre><%= @info %></pre>
+</div>

@@ -1,0 +1,30 @@
+<h1>Create New Collection</h1>
+
+<%= render "form.html", Map.put(assigns, :action, Routes.collection_path(@conn, :create)) %>
+
+<h1>Existing Collections</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for collection <- @collections do %>
+    <tr>
+      <td><%= "#{collection.name} (#{Enum.count(collection.amiibo)} amiibo)" %></td>
+
+      <td>
+        <span>
+          <%= link "Show", to: Routes.manage_amiibo_path(@conn, :show, collection) %>
+          |
+          <%= link "Delete", method: :delete, to: Routes.collection_path(@conn, :delete, collection), data: [confirm: "Are you sure? This collection and all amiibo cannot be restored after deletion."] %>
+        </span>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
