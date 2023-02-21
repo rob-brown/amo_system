@@ -8,7 +8,7 @@ defmodule Gamepad.Application do
     children = [
       button_task(),
       joystick_task(),
-      Joycontrol,
+      {DynamicSupervisor, strategy: :one_for_one, name: Gamepad.DynamicSupervisor}
     ]
 
     opts = [strategy: :one_for_one, name: Gamepad.Supervisor]

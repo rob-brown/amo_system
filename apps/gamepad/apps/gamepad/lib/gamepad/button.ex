@@ -1,4 +1,6 @@
 defmodule Gamepad.Button do
+  require Logger
+
   @pins [
     # %{gpio_pin: 26, name: "left"},
     # %{gpio_pin: 19, name: "down"},
@@ -19,6 +21,7 @@ defmodule Gamepad.Button do
   def start() do
     for %{gpio_pin: pin} <- @pins do
       {:ok, input} = Circuits.GPIO.open(pin, :input, pull_mode: :pullup)
+      Logger.debug("Opened GPIO #{inspect(input)}")
       Circuits.GPIO.set_interrupts(input, :both)
       input
     end
@@ -29,10 +32,12 @@ defmodule Gamepad.Button do
       {:circuits_gpio, pin_number, _timestamp, 1} ->
         pin = Map.get(@pins_by_number, pin_number)
         Joycontrol.raw_command("release #{pin.name}")
+        Logger.debug("release #{pin.name}")
 
       {:circuits_gpio, pin_number, _timestamp, 0} ->
         pin = Map.get(@pins_by_number, pin_number)
         Joycontrol.raw_command("hold #{pin.name}")
+        Logger.debug("hold #{pin.name}")
 
       _ ->
         :ok
