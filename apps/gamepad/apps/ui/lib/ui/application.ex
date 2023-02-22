@@ -11,7 +11,8 @@ defmodule Ui.Application do
       UiWeb.Telemetry,
       {Phoenix.PubSub, name: Ui.PubSub},
       UiWeb.Endpoint,
-      joycontrol()
+      Joycontrol,
+      # joycontrol()
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

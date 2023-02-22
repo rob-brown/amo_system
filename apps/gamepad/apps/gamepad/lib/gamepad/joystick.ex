@@ -56,8 +56,8 @@ defmodule Gamepad.Joystick do
     read_joystick(ref, axis)
   end
 
-  defp axis_to_channel(:y), do: 0x4000
-  defp axis_to_channel(:x), do: 0x5000
+  defp axis_to_channel(:x), do: 0x4000
+  defp axis_to_channel(:y), do: 0x5000
 
   def config_data(axis) do
     value =
@@ -104,7 +104,7 @@ defmodule Gamepad.Joystick do
         value - @offset
 
       :y ->
-        @offset - value
+        value - @offset
     end
   end
 end
