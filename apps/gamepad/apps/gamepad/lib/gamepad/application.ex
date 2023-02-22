@@ -6,6 +6,7 @@ defmodule Gamepad.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      Gamepad.InputTracker,
       button_task(),
       joystick_task(),
       {DynamicSupervisor, strategy: :one_for_one, name: Gamepad.DynamicSupervisor}

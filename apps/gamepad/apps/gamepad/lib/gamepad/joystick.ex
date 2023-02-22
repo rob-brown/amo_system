@@ -4,6 +4,7 @@ defmodule Gamepad.Joystick do
   require Logger
 
   alias Circuits.I2C
+  alias Gamepad.InputTracker
 
   @address 0x48
   @conversion_register 0x0
@@ -17,33 +18,33 @@ defmodule Gamepad.Joystick do
   end
 
   def listen_forever(ref \\ start(), sample_rate \\ 100) do
-    x = read(ref, :x) 
+    x = read(ref, :x)
     y = read(ref, :y)
 
     cond do
       x < -@threshold ->
-        Joycontrol.raw_command("release down")
-        Joycontrol.raw_command("hold up")
+        InputTracker.hold_buttons("up")
+        InputTracker.release_buttons("down")
 
       x > @threshold ->
-        Joycontrol.raw_command("release up")
-        Joycontrol.raw_command("hold down")
+        InputTracker.hold_buttons("down")
+        InputTracker.release_buttons("up")
 
       true ->
-        Joycontrol.raw_command("release up down")
+        InputTracker.release_buttons(["up", "down"])
     end
 
     cond do
       y < -@threshold ->
-        Joycontrol.raw_command("release right")
-        Joycontrol.raw_command("hold left")
+        InputTracker.hold_buttons("left")
+        InputTracker.release_buttons("right")
 
       y > @threshold ->
-        Joycontrol.raw_command("release left")
-        Joycontrol.raw_command("hold right")
+        InputTracker.hold_buttons("right")
+        InputTracker.release_buttons("left")
 
       true ->
-        Joycontrol.raw_command("release left right")
+        InputTracker.release_buttons(["left", "right"])
     end
 
     listen_forever(ref, sample_rate)

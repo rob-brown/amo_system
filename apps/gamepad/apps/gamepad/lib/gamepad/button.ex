@@ -31,12 +31,12 @@ defmodule Gamepad.Button do
     receive do
       {:circuits_gpio, pin_number, _timestamp, 1} ->
         pin = Map.get(@pins_by_number, pin_number)
-        Joycontrol.raw_command("release #{pin.name}")
+        Gamepad.InputTracker.release_buttons(pin.name)
         Logger.debug("release #{pin.name}")
 
       {:circuits_gpio, pin_number, _timestamp, 0} ->
         pin = Map.get(@pins_by_number, pin_number)
-        Joycontrol.raw_command("hold #{pin.name}")
+        Gamepad.InputTracker.hold_buttons(pin.name)
         Logger.debug("hold #{pin.name}")
 
       _ ->
