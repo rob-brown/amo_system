@@ -6,7 +6,6 @@ defmodule UiWeb.ManageAmiiboLive do
   alias AmiiboManager.Amiibo, as: A
   alias Ui.Storage
   alias AmiiboMod.Amiibo
-  alias Gamepad.Joycontrol
 
   @impl true
   def mount(%{"id" => collection_id}, _session, socket) do
