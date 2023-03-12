@@ -3,6 +3,9 @@ defmodule Gamepad.Joycontrol do
 
   require Logger
 
+  alias Gamepad.Lighting
+  alias Gamepad.Bluetooth.Notifier
+
   @enforce_keys [:port]
   defstruct [:port]
 
@@ -41,9 +44,12 @@ defmodule Gamepad.Joycontrol do
   ## GenServer
 
   def init(opts) do
+    Notifier.notify(:connecting)
     Process.sleep(:timer.seconds(3))
+    port = open_port(opts)
+    Notifier.notify(:connected)
 
-    {:ok, %__MODULE__{port: open_port(opts)}}
+    {:ok, %__MODULE__{port: port}}
   end
 
   def child_spec(opts) do
@@ -72,16 +78,19 @@ defmodule Gamepad.Joycontrol do
 
   def handle_info({_port, {:exit_status, 0}}, state) do
     _ = Logger.debug("Vision exited normally")
+    Notifier.notify(:disconnected)
     {:stop, :normal, state}
   end
 
   def handle_info({_port, {:exit_status, code}}, state) do
     _ = Logger.error("Vision exited: #{code}")
+    Notifier.notify(:disconnected)
     {:stop, code, state}
   end
 
   def terminate(reason, state) do
     _ = Logger.warn("Joycontrol terminating because #{inspect(reason)}")
+    Notifier.notify(:disconnected)
     Port.close(state.port)
   end
 

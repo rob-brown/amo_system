@@ -22,7 +22,8 @@ defmodule Gamepad.MixProject do
     [
       {:joycontrol, path: "../../../joycontrol"},
       {:circuits_gpio, "~> 1.0"},
-      {:circuits_i2c, "~> 1.1"}
+      {:circuits_i2c, "~> 1.1"},
+      {:pigpiox, "~> 0.1.2"}
     ]
   end
 end
