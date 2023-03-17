@@ -1,13 +1,16 @@
 defmodule TournamentRunner.MixProject do
   use Mix.Project
 
+  @version "1.0.0"
+
   def project do
     [
       app: :tournament_runner,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      releases: releases()
     ]
   end
 
@@ -23,6 +26,16 @@ defmodule TournamentRunner.MixProject do
       {:autopilot, path: "../autopilot"},
       {:challonge, path: "../challonge"},
       {:submission_info, path: "../submission_info"}
+    ]
+  end
+
+  defp releases() do
+    [
+      tournament_runner: [
+        steps: [:assemble, :tar],
+        include_executables_for: [:unix],
+        version: @version
+      ]
     ]
   end
 end
