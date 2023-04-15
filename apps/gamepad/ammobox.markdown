@@ -18,19 +18,21 @@ this specific material.
 
 | Item | Cost |
 |:---|:---|
-| [Raspberry Pi Zero 2 W][Pi]                  | $15.00 |
-| [microSD Card 8GB][microSD]                  |  $9.95 |
-| [Custom Circuit Board][PCB]                  |  $6.30 |
-| [Short Female Headers 2x20][Female Headers]  |  $1.95 |
-| [Male Headers 2x20][Male Headers]            |  $0.95 |
-| [Tactile Buttons 6mm][Buttons] x11           |  $2.50 |
-| [3mm LED][LED3mm] x1 (Optional)              |  $2.95 |
-| [5mm LED][LED5mm] x4 (Optional)              |  $4.95 |
-| [220 Ohm Resistors][Resistors] x5 (Optional) |  $0.75 |
-| [1/8" walnut plywood][Walnut]                | $31.00 |
-| [1/8" clear acrylic][Acrylic] (Optional)     |  $7.00 |
-| [Cardstock][Index Cards]                     |  $1.09 |
-| **Total**                                    | $84.39 |
+| [Raspberry Pi Zero 2 W][Pi]                  |  $15.00 |
+| [microSD Card 8GB][microSD]                  |   $9.95 |
+| [Custom Circuit Board][PCB]                  |   $6.30 |
+| [Short Female Headers 2x20][Female Headers]  |   $1.95 |
+| [Male Headers 2x20][Male Headers]            |   $0.95 |
+| [Tactile Buttons 6mm][Buttons] x11           |   $2.50 |
+| [3mm LED][LED3mm] x1 (Optional)              |   $2.95 |
+| [5mm LED][LED5mm] x4 (Optional)              |   $4.95 |
+| [220 Ohm Resistors][Resistors] x5 (Optional) |   $0.75 |
+| [1/8" walnut plywood][Walnut]                |  $31.00 |
+| [1/8" clear acrylic][Acrylic] (Optional)     |   $7.00 |
+| [M1.2x6 Screws][Screws] x8                   |   $7.99 |
+| [Cardstock][Index Cards]                     |   $1.09 |
+| Micro USB Cable (You probably have one)      | ------- |
+| **Total**                                    | $101.37 |
 
 [Pi]: https://www.adafruit.com/product/5291
 [microSD]: https://www.adafruit.com/product/1294
@@ -44,3 +46,4 @@ this specific material.
 [Walnut]: https://shop.glowforge.com/collections/plywood/products/walnut-plywood-finished
 [Acrylic]: https://shop.glowforge.com/collections/acrylic/products/clear-blue-acrylic-cast-translucent-glossy
 [Index Cards]: https://www.staples.com/oxford-3-x-5-index-cards-lined-white-100-pack-31ee/product_2719611
+[Screws]: https://www.amazon.com/gp/product/B07SHFVNH8/ref=ppx_yo_dt_b_search_asin_title

@@ -17,7 +17,8 @@ with soldering, you may opt for soldering headers instead.
 | [Adafruit Joy Bonnet][JoyBonnet]                 | $14.95 |
 | [Adafruit Pi Zero Case][Case] (Recommended)      |  $4.75 |
 | [Hammer Header Male Solderless Headers][Headers] |  $2.25 |
-| [Header Header Jig][Jig] (Recommended)           |  $6.50 |
+| [Hammer Header Jig][Jig] (Recommended)           |  $6.50 |
+| Micro USB Cable (You probably have one)          | ------ |
 | **Total**                                        | $53.40 |
 
 [Pi]: https://www.adafruit.com/product/5291
