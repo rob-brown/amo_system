@@ -9,6 +9,8 @@ defmodule Gamepad.Application do
   def start(_type, _args) do
     platform = platform()
 
+    Logger.info("Running Gamepad for platform '#{inspect(platform)}'")
+
     children =
       [
         Gamepad.Bluetooth.Notifier,
@@ -21,10 +23,7 @@ defmodule Gamepad.Application do
   end
 
   defp platform() do
-    "PLATFORM"
-    |> System.get_env()
-    |> String.downcase()
-    |> case do
+    case System.get_env("PLATFORM") do
       "joybonnet" ->
         :joybonnet
 
@@ -32,7 +31,7 @@ defmodule Gamepad.Application do
         :ammobox
 
       platform ->
-        Logger.warn("Unknown platform '#{platform}', defaulting to 'joybonnet'")
+        Logger.warn("Unknown platform '#{inspect(platform)}', defaulting to 'joybonnet'")
         :joybonnet
     end
   end
@@ -77,7 +76,7 @@ defmodule Gamepad.Application do
 
   defp lighting_task() do
     %{
-      id: ButtonControlTask,
+      id: LightingTask,
       start: {Task, :start_link, [&update_lighting/0]}
     }
   end
@@ -103,7 +102,7 @@ defmodule Gamepad.Application do
 
   defp pulse_lights() do
     %{
-      id: ButtonControlTask,
+      id: PulseLightsTask,
       start: {Task, :start_link, [Gamepad.Lighting, :pulse, []]},
       restart: :temporary
     }

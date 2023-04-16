@@ -1,16 +1,23 @@
 defmodule Ui.MixProject do
   use Mix.Project
 
+  @version "VERSION" |> File.read!() |> String.trim()
+
   def project do
     [
       app: :ui,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      releases: [
+        gamepad: [
+          steps: [:assemble, :tar]
+        ]
+      ]
     ]
   end
 
