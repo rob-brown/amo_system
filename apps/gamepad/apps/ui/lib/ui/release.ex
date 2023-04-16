@@ -3,7 +3,7 @@ defmodule Ui.Release do
   Used for executing DB release tasks when run in production without Mix
   installed.
   """
-  @app :ui
+  @app :amiibo_manager
 
   def migrate do
     load_app()
