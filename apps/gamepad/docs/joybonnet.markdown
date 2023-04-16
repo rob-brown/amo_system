@@ -10,8 +10,8 @@ The prices are those at the time of writing (March 2023). Prices do **NOT**
 include shipping. The parts include a solderless option. If you are comfortable
 with soldering, you may opt for soldering headers instead.
 
-| Item | Cost |
-|:---|:---|
+| Item                                             |   Cost |
+| :---                                             |   ---: |
 | [Raspberry Pi Zero 2 W][Pi]                      | $15.00 |
 | [microSD Card 8GB][microSD]                      |  $9.95 |
 | [Adafruit Joy Bonnet][JoyBonnet]                 | $14.95 |
