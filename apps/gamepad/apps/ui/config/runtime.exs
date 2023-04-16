@@ -23,8 +23,8 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "splicepad.local"
-  db = System.get_env("DB_PATH") || "amiibo.sqlite"
+  host = System.get_env("PHX_HOST") || "ammobox.local"
+  db = System.get_env("DB_PATH") || "/home/pi/amiibo.sqlite"
 
   config :amiibo_manager, AmiiboManager.Repo,
     adapter: Ecto.Adapters.SQLite3,
