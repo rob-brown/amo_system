@@ -41,7 +41,7 @@ defmodule SSBU.Attributes.Serializer do
       {"Club Swinger", 4},
       {"Death Swinger", 4},
       {"Item Shooter", 5},
-      {"Carrier Breaker", 5},
+      {"Carrier Broker", 5},
       {"Charger", 5},
       {"Appeal", 5},
       {"Fighter 1", 7},
