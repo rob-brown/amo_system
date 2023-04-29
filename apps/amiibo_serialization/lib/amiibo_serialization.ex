@@ -105,14 +105,13 @@ defmodule AmiiboSerialization do
   end
 
   defp key_file() do
-    key_file_from_env() || key_file_from_priv()
+    key_file_from_config() || key_file_from_env()
   end
 
-  defp key_file_from_priv() do
-    with priv = :code.priv_dir(:amiibo_mod),
-         path = Path.join(priv, "key_retail.bin"),
-         true <- File.exists?(path),
-         {:ok, data_key, tag_key} <- Key.parse_file(path) do
+  defp key_file_from_config() do
+    with <<bin::binary>> <- Application.get_env(:amiibo_serialization, :key_retail),
+         {:ok, decoded} <- Base.decode64(bin),
+         {:ok, data_key, tag_key} <- Key.parse_binary(decoded) do
       {:ok, data_key, tag_key}
     else
       _ ->
@@ -121,7 +120,7 @@ defmodule AmiiboSerialization do
   end
 
   defp key_file_from_env() do
-    with <<bin::binary>> <- Application.get_env(:amiibo_mod, :key_retail),
+    with <<bin::binary>> <- System.get_env("KEY_RETAIL"),
          {:ok, decoded} <- Base.decode64(bin),
          {:ok, data_key, tag_key} <- Key.parse_binary(decoded) do
       {:ok, data_key, tag_key}
