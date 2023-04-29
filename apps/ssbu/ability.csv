@@ -1,0 +1,258 @@
+# Name, Slots, Source, Category
+# See https://www.ssbwiki.com/Spirit#Spirit_Effects
+None,0,none,none
+Move Speed ↑,1,support spirit,mobility
+Hyper Smash Attacks,1,support spirit,attack
+Quick Smashes,1,unobtainable,cut
+Jump ↑,1,support spirit,mobility
+Additional Midair Jump,2,support spirit,mobility
+Lifesteal,2,primary spirit,recovery
+Defense ↑,1,skill tree,skill tree
+Easier Dodging,1,support spirit,mobility
+Easier Perfect Shield,1,support spirit,defense
+Super Armor,3,support spirit,common ban
+Slow Super Armor,2,support spirit,common ban
+Trade-Off Attacks ↑,1,support spirit,other
+Trade-Off Defense ↑,1,support spirit,other
+Trade-Off Speed ↑,1,support spirit,other
+Trade-Off Ability ↑,1,support spirit,other
+Critical-Health Attack ↑,1,support spirit,other
+Critical-Health Defense ↑,1,support spirit,other
+Critical-Health Stats ↑,1,support spirit,other
+Critical Immunity,2,support spirit,other
+Autoheal,2,support spirit,common ban
+Poison Immunity,2,support spirit,hazard
+Poison Damage Reduced,1,support spirit,hazard
+Poison Heals,3,support spirit,hazard
+Lava-Floor Immunity,2,support spirit,hazard
+Sticky-Floor Immunity,2,support spirit,hazard
+Beam Sword Equipped,1,support spirit,item
+Lip's Stick Equipped,1,support spirit,item
+Star Rod Equipped,1,support spirit,item
+Ore Club Equipped,3,support spirit,item
+Home-Run Bat Equipped,1,unobtainable,item
+Ray Gun Equipped,2,support spirit,item
+Super Scope Equipped,2,support spirit,item
+Gust Bellows Equipped,1,unobtainable,item
+Drill Equipped,1,support spirit,item
+Green Shell Equipped,1,support spirit,item
+Poke Ball Equipped,1,unobtainable,item
+Master Ball Equipped,1,unobtainable,cut
+Back Shield Equipped,1,support spirit,item
+Bunny Hood Equipped,1,support spirit,item
+Made of Metal,1,support spirit,item
+Mouthful of Curry,2,support spirit,item
+Franklin Badge Equipped,2,support spirit,item
+Hammer Equipped,3,unobtainable,item
+Fairy Bottle Equipped,1,support spirit,item
+Fire Flower Equipped,1,support spirit,item
+Freezie Equipped,1,support spirit,item
+Ramblin' Evil Mushroom Equipped,1,support spirit,item
+Killing Edge Equipped,1,support spirit,item
+49,1,none,unused
+Physical Attack ↑,1,support spirit,attack
+Weapon Attack ↑,1,support spirit,attack
+Fist Attack ↑,1,support spirit,attack
+Foot Attack ↑,1,support spirit,attack
+Aura Attack ↑,1,support spirit,attack
+Magic Attack ↑,1,support spirit,attack
+PSI Attack ↑,1,support spirit,attack
+Slash Attack ↑,1,unobtainable,cut
+Fire & Explosion Attack ↑,1,support spirit,attack
+Darkness Attack ↑,1,unobtainable,cut
+Electric Attack ↑,1,support spirit,attack
+Energy-Shot Attack ↑,1,support spirit,attack
+Water & Ice Attack ↑,1,support spirit,attack
+Magic Resist ↑,1,support spirit,defense
+PSI Resist ↑,1,support spirit,defense
+Slash Resist ↑,1,unobtainable,cut
+Fire/Explosion Resist ↑,1,support spirit,defense
+Darkness Resist ↑,1,unobtainable,cut
+Bomb Resist ↑,1,unobtainable,cut
+Electric Resist ↑,1,support spirit,defense
+Energy-Shot Resist ↑,1,support spirit,defense
+Ice Resist ↑,1,unobtainable,cut
+Water/Freezing Resist ↑,1,support spirit,defense
+Aura Resist ↑,1,support spirit,defense
+Zap-Floor Immunity,2,support spirit,hazard
+Slumber Immunity,1,support spirit,hazard
+Ice-Floor Immunity,2,support spirit,hazard
+Falling Immunity,1,support spirit,hazard
+Bury Immunity,1,support spirit,hazard
+Braking Ability ↑,1,support spirit,mobility
+Mobility,1,unknown,unknown
+Landing Lag ↓,1,support spirit,mobility
+Lightweight,1,support spirit,mobility
+Shield Damage ↑,1,support spirit,attack
+Air Attack ↑,1,support spirit,attack
+Air Defense ↑,1,support spirit,defense
+Neutral Special ↑,1,support spirit,attack
+Side Special ↑,1,support spirit,attack
+Up Special ↑,1,support spirit,attack
+Down Special ↑,1,support spirit,attack
+Strong Throw,1,support spirit,attack
+Unflinching Charged Smashes,2,support spirit,defense
+Toss & Meteor,1,support spirit,attack
+Chase Offense ↑,1,unobtainable,cut
+Critical Hit ↑,1,support spirit,attack
+Swimmer,1,support spirit,other
+Shield Durability ↑,1,support spirit,defense
+Improved Escape,1,support spirit,other
+Shield Recovery ↑,1,unobtainable,cut
+Small Unbreakable Shield,2,unobtainable,cut
+Explosive Perfect Shield,1,unobtainable,cut
+Battering Items ↑,1,support spirit,item
+Shooting Items ↑,1,support spirit,item
+Thrown Items ↑,1,support spirit,item
+KOs Heal Damage,2,support spirit,recovery
+Invincibility after Eating,2,support spirit,item
+Stats ↑ after Eating,1,support spirit,item
+Smash Ball Keeper,1,unobtainable,cut
+First-Strike Advantage,2,support spirit,other
+Reflect Limit ↑,1,unobtainable,cut
+Running Start,2,support spirit,other
+Final Spurt,1,unobtainable,cut
+Fast Final Smash Meter,2,support spirit,other
+Instadrop,2,support spirit,common ban
+Healing Shield,2,support spirit,recovery
+No Perfect Shield,1,unobtainable,cut
+Extended Respawn Invincibility,1,unobtainable,cut
+Floaty Jumps,1,support spirit,mobility
+Skate Shoes,1,unobtainable,cut
+Irreversible Controls,2,support spirit,hazard
+Recovery Items ↑,1,skill tree,skill tree
+Transformation Duration ↑,1,support spirit,other
+Undamaged Attack ↑,1,support spirit,other
+Undamaged Speed ↑,1,support spirit,other
+Undamaged Attack & Speed ↑,1,support spirit,other
+Smash Aura Stats ↑,1,unobtainable,cut
+Smash Aura Autoheal,1,unobtainable,cut
+Edge Grab ↑,1,skill tree,skill tree
+Impact Run,1,support spirit,attack
+Smash Ball Crusher,1,unobtainable,cut
+Lava-Floor Resist,1,support spirit,hazard
+Item Gravitation,1,support spirit,item
+Appeal Heal,1,unobtainable,cut
+Chance of Double Final Smash,2,support spirit,other
+Double Final Smash,3,support spirit,other
+Ray Gun Master,2,unobtainable,cut
+Beam Sword Master,2,unobtainable,cut
+Metal and Giant,3,primary spirit,special
+Giant,2,support spirit,special
+Dash Attack ↑,1,support spirit,attack
+Armor Knight,2,support spirit,common ban
+Backstabber,1,unobtainable,cut
+Energy Shot Attack/Resistance ↑,2,support spirit,other
+Hammer Duration ↑,1,support spirit,item
+Boomerang Equipped,1,support spirit,item
+Item Attack ↑,1,unknown,item
+Assists ↑,1,unobtainable,cut
+Fire & Ice Attack ↑,1,unobtainable,cut
+Fire Resist ↑,2,unobtainable,cut
+Water Resist ↑,2,unobtainable,cut
+Item Drop Damage ↑,1,unobtainable,cut
+Perfect-Shield Reflect,1,support spirit,defense
+Weapon Attack & Move Speed ↑,2,support spirit,other
+Shooting Attack ↑,1,support spirit,attack
+Charge Speed & Power ↑,3,unknown,unknown
+Dark Screen Immunity,1,unobtainable,cut
+Screen-Flip Immunity,2,support spirit,hazard
+Fog Immunity,2,support spirit,hazard
+Gravity-Change Immunity,2,support spirit,hazard
+Stamina ↑,1,support spirit,other
+Strong-Wind Resist,1,support spirit,hazard
+Strong-Wind Immunity,2,support spirit,hazard
+Critical-Health Healing,2,support spirit,recovery
+Special-Move Power ↑,1,support spirit,attack
+Type Neutralizer,2,unobtainable,cut
+Bob-omb Equipped,1,support spirit,item
+Hothead Equipped,2,support spirit,item
+Super Leaf Equipped,1,support spirit,item
+Super Launch Star Equipped,1,support spirit,item
+Beastball Equipped,1,support spirit,item
+Death's Scythe Equipped,1,support spirit,item
+Mr. Saturn Equipped,1,support spirit,item
+Unira Equipped,1,support spirit,item
+Rocket Belt Equipped,1,support spirit,item
+Black Hole Equipped,2,support spirit,item
+Invisibility Equipped,1,unobtainable,cut
+Stats ↑↑ after Eating,2,support spirit,item
+Item Attack ↑↑,2,unobtainable,cut
+Critical-Health Stats ↑↑,2,support spirit,other
+Critical Hit ↑↑,2,support spirit,special
+Great Autoheal,3,support spirit,common ban
+Steel Diver Equipped,2,support spirit,item
+Banana Gun Equipped,1,support spirit,item
+Rage Blaster Equipped,1,support spirit,item
+Staff Equipped,1,support spirit,item
+Fire Bar Equipped,1,support spirit,item
+Screw Attack Equipped,2,support spirit,item
+Bomber Equipped,1,support spirit,item
+Cucco Equipped,1,unobtainable,item
+Neutral Attack ↑,1,skill tree,skill tree
+Neutral Attack ↑↑,1,skill tree,skill tree
+Tilt Attack ↑,1,skill tree,skill tree
+Tilt Attack ↑↑,1,skill tree,skill tree
+Air Attack ↑↑,1,skill tree,skill tree
+Mighty Throw,1,skill tree,skill tree
+Special-Move Power ↑↑,1,skill tree,skill tree
+Super Easy Dodging,1,skill tree,skill tree
+197,1,none,unused
+Landing Lag ↓↓,1,skill tree,skill tree
+Become Heavy,1,unknown,unknown
+Meteor Smashes ↑,1,skill tree,skill tree
+Poisoned Smash,1,skill tree,skill tree
+No Penalty for Continuous Dodging,1,skill tree,skill tree
+Airborne Endurance,1,skill tree,skill tree
+Sprinting Endurance,1,skill tree,skill tree
+Perfect-Shield Recovery,1,skill tree,skill tree
+Masterful Fall Break,1,skill tree,skill tree
+Healing-Item Attraction,1,skill tree,skill tree
+Attack ↑ When Healthy,1,skill tree,skill tree
+Defense ↑ When Healthy,1,skill tree,skill tree
+Endless Smash Holding,1,skill tree,skill tree
+Heal with Smash Attacks,1,skill tree,skill tree
+Activities ↑,1,skill tree,skill tree
+Giant Killer,1,support spirit,attack
+Metal Killer,1,support spirit,attack
+Assist Killer,1,support spirit,attack
+Jam FS Charge,2,support spirit,other
+Weapon Resist ↑,2,support spirit,defense
+Hyper Smash Attacks,1,skill tree,skill tree
+Neutral Attack ↑,1,skill tree,skill tree
+Tilt Attack ↑,1,skill tree,skill tree
+Special-Move Power ↑,1,skill tree,skill tree
+Air Attack ↑,1,skill tree,skill tree
+223,0,none,unused
+224,0,none,unused
+225,0,none,unused
+226,0,none,unused
+Item Autograb,1,support spirit,other
+Team Power Up,2,support spirit,other
+Weight ↑↑,1,primary spirit,other
+Poison Power Up,3,support spirit,hazard
+Critical Fast Final Smash Meter ↑↑,3,support spirit,other
+Critical-Health Healing ↑↑,3,support spirit,recovery
+Critical Super Giant,3,support spirit,special
+Mouthful of Curry ↑↑,3,support spirit,special
+Final Smash ↑,2,support spirit,special
+Critical Healing & Metal,2,support spirit,special
+Fist & Foot Attack ↑,1,primary spirit,attack
+Weapon Attack & Move Speed ↑↑,3,support spirit,other
+239,0,none,unused
+240,0,none,unused
+241,0,none,unused
+242,0,none,unused
+243,0,none,unused
+244,0,none,unused
+245,0,none,unused
+246,0,none,unused
+247,0,none,unused
+248,0,none,unused
+249,0,none,unused
+250,0,none,unused
+251,0,none,unused
+252,0,none,unused
+253,0,none,unused
+254,0,none,unused
+255,0,none,unused

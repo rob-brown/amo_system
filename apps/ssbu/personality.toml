@@ -1,0 +1,982 @@
+###############################################################################
+# DEF "Defensive"                                                             #
+#                                                                             #
+# This personality must use its shield a lot and walk on the ground. It must  #
+# not do anything too aggresive like going off stage. It shouldn’t run and    #
+# collecting items is too risky. Overall, this is a hard personality to get   #
+# because many attributes subtract from it and not many add.                  #
+###############################################################################
+
+[[def.tiers]]
+target_score = 100
+personality = "Cautious"
+
+[[def.tiers]]
+target_score = 180
+personality = "Realistic"
+
+[[def.tiers]]
+target_score = 240
+personality = "Unflappable"
+
+[[def.criteria]]
+param_name = "offensive"
+required = true
+rank1 = {threshold = 0.26, points = 18}
+rank2 = {threshold = 0.76, points = 20}
+desirable = false
+
+[[def.criteria]]
+param_name = "grounded"
+rank1 = {threshold = 0.25, points = 18}
+rank2 = {threshold = 0.76, points = 18}
+desirable = true
+
+[[def.criteria]]
+param_name = "attack_out_cliff"
+rank1 = {threshold = 0.26, points = 10}
+rank2 = {threshold = 0.51, points = 15}
+desirable = false
+
+[[def.criteria]]
+param_name = "dash"
+rank1 = {threshold = 0.51, points = 18}
+rank2 = {threshold = 0.76, points = 25}
+desirable = false
+
+[[def.criteria]]
+param_name = "cliffer"
+rank1 = {threshold = 0.26, points = 15}
+rank2 = {threshold = 0.51, points = 20}
+desirable = false
+
+[[def.criteria]]
+param_name = "shield_master"
+rank1 = {threshold = 0.25, points = 38}
+rank2 = {threshold = 0.76, points = 42}
+desirable = true
+
+[[def.criteria]]
+param_name = "shield_catch_master"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 5}
+desirable = true
+
+[[def.criteria]]
+param_name = "item_throw_to_target"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[def.criteria]]
+param_name = "dragoon_collector"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[def.criteria]]
+param_name = "smash_ball_collector"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[def.criteria]]
+param_name = "hammer_collector"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[def.criteria]]
+param_name = "special_flagger"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+###############################################################################
+# AGL "Agile"                                                                 #
+#                                                                             #
+# This personality must move fast. It must be aggressive but not in the air.  #
+# Collecting items is ok but anything that requires charging or would leave   #
+# the amiibo in a vulnerable state is too risky.                              #
+###############################################################################
+
+[[agl.tiers]]
+target_score = 100
+personality = "Light"
+
+[[agl.tiers]]
+target_score = 170
+personality = "Quick"
+
+[[agl.tiers]]
+target_score = 225
+personality = "Lightning Fast"
+
+[[agl.criteria]]
+param_name = "offensive"
+rank1 = {threshold = 0.25, points = 11}
+rank2 = {threshold = 0.51, points = 24}
+desirable = true
+
+[[agl.criteria]]
+param_name = "dash"
+required = true
+rank1 = {threshold = 0.25, points = 16}
+rank2 = {threshold = 0.76, points = 40}
+desirable = true
+
+[[agl.criteria]]
+param_name = "air_offensive"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.76, points = 15}
+desirable = false
+
+[[agl.criteria]]
+param_name = "smash_holder"
+rank1 = {threshold = 0.26, points = 11}
+rank2 = {threshold = 0.51, points = 22}
+desirable = false
+
+[[agl.criteria]]
+param_name = "dash_attacker"
+rank1 = {threshold = 0.25, points = 13}
+rank2 = {threshold = 0.51, points = 22}
+desirable = true
+
+[[agl.criteria]]
+param_name = "critical_hitter"
+rank1 = {threshold = 0.26, points = 8}
+rank2 = {threshold = 0.76, points = 15}
+desirable = false
+
+[[agl.criteria]]
+param_name = "shield_master"
+rank1 = {threshold = 0.26, points = 13}
+rank2 = {threshold = 0.76, points = 30}
+desirable = false
+
+[[agl.criteria]]
+param_name = "item_collector"
+rank1 = {threshold = 0.22, points = 11}
+rank2 = {threshold = 0.48, points = 15}
+desirable = true
+
+[[agl.criteria]]
+param_name = "hammer_collector"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 3}
+desirable = false
+
+[[agl.criteria]]
+param_name = "special_flagger"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 3}
+desirable = false
+
+[[agl.criteria]]
+param_name = "homerun_batter"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 3}
+desirable = false
+
+[[agl.criteria]]
+param_name = "club_swinger"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 3}
+desirable = false
+
+[[agl.criteria]]
+param_name = "carrier_breaker"
+rank1 = {threshold = 0.22, points = 2}
+rank2 = {threshold = 0.48, points = 3}
+desirable = true
+
+[[agl.criteria]]
+param_name = "charger"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 2}
+desirable = false
+
+###############################################################################
+# OFN "Offensive"                                                             #
+#                                                                             #
+# The amiibo must be aggressive and in the face of its opponents. Attacking   #
+# off stage is encouraged. Items should not be used. If they are picked up,   #
+# then they should be thrown at an opponent immediately.                      #
+###############################################################################
+
+[[ofn.tiers]]
+target_score = 100
+personality = "Enthusiastic"
+
+[[ofn.tiers]]
+target_score = 180
+personality = "Aggressive"
+
+[[ofn.tiers]]
+target_score = 235
+personality = "Offensive"
+
+[[ofn.criteria]]
+param_name = "near"
+required = true
+rank1 = {threshold = 0.25, points = 15}
+rank2 = {threshold = 0.76, points = 22}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "offensive"
+rank1 = {threshold = 0.25, points = 21}
+rank2 = {threshold = 0.76, points = 30}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "attack_out_cliff"
+rank1 = {threshold = 0.26, points = 13}
+rank2 = {threshold = 0.51, points = 20}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "dash"
+rank1 = {threshold = 0.25, points = 11}
+rank2 = {threshold = 0.51, points = 13}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "air_offensive"
+rank1 = {threshold = 0.26, points = 10}
+rank2 = {threshold = 0.76, points = 18}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "feint_shooter"
+rank1 = {threshold = 0.26, points = 7}
+rank2 = {threshold = 0.76, points = 8}
+desirable = false
+
+[[ofn.criteria]]
+param_name = "dash_attacker"
+rank1 = {threshold = 0.25, points = 10}
+rank2 = {threshold = 0.51, points = 18}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "meteor_master"
+rank1 = {threshold = 0.26, points = 10}
+rank2 = {threshold = 0.51, points = 28}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "item_collector"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[ofn.criteria]]
+param_name = "item_throw_to_target"
+rank1 = {threshold = 0.48, points = 4}
+rank2 = {threshold = 0.74, points = 8}
+desirable = true
+
+[[ofn.criteria]]
+param_name = "dragoon_collector"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[ofn.criteria]]
+param_name = "smash_ball_collector"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[ofn.criteria]]
+param_name = "hammer_collector"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[ofn.criteria]]
+param_name = "special_flagger"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.76, points = 4}
+desirable = false
+
+###############################################################################
+# RSK "Risky"                                                                 #
+#                                                                             #
+# The amiibo must play aggresively off stage, especially dunking. The amiibo  #
+# should be in the air a lot, preferrable off stage. Melee counter attacks    #
+# and parries are encouraged but projectile counters are not. Going for risky #
+# items is encouraged.                                                        #
+###############################################################################
+
+[[rsk.tiers]]
+target_score = 80
+personality = "Reckless"
+
+[[rsk.tiers]]
+target_score = 160
+personality = "Thrill Seeker"
+
+[[rsk.tiers]]
+target_score = 220
+personality = "Daredevil"
+
+[[rsk.criteria]]
+param_name = "near"
+rank1 = {threshold = 0.25, points = 15}
+rank2 = {threshold = 0.51, points = 22}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "offensive"
+rank1 = {threshold = 0.25, points = 11}
+rank2 = {threshold = 0.76, points = 16}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "grounded"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.51, points = 10}
+desirable = false
+
+[[rsk.criteria]]
+param_name = "attack_out_cliff"
+required = true
+rank1 = {threshold = 0.26, points = 24}
+rank2 = {threshold = 0.76, points = 28}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "air_offensive"
+rank1 = {threshold = 0.26, points = 8}
+rank2 = {threshold = 0.76, points = 13}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "cliffer"
+rank1 = {threshold = 0.51, points = 5}
+rank2 = {threshold = 0.76, points = 8}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "feint_master"
+rank1 = {threshold = 0.25, points = 3}
+rank2 = {threshold = 0.76, points = 5}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "feint_counter"
+rank1 = {threshold = 0.25, points = 3}
+rank2 = {threshold = 0.51, points = 5}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "feint_shooter"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 3}
+desirable = false
+
+[[rsk.criteria]]
+param_name = "dash_attacker"
+rank1 = {threshold = 0.25, points = 10}
+rank2 = {threshold = 0.51, points = 16}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "critical_hitter"
+rank1 = {threshold = 0.26, points = 4}
+rank2 = {threshold = 0.51, points = 8}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "meteor_master"
+rank1 = {threshold = 0.26, points = 12}
+rank2 = {threshold = 0.51, points = 30}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "just_shield_master"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 6}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "hammer_collector"
+rank1 = {threshold = 0.2, points = 5}
+rank2 = {threshold = 0.73, points = 8}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "special_flagger"
+rank1 = {threshold = 0.2, points = 2}
+rank2 = {threshold = 0.46, points = 5}
+desirable = true
+
+[[rsk.criteria]]
+param_name = "carrier_breaker"
+rank1 = {threshold = 0.22, points = 2}
+rank2 = {threshold = 0.74, points = 3}
+desirable = true
+
+###############################################################################
+# GEN "General"                                                               #
+#                                                                             #
+# This personality must parry. It will show off its skills including          #
+# countering, parrying, dunking, and using most items.                        #
+###############################################################################
+
+[[gen.tiers]]
+target_score = 80
+personality = "Versatile"
+
+[[gen.tiers]]
+target_score = 120
+personality = "Tricky"
+
+[[gen.tiers]]
+target_score = 150
+personality = "Technician"
+
+[[gen.criteria]]
+param_name = "attack_out_cliff"
+rank1 = {threshold = 0.26, points = 7}
+rank2 = {threshold = 0.76, points = 7}
+desirable = true
+
+[[gen.criteria]]
+param_name = "air_offensive"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.76, points = 7}
+desirable = false
+
+[[gen.criteria]]
+param_name = "feint_master"
+rank1 = {threshold = 0.25, points = 8}
+rank2 = {threshold = 0.76, points = 13}
+desirable = true
+
+[[gen.criteria]]
+param_name = "feint_counter"
+rank1 = {threshold = 0.25, points = 8}
+rank2 = {threshold = 0.76, points = 13}
+desirable = true
+
+[[gen.criteria]]
+param_name = "feint_shooter"
+rank1 = {threshold = 0.25, points = 8}
+rank2 = {threshold = 0.76, points = 13}
+desirable = true
+
+[[gen.criteria]]
+param_name = "catcher"
+rank1 = {threshold = 0.25, points = 7}
+rank2 = {threshold = 0.76, points = 9}
+desirable = true
+
+[[gen.criteria]]
+param_name = "attack_cancel"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.76, points = 5}
+desirable = true
+
+[[gen.criteria]]
+param_name = "meteor_master"
+rank1 = {threshold = 0.26, points = 4}
+rank2 = {threshold = 0.76, points = 15}
+desirable = true
+
+[[gen.criteria]]
+param_name = "shield_master"
+rank1 = {threshold = 0.25, points = 4}
+rank2 = {threshold = 0.76, points = 10}
+desirable = true
+
+[[gen.criteria]]
+param_name = "just_shield_master"
+required = true
+rank1 = {threshold = 0.26, points = 23}
+rank2 = {threshold = 0.76, points = 35}
+desirable = true
+
+[[gen.criteria]]
+param_name = "shield_catch_master"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.46, points = 9}
+desirable = true
+
+[[gen.criteria]]
+param_name = "item_collector"
+rank1 = {threshold = 0.22, points = 3}
+rank2 = {threshold = 0.76, points = 8}
+desirable = true
+
+[[gen.criteria]]
+param_name = "item_throw_to_target"
+rank1 = {threshold = 0.22, points = 3}
+rank2 = {threshold = 0.48, points = 4}
+desirable = true
+
+[[gen.criteria]]
+param_name = "dragoon_collector"
+rank1 = {threshold = 0.2, points = 3}
+rank2 = {threshold = 0.46, points = 7}
+desirable = true
+
+[[gen.criteria]]
+param_name = "smash_ball_collector"
+rank1 = {threshold = 0.2, points = 3}
+rank2 = {threshold = 0.76, points = 5}
+desirable = true
+
+[[gen.criteria]]
+param_name = "item_swinger"
+rank1 = {threshold = 0.22, points = 2}
+rank2 = {threshold = 0.46, points = 3}
+desirable = true
+
+[[gen.criteria]]
+param_name = "homerun_batter"
+rank1 = {threshold = 0.2, points = 4}
+rank2 = {threshold = 0.76, points = 4}
+desirable = true
+
+[[gen.criteria]]
+param_name = "club_swinger"
+rank1 = {threshold = 0.2, points = 4}
+rank2 = {threshold = 0.76, points = 4}
+desirable = true
+
+[[gen.criteria]]
+param_name = "death_swinger"
+rank1 = {threshold = 0.2, points = 4}
+rank2 = {threshold = 0.46, points = 4}
+desirable = true
+
+[[gen.criteria]]
+param_name = "item_shooter"
+rank1 = {threshold = 0.22, points = 3}
+rank2 = {threshold = 0.76, points = 4}
+desirable = true
+
+[[gen.criteria]]
+param_name = "carrier_breaker"
+rank1 = {threshold = 0.26, points = 4}
+rank2 = {threshold = 0.76, points = 4}
+desirable = false
+
+###############################################################################
+# ENT "Entertainer"                                                           #
+#                                                                             #
+# This personality must taunt a lot. Dunking, charging regular/smash attacks, #
+# and parrying are encouraged. Items should be used as intended and not just  #
+# thrown.                                                                     #
+###############################################################################
+
+[[ent.tiers]]
+target_score = 90
+personality = "Show-Off"
+
+[[ent.tiers]]
+target_score = 170
+personality = "Flashy"
+
+[[ent.tiers]]
+target_score = 230
+personality = "Entertainer"
+
+[[ent.criteria]]
+param_name = "attack_out_cliff"
+rank1 = {threshold = 0.26, points = 8}
+rank2 = {threshold = 0.76, points = 12}
+desirable = true
+
+[[ent.criteria]]
+param_name = "100_keeper"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 4}
+desirable = false
+
+[[ent.criteria]]
+param_name = "smash_holder"
+rank1 = {threshold = 0.25, points = 2}
+rank2 = {threshold = 0.51, points = 3}
+desirable = true
+
+[[ent.criteria]]
+param_name = "critical_hitter"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.76, points = 3}
+desirable = true
+
+[[ent.criteria]]
+param_name = "meteor_master"
+rank1 = {threshold = 0.26, points = 7}
+rank2 = {threshold = 0.76, points = 11}
+desirable = true
+
+[[ent.criteria]]
+param_name = "just_shield_master"
+rank1 = {threshold = 0.26, points = 8}
+rank2 = {threshold = 0.76, points = 12}
+desirable = true
+
+[[ent.criteria]]
+param_name = "item_throw_to_target"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.51, points = 13}
+desirable = false
+
+[[ent.criteria]]
+param_name = "dragoon_collector"
+rank1 = {threshold = 0.2, points = 8}
+rank2 = {threshold = 0.46, points = 13}
+desirable = true
+
+[[ent.criteria]]
+param_name = "smash_ball_collector"
+rank1 = {threshold = 0.2, points = 8}
+rank2 = {threshold = 0.46, points = 13}
+desirable = true
+
+[[ent.criteria]]
+param_name = "hammer_collector"
+rank1 = {threshold = 0.2, points = 8}
+rank2 = {threshold = 0.46, points = 14}
+desirable = true
+
+[[ent.criteria]]
+param_name = "special_flagger"
+rank1 = {threshold = 0.2, points = 13}
+rank2 = {threshold = 0.73, points = 17}
+desirable = true
+
+[[ent.criteria]]
+param_name = "homerun_batter"
+rank1 = {threshold = 0.2, points = 8}
+rank2 = {threshold = 0.73, points = 12}
+desirable = true
+
+[[ent.criteria]]
+param_name = "club_swinger"
+rank1 = {threshold = 0.2, points = 5}
+rank2 = {threshold = 0.46, points = 13}
+desirable = true
+
+[[ent.criteria]]
+param_name = "death_swinger"
+rank1 = {threshold = 0.2, points = 5}
+rank2 = {threshold = 0.46, points = 14}
+desirable = true
+
+[[ent.criteria]]
+param_name = "charger"
+rank1 = {threshold = 0.22, points = 2}
+rank2 = {threshold = 0.48, points = 3}
+desirable = true
+
+[[ent.criteria]]
+param_name = "appeal"
+required = true
+rank1 = {threshold = 0.25, points = 18}
+rank2 = {threshold = 0.76, points = 34}
+desirable = true
+
+###############################################################################
+# CAU "Cautious"                                                              #
+#                                                                             #
+# This personlity must not parry. The amiibo should stay on the ground and    #
+# use its shield a lot. It should stay far away from its opponents and        #
+# counter projectiles if necessary. This is also a hard personality to get    #
+# since many attributes take away from it and not many add to it.             #
+###############################################################################
+
+[[cau.tiers]]
+target_score = 80
+personality = "Cool"
+
+[[cau.tiers]]
+target_score = 160
+personality = "Logical"
+
+[[cau.tiers]]
+target_score = 215
+personality = "Sly"
+
+[[cau.criteria]]
+param_name = "near"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.51, points = 10}
+desirable = false
+
+[[cau.criteria]]
+param_name = "offensive"
+rank1 = {threshold = 0.26, points = 6}
+rank2 = {threshold = 0.51, points = 12}
+desirable = false
+
+[[cau.criteria]]
+param_name = "grounded"
+rank1 = {threshold = 0.25, points = 7}
+rank2 = {threshold = 0.51, points = 12}
+desirable = true
+
+[[cau.criteria]]
+param_name = "attack_out_cliff"
+rank1 = {threshold = 0.26, points = 7}
+rank2 = {threshold = 0.51, points = 12}
+desirable = false
+
+[[cau.criteria]]
+param_name = "dash"
+rank1 = {threshold = 0.26, points = 7}
+rank2 = {threshold = 0.51, points = 12}
+desirable = false
+
+[[cau.criteria]]
+param_name = "air_offensive"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.76, points = 6}
+desirable = false
+
+[[cau.criteria]]
+param_name = "cliffer"
+rank1 = {threshold = 0.26, points = 8}
+rank2 = {threshold = 0.76, points = 10}
+desirable = false
+
+[[cau.criteria]]
+param_name = "feint_master"
+rank1 = {threshold = 0.25, points = 3}
+rank2 = {threshold = 0.76, points = 4}
+desirable = true
+
+[[cau.criteria]]
+param_name = "feint_counter"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 5}
+desirable = false
+
+[[cau.criteria]]
+param_name = "feint_shooter"
+rank1 = {threshold = 0.25, points = 3}
+rank2 = {threshold = 0.76, points = 6}
+desirable = true
+
+[[cau.criteria]]
+param_name = "smash_holder"
+rank1 = {threshold = 0.51, points = 3}
+rank2 = {threshold = 0.76, points = 6}
+desirable = false
+
+[[cau.criteria]]
+param_name = "dash_attacker"
+rank1 = {threshold = 0.51, points = 4}
+rank2 = {threshold = 0.76, points = 6}
+desirable = false
+
+[[cau.criteria]]
+param_name = "critical_hitter"
+rank1 = {threshold = 0.26, points = 4}
+rank2 = {threshold = 0.76, points = 6}
+desirable = false
+
+[[cau.criteria]]
+param_name = "meteor_master"
+rank1 = {threshold = 0.26, points = 4}
+rank2 = {threshold = 0.76, points = 5}
+desirable = false
+
+[[cau.criteria]]
+param_name = "shield_master"
+required = true
+rank1 = {threshold = 0.26, points = 29}
+rank2 = {threshold = 0.76, points = 42}
+desirable = false
+
+[[cau.criteria]]
+param_name = "just_shield_master"
+rank1 = {threshold = 0.26, points = 5}
+rank2 = {threshold = 0.76, points = 5}
+desirable = false
+
+[[cau.criteria]]
+param_name = "hammer_collector"
+rank1 = {threshold = 0.26, points = 4}
+rank2 = {threshold = 0.51, points = 10}
+desirable = false
+
+[[cau.criteria]]
+param_name = "special_flagger"
+rank1 = {threshold = 0.26, points = 6}
+rank2 = {threshold = 0.51, points = 12}
+desirable = false
+
+[[cau.criteria]]
+param_name = "charger"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.76, points = 5}
+desirable = false
+
+###############################################################################
+# DYN "Dynamic"                                                               #
+#                                                                             #
+# This personality is quite different from the others. It has no specific     #
+# attribute requirement. It’s similar to RSK except it doesn’t counter or     #
+# parry. It should attack a lot, especially off stage. Charging attacks is    #
+# good. Holding items is strongly encouraged. What’s particularly unusual is  #
+# it’s discouraged from throwing, swinging, or shooting items. This           #
+# personality will simply hold items and never use them, except some risky    #
+# items.                                                                      #
+###############################################################################
+
+[[dyn.criteria]]
+param_name = "offensive"
+rank1 = {threshold = 0.25, points = 5}
+rank2 = {threshold = 0.76, points = 7}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "attack_out_cliff"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 5}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "air_offensive"
+rank1 = {threshold = 0.26, points = 7}
+rank2 = {threshold = 0.76, points = 10}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "catcher"
+rank1 = {threshold = 0.26, points = 3}
+rank2 = {threshold = 0.51, points = 3}
+desirable = false
+
+[[dyn.criteria]]
+param_name = "attack_cancel"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.51, points = 2}
+desirable = false
+
+[[dyn.criteria]]
+param_name = "smash_holder"
+rank1 = {threshold = 0.25, points = 7}
+rank2 = {threshold = 0.76, points = 9}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "dash_attacker"
+rank1 = {threshold = 0.25, points = 6}
+rank2 = {threshold = 0.76, points = 7}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "critical_hitter"
+rank1 = {threshold = 0.26, points = 12}
+rank2 = {threshold = 0.76, points = 15}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "meteor_master"
+rank1 = {threshold = 0.26, points = 11}
+rank2 = {threshold = 0.51, points = 12}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "shield_master"
+rank1 = {threshold = 0.25, points = 11}
+rank2 = {threshold = 0.76, points = 12}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "just_shield_master"
+rank1 = {threshold = 0.26, points = 7}
+rank2 = {threshold = 0.76, points = 8}
+desirable = false
+
+[[dyn.criteria]]
+param_name = "item_throw_to_target"
+rank1 = {threshold = 0.26, points = 2}
+rank2 = {threshold = 0.76, points = 3}
+desirable = false
+
+[[dyn.criteria]]
+param_name = "dragoon_collector"
+rank1 = {threshold = 0.2, points = 3}
+rank2 = {threshold = 0.46, points = 5}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "smash_ball_collector"
+rank1 = {threshold = 0.2, points = 3}
+rank2 = {threshold = 0.46, points = 7}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "hammer_collector"
+rank1 = {threshold = 0.2, points = 3}
+rank2 = {threshold = 0.46, points = 7}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "special_flagger"
+rank1 = {threshold = 0.2, points = 5}
+rank2 = {threshold = 0.46, points = 10}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "item_swinger"
+rank1 = {threshold = 0.26, points = 6}
+rank2 = {threshold = 0.51, points = 8}
+desirable = false
+
+[[dyn.criteria]]
+param_name = "homerun_batter"
+rank1 = {threshold = 0.46, points = 9}
+rank2 = {threshold = 0.71, points = 10}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "club_swinger"
+rank1 = {threshold = 0.46, points = 9}
+rank2 = {threshold = 0.71, points = 10}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "death_swinger"
+rank1 = {threshold = 0.46, points = 9}
+rank2 = {threshold = 0.71, points = 10}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "item_shooter"
+rank1 = {threshold = 0.51, points = 2}
+rank2 = {threshold = 0.74, points = 1}
+desirable = false
+
+[[dyn.criteria]]
+param_name = "carrier_breaker"
+rank1 = {threshold = 0.48, points = 2}
+rank2 = {threshold = 0.71, points = 1}
+desirable = true
+
+[[dyn.criteria]]
+param_name = "charger"
+rank1 = {threshold = 0.22, points = 5}
+rank2 = {threshold = 0.74, points = 6}
+desirable = true
+
+[[dyn.tiers]]
+target_score = 80
+personality = "Laid Back"
+
+[[dyn.tiers]]
+target_score = 160
+personality = "Wild"
+
+[[dyn.tiers]]
+target_score = 210
+personality = "Lively"
