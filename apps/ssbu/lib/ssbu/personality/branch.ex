@@ -101,7 +101,7 @@ defmodule SSBU.Personality.Branch do
           },
           %{
             desirable: true,
-            param_name: :carrier_breaker,
+            param_name: :carrier_broker,
             rank1: %{points: 2, threshold: 0.22},
             rank2: %{points: 3, threshold: 0.48},
             required: false
@@ -509,7 +509,7 @@ defmodule SSBU.Personality.Branch do
           },
           %{
             desirable: true,
-            param_name: :carrier_breaker,
+            param_name: :carrier_broker,
             rank1: %{points: 2, threshold: 0.48},
             rank2: %{points: 1, threshold: 0.71},
             required: false
@@ -795,7 +795,7 @@ defmodule SSBU.Personality.Branch do
           },
           %{
             desirable: false,
-            param_name: :carrier_breaker,
+            param_name: :carrier_broker,
             rank1: %{points: 4, threshold: 0.26},
             rank2: %{points: 4, threshold: 0.76},
             required: false
@@ -1025,7 +1025,7 @@ defmodule SSBU.Personality.Branch do
           },
           %{
             desirable: true,
-            param_name: :carrier_breaker,
+            param_name: :carrier_broker,
             rank1: %{points: 2, threshold: 0.22},
             rank2: %{points: 3, threshold: 0.74},
             required: false

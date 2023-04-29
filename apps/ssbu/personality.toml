@@ -186,7 +186,7 @@ rank2 = {threshold = 0.51, points = 3}
 desirable = false
 
 [[agl.criteria]]
-param_name = "carrier_breaker"
+param_name = "carrier_broker"
 rank1 = {threshold = 0.22, points = 2}
 rank2 = {threshold = 0.48, points = 3}
 desirable = true
@@ -415,7 +415,7 @@ rank2 = {threshold = 0.46, points = 5}
 desirable = true
 
 [[rsk.criteria]]
-param_name = "carrier_breaker"
+param_name = "carrier_broker"
 rank1 = {threshold = 0.22, points = 2}
 rank2 = {threshold = 0.74, points = 3}
 desirable = true
@@ -561,7 +561,7 @@ rank2 = {threshold = 0.76, points = 4}
 desirable = true
 
 [[gen.criteria]]
-param_name = "carrier_breaker"
+param_name = "carrier_broker"
 rank1 = {threshold = 0.26, points = 4}
 rank2 = {threshold = 0.76, points = 4}
 desirable = false
@@ -958,7 +958,7 @@ rank2 = {threshold = 0.74, points = 1}
 desirable = false
 
 [[dyn.criteria]]
-param_name = "carrier_breaker"
+param_name = "carrier_broker"
 rank1 = {threshold = 0.48, points = 2}
 rank2 = {threshold = 0.71, points = 1}
 desirable = true
