@@ -1,0 +1,230 @@
+# SSBU Personality
+
+```elixir
+Mix.install(
+  [
+    {:vega_lite, "~> 0.1.7"},
+    {:kino, "~> 0.9.3"},
+    {:ssbu, github: "rob-brown/amo_system", subdir: "apps/ssbu"}
+  ],
+  force: false
+)
+```
+
+## Read amiibo
+
+Run the following cell to create a file input. Then, drop the amiibo bin file on it.
+
+If you want to analyze another amiibo, then you need to drop a new file on the input and re-run
+all cells after.
+
+```elixir
+input = Kino.Input.file("Amiibo file:")
+```
+
+### Key Retail
+
+In order to decrypt the bin, you will need to find a file named `key_retail.bin` on the
+Internet. Once found, you need to base 64 encode the key. Go into the Secrets tab in the
+side bar. Create a secret named `KEY_RETAIL` and paste in the base64 encoded data. If you
+did this right, then you can decrypt the amiibo bin files.
+
+![](https://raw.githubusercontent.com/rob-brown/amo_system/main/notebooks/img/key_retail.png)
+
+```elixir
+value = Kino.Input.read(input)
+path = Kino.Input.file_path(value.file_ref)
+bytes = File.read!(path)
+```
+
+```elixir
+case System.get_env("LB_KEY_RETAIL") do
+  nil ->
+    IO.puts("You need to add a new secret named `KEY_RETAIL` to your Livebook")
+
+  key ->
+    System.put_env("KEY_RETAIL", key)
+end
+```
+
+```elixir
+{:ok, amiibo} = AmiiboSerialization.Amiibo.read_file(path)
+```
+
+## Extract Attributes
+
+Running the next cell will extract all the attributes from the amiibo.
+
+First, let's visualize the attributes in a text form. This is nice for putting two amiibo
+into a diff program for a side-by-side comparison.
+
+Uses the raw values just so the attribute names look nicer.
+
+```elixir
+raw_attributes = SSBU.Attributes.Serializer.parse_amiibo(amiibo)
+
+for {k, {_, _, v}} <- raw_attributes do
+  name = String.pad_trailing(k, 21)
+  value = Float.round(v * 100, 3)
+  IO.puts("#{name}#{value}")
+end
+
+:ok
+```
+
+Next, let's visualize the information in a table for easier reading. This code also calculates the implicit values.
+
+Each table only shows 10 rows by default, so you will need to page through the data to see all
+the attributes.
+
+```elixir
+raw_attributes
+|> Keyword.take([
+  "Near",
+  "Offensive",
+  "Grounded",
+  "Attack Out Cliff",
+  "Dash",
+  "Return To Cliff",
+  "Air Offensive",
+  "Cliffer",
+  "Feint Master",
+  "Feint Counter",
+  "Feint Shooter",
+  "Catcher",
+  "100 Attacker",
+  "100 Keeper",
+  "Attack Cancel",
+  "Smash Holder",
+  "Dash Attacker",
+  "Critical Hitter",
+  "Meteor Smasher",
+  "Shield Master",
+  "Just Shield Master",
+  "Shield Catch Master",
+  "Item Collector",
+  "Item Throw to Target",
+  "Dragoon Collector",
+  "Smash Ball Collector",
+  "Hammer Collector",
+  "Special Flagger",
+  "Item Swinger",
+  "Homerun Batter",
+  "Club Swinger",
+  "Death Swinger",
+  "Item Shooter",
+  "Carrier Broker",
+  "Charger",
+  "Appeal",
+  "Advantageous Fighter",
+  "Weaken Fighter",
+  "Revenge",
+  "Stage Enemy"
+])
+|> Enum.map(fn {k, {int, bits, float}} ->
+  %{attribute: k, int: int, float: float, bits: bits, max: trunc(:math.pow(2, bits) - 1)}
+end)
+|> Kino.DataTable.new(name: "Behavioral Attributes", sorting_enabled: true)
+|> Kino.render()
+
+grounded_moves =
+  raw_attributes
+  |> Keyword.take([
+    "Forward Tilt",
+    "Up Tilt",
+    "Down Tilt",
+    "Forward Smash",
+    "Up Smash",
+    "Down Smash",
+    "Neutral Special",
+    "Side Special",
+    "Up Special",
+    "Down Special"
+  ])
+
+# Calculate the implicit jab value.
+jab = 1 - (grounded_moves |> Enum.map(fn {_, {_, _, v}} -> v end) |> Enum.sum())
+
+[{"Jab", {jab * 1023, 10, jab}} | grounded_moves]
+|> Enum.map(fn {k, {int, bits, float}} ->
+  %{attribute: k, int: int, float: float, bits: bits, max: trunc(:math.pow(2, bits) - 1)}
+end)
+|> Kino.DataTable.new(name: "Grounded Moves", sorting_enabled: true)
+|> Kino.render()
+
+aerial_moves =
+  raw_attributes
+  |> Keyword.take([
+    "Forward Air",
+    "Back Air",
+    "Up Air",
+    "Down Air",
+    "Neutral Special Air",
+    "Side Special Air",
+    "Up Special Air",
+    "Down Special Air"
+  ])
+
+# Calculate the implicit neutral air value.
+nair = 1 - (aerial_moves |> Enum.map(fn {_, {_, _, v}} -> v end) |> Enum.sum())
+
+[{"Neutral Air", {nair * 511, 9, nair}} | aerial_moves]
+|> Enum.map(fn {k, {int, bits, float}} ->
+  %{attribute: k, int: int, float: float, bits: bits, max: trunc(:math.pow(2, bits) - 1)}
+end)
+|> Kino.DataTable.new(name: "Aerial Moves", sorting_enabled: true)
+|> Kino.render()
+
+dodge =
+  raw_attributes
+  |> Keyword.take([
+    "Front Air Dodge",
+    "Back Air Dodge"
+  ])
+
+# Calculate the neutral dodge value.
+neutral_dodge = 1 - (dodge |> Enum.map(fn {_, {_, _, v}} -> v end) |> Enum.sum())
+
+[{"Neutral Air Dodge", {neutral_dodge * 255, 8, neutral_dodge}} | dodge]
+|> Enum.map(fn {k, {int, bits, float}} ->
+  %{attribute: k, int: int, float: float, bits: bits, max: trunc(:math.pow(2, bits) - 1)}
+end)
+|> Kino.DataTable.new(name: "Dodge Directions", sorting_enabled: true)
+|> Kino.render()
+
+taunt =
+  raw_attributes
+  |> Keyword.take([
+    "Up Taunt",
+    "Down Taunt"
+  ])
+
+# Calculate the side taunt value.
+side_taunt = 1 - (taunt |> Enum.map(fn {_, {_, _, v}} -> v end) |> Enum.sum())
+
+[{"Side Taunt", {side_taunt * 127, 7, side_taunt}} | taunt]
+|> Enum.map(fn {k, {int, bits, float}} ->
+  %{attribute: k, int: int, float: float, bits: bits, max: trunc(:math.pow(2, bits) - 1)}
+end)
+|> Kino.DataTable.new(name: "Taunt Directions", sorting_enabled: true)
+|> Kino.render()
+
+:ok
+```
+
+## Calculate Personality
+
+Using the attributes we can calculate the personality.
+
+```elixir
+attributes = SSBU.Attributes.parse(amiibo)
+SSBU.Personality.calculate_personality(attributes)
+```
+
+Or you can do it all in one line.
+
+```elixir
+SSBU.Personality.parse_amiibo(amiibo)
+```
+
+<!-- livebook:{"offset":5610,"stamp":{"token":"QTEyOEdDTQ.xidG2sFxb7peD_qkgUkkJqz3phjWrmmbweTLMniyHcM6_-n0bOl8x76UyK4.MjcNWJqbsnbf4Rv_.YdZbw-3bkeX6iPU84tLo8KxQeIwQEddtPi2iQcIk2zvIqfxuu2-k3ZYMTZAjqg.41OGQt9jHPblarjVHsLxOA","version":1}} -->
