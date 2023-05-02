@@ -30,8 +30,8 @@ This involves editing some system files too. You may need to run the
 
 ## Gamepad Installation
 
-You probably have `curl` and `cron` are already install. If you don't have them
-installed already, then you can do so like this:
+You probably have `curl` and `cron` already installed. If you don't have them
+installed, then you can do so like this:
 
 ```bash
 sudo apt update

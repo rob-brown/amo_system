@@ -39,8 +39,8 @@ then you should pick a hostname other than the default.
 For debugging, it's recommended to set up SSH. If you don't know what that is, then
 you can ignore it.
 
-The default username is `pi` and the password is `raspberry`. It's recommended to set
-a different username and password.
+The default username is `pi` and the password is `raspberry`. It's recommended to keep
+the default username as `pi` but set a different password.
 
 You will also need to put in your wifi name and password so your Raspberry Pi can
 connect to the network. If you don't, then you will need to use an ethernet cable to

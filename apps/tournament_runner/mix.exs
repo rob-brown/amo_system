@@ -1,7 +1,7 @@
 defmodule TournamentRunner.MixProject do
   use Mix.Project
 
-  @version "1.0.0"
+  @version "VERSION" |> File.read!() |> String.trim()
 
   def project do
     [

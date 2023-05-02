@@ -1,0 +1,121 @@
+# Tournament Runner Interface
+
+```elixir
+Mix.install(
+  [
+    {:vega_lite, "~> 0.1.7"},
+    {:kino, "~> 0.9.3"},
+    {:tournament_runner, github: "rob-brown/amo_system", subdir: "apps/tournament_runner"}
+  ],
+  force: false
+)
+```
+
+## Inputs
+
+```elixir
+default_node = "tournament_runner@raspberrypi"
+default_cookie = "FXFXQH7IAPBGBY7I66G4IVWYFDSJIPRXSDECAZV2NVFHXIVZBXMQ===="
+
+node_input = Kino.Input.text("Node name", default: default_node) |> Kino.render()
+cookie_input = Kino.Input.text("Cookie", default: default_cookie) |> Kino.render()
+tsv_input = Kino.Input.file("TSV file") |> Kino.render()
+zip_input = Kino.Input.file("Bin zip file") |> Kino.render()
+
+:ok
+```
+
+```elixir
+{zip, tournament_name} =
+  case Kino.Input.read(zip_input) do
+    nil ->
+      raise "No zip file"
+
+    %{client_name: name, file_ref: ref} ->
+      tournament_name = String.trim_trailing(name, ".zip")
+      path = Kino.Input.file_path(ref)
+      bin = File.read!(path)
+      {bin, tournament_name}
+  end
+
+tsv =
+  case Kino.Input.read(tsv_input) do
+    nil ->
+      raise "No TSV file"
+
+    %{file_ref: ref} ->
+      ref
+      |> Kino.Input.file_path()
+      |> File.read!()
+  end
+
+inputs = %{
+  cookie: cookie_input |> Kino.Input.read() |> String.to_atom(),
+  node: node_input |> Kino.Input.read() |> String.to_atom(),
+  zip: zip,
+  tsv: tsv,
+  tournament_name: tournament_name
+}
+```
+
+## Connect
+
+```elixir
+true = Node.set_cookie(inputs.cookie)
+true = Node.connect(inputs.node)
+```
+
+## Copy Files
+
+```elixir
+dir = Path.join("/home/pi", tournament_name)
+tsv_path = Path.join(dir, "#{tournament_name}-entries.tsv")
+zip_path = Path.join(dir, "bins.zip")
+
+Node.spawn(inputs.node, File, :mkdir_p, [dir])
+Process.sleep(1000)
+Node.spawn(inputs.node, File, :write!, [tsv_path, inputs.tsv])
+Node.spawn(inputs.node, File, :write!, [zip_path, inputs.zip])
+Node.spawn(inputs.node, System, :cmd, ["unzip", ["-n", "-d", dir, zip_path]])
+
+:ok
+```
+
+## Configure Tournament
+
+```elixir
+options = [type: "single elimination"]
+# options = [type: "double elimination"]
+driver = TournamentRunner.Driver.SquadStrike
+# driver = TournamentRunner.Driver.Match1v1
+
+storage = %TournamentRunner.Storage{dir: dir, module: driver}
+```
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Create Tournament
+
+```elixir
+Node.spawn(inputs.node, driver, :create_tournament, [storage, options])
+:ok
+```
+
+```elixir
+Node.spawn(inputs.node, driver, :add_participants, [storage])
+:ok
+```
+
+```elixir
+Node.spawn(inputs.node, driver, :start_tournament, [storage])
+:ok
+```
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Run Tournament
+
+```elixir
+Node.spawn(inputs.node, driver, :resume, [storage])
+:ok
+```

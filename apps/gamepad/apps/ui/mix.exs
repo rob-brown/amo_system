@@ -13,11 +13,7 @@ defmodule Ui.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      releases: [
-        gamepad: [
-          steps: [:assemble, :tar]
-        ]
-      ]
+      releases: releases()
     ]
   end
 
@@ -70,6 +66,16 @@ defmodule Ui.MixProject do
     [
       setup: ["deps.get"],
       "assets.deploy": ["esbuild default --minify", "phx.digest"]
+    ]
+  end
+
+  defp releases do
+    [
+      gamepad: [
+        steps: [:assemble, :tar],
+        include_executables_for: [:unix],
+        version: @version
+      ]
     ]
   end
 end
