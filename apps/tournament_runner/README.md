@@ -37,7 +37,7 @@ sudo apt install curl cron --yes
 You can install the app like this:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/tournement_runner/install.sh | bash -s -- [CHALLONGE_API_KEY]
+curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/tournament_runner/install.sh | bash -s -- [CHALLONGE_API_KEY]
 ```
 
 Replace `[CHALLONGE_API_KEY]` with your own API key.
