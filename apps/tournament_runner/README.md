@@ -24,6 +24,11 @@ This involves editing some system files too. You may need to run the
 See the [Challonge API documentation](https://api.challonge.com/v1) for instructions
 to get your own Challonge API key. Keep your API key secret and don't publish it.
 
+## USB Capture Card
+
+See the [Vision library](../vision/README.md) for details about supported USB
+capture cards.
+
 ## Tournament Runner Installation
 
 You probably have `curl` and `cron` already installed. If you don't have them
