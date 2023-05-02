@@ -4,18 +4,48 @@
 Mix.install(
   [
     {:vega_lite, "~> 0.1.7"},
-    {:kino, "~> 0.9.3"},
-    {:tournament_runner, github: "rob-brown/amo_system", subdir: "apps/tournament_runner"}
+    {:kino, "~> 0.9.3"}
   ],
   force: false
 )
 ```
 
+## Summary
+
+This Livebook is intended to be run on a personal computer. It will allow control of the 
+Tournament Runner code running on a raspberry pi.
+
 ## Inputs
+
+There are a few parameters you need to set up to run a tournament.
+
+1. Node name
+2. Cookie
+3. TSV file
+4. Zip file
+
+The first two will be the same every time. You can change the defaults in this Livebook so you
+don't need to change it each time. The other two are files downloaded from submissionapp.com.
+They are specific to each tournament.
+
+When setting up your OS, if you kept the default host name of `raspberrypi.local`, then 
+the node name will be `tournament_runner@raspberrypi`. Otherwise, you will need to change the 
+name accordingly.
+
+The cookie is an arbitrary string. It must match exactly. Generally the cookie is to be kept 
+secret. You can find the cookie by downloading the release file `tournament_runner.tar.gz`.
+After decompressing that file, you'll find the cookie at `releases/COOKIE`. You may change the
+cookie if you want.
+
+The TSV file must be the list of all entries, not the list of all amiibo, downloaded from 
+submissionapp.com.
+
+The zip file also comes from submissionapp.com. It contains all the bins to use in the 
+tournament.
 
 ```elixir
 default_node = "tournament_runner@raspberrypi"
-default_cookie = "FXFXQH7IAPBGBY7I66G4IVWYFDSJIPRXSDECAZV2NVFHXIVZBXMQ===="
+default_cookie = "3GRCBCOCZYO25SKHNEKNEMDB62OCBBYUHLA66RL55XN46DO2XAKA===="
 
 node_input = Kino.Input.text("Node name", default: default_node) |> Kino.render()
 cookie_input = Kino.Input.text("Cookie", default: default_cookie) |> Kino.render()
@@ -60,6 +90,13 @@ inputs = %{
 
 ## Connect
 
+At this point the Livebook will attempt to connect your raspberry pi. If it doesn't return true,
+then one of the following went wrong:
+
+* Your node name or cookie are wrong.
+* Your raspberry pi isn't running the Tournament Runner app.
+* Your personal computer and raspberry pi aren't connected to the same network.
+
 ```elixir
 true = Node.set_cookie(inputs.cookie)
 true = Node.connect(inputs.node)
@@ -67,12 +104,15 @@ true = Node.connect(inputs.node)
 
 ## Copy Files
 
+Next, the files are copied to the raspberry pi.
+
 ```elixir
 dir = Path.join("/home/pi", tournament_name)
 tsv_path = Path.join(dir, "#{tournament_name}-entries.tsv")
 zip_path = Path.join(dir, "bins.zip")
 
 Node.spawn(inputs.node, File, :mkdir_p, [dir])
+# Wait a second to ensure the directory is created before writing to it.
 Process.sleep(1000)
 Node.spawn(inputs.node, File, :write!, [tsv_path, inputs.tsv])
 Node.spawn(inputs.node, File, :write!, [zip_path, inputs.zip])
@@ -83,39 +123,79 @@ Node.spawn(inputs.node, System, :cmd, ["unzip", ["-n", "-d", dir, zip_path]])
 
 ## Configure Tournament
 
+Now you need to configure the details of your tournament. You can choose single or double
+elimination. There are currently two drivers: standard 1v1 and Squad Strike. Both are limited
+to best of 1 for now.
+
 ```elixir
 options = [type: "single elimination"]
 # options = [type: "double elimination"]
 driver = TournamentRunner.Driver.SquadStrike
 # driver = TournamentRunner.Driver.Match1v1
 
-storage = %TournamentRunner.Storage{dir: dir, module: driver}
+# Manually create the struct so we don't need to import the entire library just to send it.
+storage = %{__struct__: TournamentRunner.Storage, dir: dir, module: driver}
 ```
 
-<!-- livebook:{"branch_parent_index":3} -->
+<!-- livebook:{"branch_parent_index":4} -->
 
 ## Create Tournament
+
+This is where the real magic begins. The following cells will send commands to the raspberry pi
+to set up your tournament. If you have already created the tournament, do not re-run these 
+steps. Otherwise, a new tournament will be set up and the raspberry pi will lose track of the 
+other tournament.
+
+This first cell creates the tournament in Challonge. Make sure it gets created before 
+continuing. Challonge can be finicky.
 
 ```elixir
 Node.spawn(inputs.node, driver, :create_tournament, [storage, options])
 :ok
 ```
 
+Second, we add all the participants. This data is pulled from the TSV file that was copied to the
+raspberry pi. After adding the participants, look over the bracket and make sure it looks good.
+You may want to shuffle the participants through the Challonge web interface.
+
 ```elixir
 Node.spawn(inputs.node, driver, :add_participants, [storage])
 :ok
 ```
+
+Third, we tell Challonge to mark the tournament as started. Again, make sure you have looked 
+over the bracket. Once started, the bracket can't be changed.
 
 ```elixir
 Node.spawn(inputs.node, driver, :start_tournament, [storage])
 :ok
 ```
 
-<!-- livebook:{"branch_parent_index":3} -->
+<!-- livebook:{"branch_parent_index":4} -->
 
 ## Run Tournament
 
+The final step is to start the tournament. You may pause the tournament and resume it again
+later. Just make sure to not create a new tournament instead when you go to resume.
+
+**Before resuming** make sure you are already on the appropriate start screen. Specifically the smash mode character selection screen fo 1v1 or the Squad Strike character selection screen for Squad Strike.
+
+Also, make sure you have already selected the appropriate rule set. If your first match fails to load, the app will be terminated to try to get back to a good state. This may cause your 
+ruleset to change to the previously used one.
+
 ```elixir
 Node.spawn(inputs.node, driver, :resume, [storage])
+:ok
+```
+
+<!-- livebook:{"branch_parent_index":4} -->
+
+## Pause Tournament
+
+If you need to pause the tournament, you just need to clear the command queue. The Tournament
+Runner app will finish the current match, if one is running, then stop.
+
+```elixir
+Node.spawn(inputs.node, TournamentRunner.CommandQueue, :clear, [])
 :ok
 ```
