@@ -99,6 +99,15 @@ Once generated, you can download the image by clicking on the elipses (`...`) or
 and saving.
 
 ```elixir
+title =
+  if String.length(focus_name) > 0 do
+    "#{Path.basename(dir)} (#{length(bins)} bins) focused on #{focus_name}"
+  else
+    "#{Path.basename(dir)} (#{length(bins)} bins)"
+  end
+```
+
+```elixir
 Vl.new(width: 1000, height: 1000)
 |> Vl.data_from_values(attributes)
 |> Vl.encode_field(:y, "attribute",
@@ -107,7 +116,7 @@ Vl.new(width: 1000, height: 1000)
   title: "Attribute"
 )
 |> Vl.layers([
-  Vl.new()
+  Vl.new(title: title)
   |> Vl.mark(:rect)
   |> Vl.encode_field(:x, "value",
     type: :quantitative,
@@ -141,7 +150,7 @@ Vl.new(width: 1000, height: 1000)
   title: "Attribute"
 )
 |> Vl.layers([
-  Vl.new()
+  Vl.new(title: title)
   |> Vl.mark(:rect)
   |> Vl.encode_field(:x, "value",
     type: :quantitative,
@@ -160,4 +169,4 @@ Vl.new(width: 1000, height: 1000)
 ])
 ```
 
-<!-- livebook:{"offset":4304,"stamp":{"token":"QTEyOEdDTQ.UtHL9JEENXfy-p3pPoNGfRuQnX_MM6LVBBXc9cNLdSy3FieoUWzccBG3T8w.aSG1ecCUvjqQLrUC.V315ng1-moDAwc1XkXnc35xtzZWL26NRJgI2kU4d-4jQmd9shAKIGhDJ4uF-6A.C7GR2N3lAaUc4C2xzH9N4A","version":1}} -->
+<!-- livebook:{"offset":4529,"stamp":{"token":"QTEyOEdDTQ.WX3f8Z00av3YuSH4vvLfcFyelPF_uAHXhLwso_iJdZIVHmPFAM_ohI-Lies.1QJyP-vPDH9rglMG.xfJwVjrh8TFljjhU5pAs40bjfjAP4HRICF4E8D5KL_-JGLmInv8LOF71qLPocg.fV6Nnm-DC2vPZgas0lup3g","version":1}} -->
