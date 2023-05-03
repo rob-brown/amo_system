@@ -1,0 +1,163 @@
+# Attribute Heat Maps
+
+```elixir
+Mix.install([
+  :vega_lite,
+  :kino,
+  :kino_vega_lite,
+  {:ssbu, github: "rob-brown/amo_system", subdir: "apps/ssbu"}
+])
+
+alias VegaLite, as: Vl
+```
+
+## Summary
+
+This Livebook is used to aggregate a directory of bins into a heat map showing how their 
+attributes coorelate. Additionally, a single bin file may be chosen to see how it compares to 
+the aggregate.
+
+## Inputs
+
+The bin directory is required. The Livebook will grab all files in there with a `.bin`
+extension. All files with a `.bin` extension must be an amiibo. Otherwise, you may get an error
+when running. The Livebook will not dig into subdirectories.
+
+The file name is optional. It must match exactly and just be the file name, not the path, ex.
+`MyAmiibo.bin`. If the Livebook can find this bin in the directory, it will overlay its 
+attributes over the heat map. If left blank or not found, then there will be no overlay.
+
+```elixir
+input = Kino.Input.text("Bin directory") |> Kino.render()
+focus_input = Kino.Input.text("File name (optional)") |> Kino.render()
+:ok
+```
+
+```elixir
+focus_name = Kino.Input.read(focus_input)
+dir = input |> Kino.Input.read() |> Path.expand()
+```
+
+## Key Retail
+
+### Key Retail
+
+In order to decrypt the bin, you will need to find a file named `key_retail.bin` on the
+Internet. Once found, you need to base 64 encode the key. Go into the Secrets tab in the
+side bar. Create a secret named `KEY_RETAIL` and paste in the base64 encoded data. If you
+did this right, then you can decrypt the amiibo bin files.
+
+![](https://raw.githubusercontent.com/rob-brown/amo_system/main/notebooks/img/key_retail.png)
+
+```elixir
+case System.get_env("LB_KEY_RETAIL") do
+  nil ->
+    IO.puts("You need to add a new secret named `KEY_RETAIL` to your Livebook")
+
+  key ->
+    System.put_env("KEY_RETAIL", key)
+end
+```
+
+The following cells show the list of files found and the number found. This is useful for 
+debugging if something looks wrong.
+
+```elixir
+bins =
+  for f <- File.ls!(dir) do
+    Path.join(dir, f)
+  end
+```
+
+```elixir
+length(bins)
+```
+
+Next, grabs all the attributes and prepares it for display.
+
+```elixir
+attributes =
+  Enum.flat_map(bins, fn b ->
+    {:ok, amiibo} = AmiiboSerialization.Amiibo.read_file(b)
+
+    for {name, {_, _, value}} <- SSBU.Attributes.Serializer.parse_amiibo(amiibo) do
+      %{"attribute" => name, "value" => value, "name" => Path.basename(b)}
+    end
+  end)
+```
+
+```elixir
+attribute_names = attributes |> Enum.map(& &1["attribute"]) |> Enum.uniq()
+```
+
+## Coarse Heat Map
+
+Now for the actual heat map generation. This heat map shows the attributes grouped in buckets of
+5%. This is probably a good level of detail but you can change accordingly.
+
+Once generated, you can download the image by clicking on the elipses (`...`) or right-clicking
+and saving.
+
+```elixir
+Vl.new(width: 1000, height: 1000)
+|> Vl.data_from_values(attributes)
+|> Vl.encode_field(:y, "attribute",
+  type: :nominal,
+  sort: attribute_names,
+  title: "Attribute"
+)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:rect)
+  |> Vl.encode_field(:x, "value",
+    type: :quantitative,
+    title: "Value",
+    axis: [label_angle: 90],
+    bin: [minbins: 20, maxbins: 20]
+  )
+  |> Vl.encode(:color, aggregate: :count),
+  Vl.new()
+  |> Vl.mark(:point, color: :firebrick)
+  |> Vl.transform(filter: "datum.name == \"#{focus_name}\"")
+  |> Vl.encode_field(:x, "value",
+    type: :quantitative,
+    title: "Value"
+  )
+])
+```
+
+## Granular Heat Map
+
+This heat map is the same as the prior heat map. The only difference is the buckets are changed
+to 1%. This may give a better view of some detail but if the list of bins are different enough
+then any trends might not be obvious.
+
+```elixir
+Vl.new(width: 1000, height: 1000)
+|> Vl.data_from_values(attributes)
+|> Vl.encode_field(:y, "attribute",
+  type: :nominal,
+  sort: attribute_names,
+  title: "Attribute"
+)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:rect)
+  |> Vl.encode_field(:x, "value",
+    type: :quantitative,
+    title: "Value",
+    axis: [label_angle: 90],
+    bin: [minbins: 100, maxbins: 100]
+  )
+  |> Vl.encode(:color, aggregate: :count),
+  Vl.new()
+  |> Vl.mark(:point, color: :firebrick)
+  |> Vl.transform(filter: "datum.name == \"#{focus_name}\"")
+  |> Vl.encode_field(:x, "value",
+    type: :quantitative,
+    title: "Value"
+  )
+])
+```
+
+<!-- livebook:{"offset":4304,"stamp":{"token":"QTEyOEdDTQ.UtHL9JEENXfy-p3pPoNGfRuQnX_MM6LVBBXc9cNLdSy3FieoUWzccBG3T8w.aSG1ecCUvjqQLrUC.V315ng1-moDAwc1XkXnc35xtzZWL26NRJgI2kU4d-4jQmd9shAKIGhDJ4uF-6A.C7GR2N3lAaUc4C2xzH9N4A","version":1}} -->
