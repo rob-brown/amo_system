@@ -17,6 +17,25 @@ This Livebook is used to aggregate a directory of bins into a heat map showing h
 attributes coorelate. Additionally, a single bin file may be chosen to see how it compares to 
 the aggregate.
 
+## Key Retail
+
+In order to decrypt the bin, you will need to find a file named `key_retail.bin` on the
+Internet. Once found, you need to base 64 encode the key. Go into the Secrets tab in the
+side bar. Create a secret named `KEY_RETAIL` and paste in the base64 encoded data. If you
+did this right, then you can decrypt the amiibo bin files.
+
+![](https://raw.githubusercontent.com/rob-brown/amo_system/main/notebooks/img/key_retail.png)
+
+```elixir
+case System.get_env("LB_KEY_RETAIL") do
+  nil ->
+    IO.puts("You need to add a new secret named `KEY_RETAIL` to your Livebook")
+
+  key ->
+    System.put_env("KEY_RETAIL", key)
+end
+```
+
 ## Inputs
 
 The bin directory is required. The Livebook will grab all files in there with a `.bin`
@@ -36,27 +55,6 @@ focus_input = Kino.Input.text("File name (optional)") |> Kino.render()
 ```elixir
 focus_name = Kino.Input.read(focus_input)
 dir = input |> Kino.Input.read() |> Path.expand()
-```
-
-## Key Retail
-
-### Key Retail
-
-In order to decrypt the bin, you will need to find a file named `key_retail.bin` on the
-Internet. Once found, you need to base 64 encode the key. Go into the Secrets tab in the
-side bar. Create a secret named `KEY_RETAIL` and paste in the base64 encoded data. If you
-did this right, then you can decrypt the amiibo bin files.
-
-![](https://raw.githubusercontent.com/rob-brown/amo_system/main/notebooks/img/key_retail.png)
-
-```elixir
-case System.get_env("LB_KEY_RETAIL") do
-  nil ->
-    IO.puts("You need to add a new secret named `KEY_RETAIL` to your Livebook")
-
-  key ->
-    System.put_env("KEY_RETAIL", key)
-end
 ```
 
 The following cells show the list of files found and the number found. This is useful for 
@@ -169,4 +167,4 @@ Vl.new(width: 1000, height: 1000)
 ])
 ```
 
-<!-- livebook:{"offset":4529,"stamp":{"token":"QTEyOEdDTQ.WX3f8Z00av3YuSH4vvLfcFyelPF_uAHXhLwso_iJdZIVHmPFAM_ohI-Lies.1QJyP-vPDH9rglMG.xfJwVjrh8TFljjhU5pAs40bjfjAP4HRICF4E8D5KL_-JGLmInv8LOF71qLPocg.fV6Nnm-DC2vPZgas0lup3g","version":1}} -->
+<!-- livebook:{"offset":4513,"stamp":{"token":"QTEyOEdDTQ.gOYsIPOtCohgZdQxO3oqJteGjfXB2cKTTrnhI7A4nrmsHAbYzF3Q12TEo4w.-x4f69lAgKL52b9X.CXwb4RmwMSpX79S3nIHV5svjToU4tm_r4ujBV9zW0v1XXgNZYX9bgNy1HZrR6Q.RJ92XzdnhE4u20Kpfysdqg","version":1}} -->
