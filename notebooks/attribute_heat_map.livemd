@@ -43,8 +43,9 @@ extension. All files with a `.bin` extension must be an amiibo. Otherwise, you m
 when running. The Livebook will not dig into subdirectories.
 
 The file name is optional. It must match exactly and just be the file name, not the path, ex.
-`MyAmiibo.bin`. If the Livebook can find this bin in the directory, it will overlay its 
-attributes over the heat map. If left blank or not found, then there will be no overlay.
+`MyAmiibo.bin`. If `.bin` is not included, then it will be added. If the Livebook can find this 
+bin in the directory, it will overlay its attributes over the heat map. If left blank or not 
+found, then there will be no overlay.
 
 ```elixir
 input = Kino.Input.text("Bin directory") |> Kino.render()
@@ -55,6 +56,13 @@ focus_input = Kino.Input.text("File name (optional)") |> Kino.render()
 ```elixir
 focus_name = Kino.Input.read(focus_input)
 dir = input |> Kino.Input.read() |> Path.expand()
+
+focus_name =
+  if String.ends_with?(focus_name, ".bin") do
+    focus_name
+  else
+    focus_name <> ".bin"
+  end
 ```
 
 The following cells show the list of files found and the number found. This is useful for 
@@ -167,4 +175,4 @@ Vl.new(width: 1000, height: 1000)
 ])
 ```
 
-<!-- livebook:{"offset":4513,"stamp":{"token":"QTEyOEdDTQ.gOYsIPOtCohgZdQxO3oqJteGjfXB2cKTTrnhI7A4nrmsHAbYzF3Q12TEo4w.-x4f69lAgKL52b9X.CXwb4RmwMSpX79S3nIHV5svjToU4tm_r4ujBV9zW0v1XXgNZYX9bgNy1HZrR6Q.RJ92XzdnhE4u20Kpfysdqg","version":1}} -->
+<!-- livebook:{"offset":4677,"stamp":{"token":"QTEyOEdDTQ.ofuWyKT6aErMbqf3Vozzy_R16c-s_vn8pNH_vkPiY7WAMxPfhplpNVQJ_Uk.JR90EgAf7ACtPqC2.MlxNCC_2R59WkYeZaSHHJp32247KGUD3QxXQrBrbenvk-BGsVfLhVvUofbBY-A.7vvOd4C336NMMr4c8AEAxg","version":1}} -->
