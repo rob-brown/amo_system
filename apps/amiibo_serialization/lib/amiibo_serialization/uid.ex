@@ -35,7 +35,6 @@ defmodule AmiiboSerialization.UID do
   """
   @spec valid?(bytes()) :: boolean()
   def valid?(bytes = <<@nxp, _uid1, _uid2, bcc0, _uid3, _uid4, _uid5, _uid6, bcc1>>) do
-
     {expected_bcc0, expected_bcc1} = bytes |> read() |> calculate_bccs()
 
     bcc0 == expected_bcc0 and bcc1 == expected_bcc1
@@ -92,7 +91,7 @@ defmodule AmiiboSerialization.UID do
   Ensuring the 4th and 5th bytes aren't the CT just to be safe.
 
   ## References
-  
+
   * [UID docs](https://www.nxp.com/docs/en/application-note/AN10927.pdf)
   * [AmiiboSN-Changer](https://github.com/DarkIrata/AmiiboSN-Changer/blob/d98cd48b8f09ae17cb9ef6db64a3577ef5dbe87b/AmiiboSNChanger.Libs/AmiiboSNHelper.cs#L92C1-L103)
   """
