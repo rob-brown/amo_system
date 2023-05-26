@@ -41,6 +41,10 @@ defmodule AmiiboSerialization.UID do
     bcc0 == expected_bcc0 and bcc1 == expected_bcc1
   end
 
+  def valid?(_bytes) do
+    false
+  end
+
   @doc """
   Given a byte string, pull out the UID (ignore the BCCs and don't validate).
   """
