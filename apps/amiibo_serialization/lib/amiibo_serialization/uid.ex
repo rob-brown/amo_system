@@ -14,7 +14,7 @@ defmodule AmiiboSerialization.UID do
   @nxp 0x4
 
   # Cascade Tag (CT) is used in certain byte locations of the Unique ID (UID)
-  # To indicate there's another page for the UID.
+  # to indicate there's another page for the UID.
   # Amiibo use a 7-byte UID which is two pages.
   @ct 0x88
 
@@ -77,9 +77,9 @@ defmodule AmiiboSerialization.UID do
   Calculates the two Block Check Character (BCC) bytes for the UID.
   """
   @spec calculate_bccs(t()) :: {bcc(), bcc()}
-  def calculate_bccs(<<@nxp, b1, b2, b3, b4, b5, b6>>) do
-    bcc0 = Enum.reduce([@nxp, b1, b2, @ct], &Bitwise.bxor/2)
-    bcc1 = Enum.reduce([b3, b4, b5, b6], &Bitwise.bxor/2)
+  def calculate_bccs(<<@nxp, uid1, uid2, uid3, uid4, uid5, uid6>>) do
+    bcc0 = Enum.reduce([@nxp, uid1, uid2, @ct], &Bitwise.bxor/2)
+    bcc1 = Enum.reduce([uid3, uid4, uid5, uid6], &Bitwise.bxor/2)
 
     {bcc0, bcc1}
   end
