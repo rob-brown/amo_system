@@ -2,6 +2,7 @@ defmodule AmiiboSerialization do
   alias AmiiboSerialization.ByteBuffer
   alias AmiiboSerialization.Key
   alias AmiiboSerialization.DerivedKey
+  alias AmiiboSerialization.UID
 
   def decrypt_file!(in_path) do
     in_path
@@ -130,20 +131,13 @@ defmodule AmiiboSerialization do
     end
   end
 
-  def encrypted?(<<0x04, uid1, uid2, bcc0, uid3, uid4, uid5, uid6, bcc1, _::bits>>) do
-    expected_bcc0 = Enum.reduce([0x04, uid1, uid2, 0x88], &Bitwise.bxor/2)
-    expected_bcc1 = Enum.reduce([uid3, uid4, uid5, uid6], &Bitwise.bxor/2)
-
-    expected_bcc0 == bcc0 and expected_bcc1 == bcc1
+  def encrypted?(<<uid::binary-size(9), _::bits>>) do
+    UID.valid?(uid)
   end
 
-  def encrypted?(
-        <<bcc1, _::binary-size(467), 0x04, uid1, uid2, bcc0, uid3, uid4, uid5, uid6, _::bits>>
-      ) do
-    expected_bcc0 = Enum.reduce([0x04, uid1, uid2, 0x88], &Bitwise.bxor/2)
-    expected_bcc1 = Enum.reduce([uid3, uid4, uid5, uid6], &Bitwise.bxor/2)
-
-    not (expected_bcc0 == bcc0 and expected_bcc1 == bcc1)
+  def encrypted?(<<bcc1, _::binary-size(467), partial_uid::binary-size(8), _::bits>>) do
+    uid = partial_uid <> <<bcc1>>
+    not UID.valid?(uid)
   end
 
   def encrypted?(_) do

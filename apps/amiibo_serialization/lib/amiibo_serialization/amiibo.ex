@@ -6,6 +6,7 @@ defmodule AmiiboSerialization.Amiibo do
 
   alias AmiiboSerialization.ByteBuffer
   alias AmiiboSerialization.CRC32
+  alias AmiiboSerialization.UID
 
   def new(<<binary::binary-size(540)>>) do
     %__MODULE__{binary: binary}
@@ -106,24 +107,23 @@ defmodule AmiiboSerialization.Amiibo do
   end
 
   def shuffle_serial(a = %__MODULE__{}) do
-    set_serial(a, :crypto.strong_rand_bytes(6))
+    set_serial(a, UID.random())
   end
 
-  def set_serial(%__MODULE__{binary: binary}, <<b1, b2, b3, b4, b5, b6>>) do
-    bcc0 = Enum.reduce([0x4, b1, b2, 0x88], &Bitwise.bxor/2)
-    bcc1 = Enum.reduce([b3, b4, b5, b6], &Bitwise.bxor/2)
+  def set_serial(%__MODULE__{binary: binary}, serial) do
+    <<partial_uid::binary-size(8), bcc1>> = UID.write(serial)
 
     binary
     |> ByteBuffer.from_binary()
-    |> ByteBuffer.set(468, <<4, b1, b2, bcc0, b3, b4, b5, b6>>)
+    |> ByteBuffer.set(468, partial_uid)
     |> ByteBuffer.set(0, <<bcc1>>)
     |> ByteBuffer.to_binary()
     |> new()
   end
 
   def serial_number(%__MODULE__{binary: binary}) do
-    <<_::binary-size(468), 0x4, uid1, uid2, _, uid3, uid4, uid5, uid6, _::bits>> = binary
-    <<uid1, uid2, uid3, uid4, uid5, uid6>>
+    <<_::binary-size(468), uid::binary-size(9), _::bits>> = binary
+    UID.read(uid)
   end
 
   def mii_profile(%__MODULE__{binary: binary}) do
@@ -163,4 +163,3 @@ defmodule AmiiboSerialization.Amiibo do
     end
   end
 end
-
