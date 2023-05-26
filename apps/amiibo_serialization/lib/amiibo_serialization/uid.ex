@@ -21,7 +21,7 @@ defmodule AmiiboSerialization.UID do
   # A full 7-byte UID
   @type t() :: <<_::56>>
 
-  # A 6-byte UID (missing the manufacturer byte).
+  # A 6-byte UID (missing the manufacturer byte UID0).
   @type partial_uid() :: <<_::48>>
 
   # A Block Check Character (BCC) byte.
