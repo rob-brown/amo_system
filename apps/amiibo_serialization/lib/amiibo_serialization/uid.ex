@@ -87,21 +87,10 @@ defmodule AmiiboSerialization.UID do
   @doc """
   Ensures the Cascade Tag (CT) is not used in certain byte locations.
   The docs say UID3 can't use the CT which should be the 4th byte here.
-  However, AmiiboSN-Changer checks the 5th byte. 
-  Ensuring the 4th and 5th bytes aren't the CT just to be safe.
-
-  ## References
-
-  * [UID docs](https://www.nxp.com/docs/en/application-note/AN10927.pdf)
-  * [AmiiboSN-Changer](https://github.com/DarkIrata/AmiiboSN-Changer/blob/d98cd48b8f09ae17cb9ef6db64a3577ef5dbe87b/AmiiboSNChanger.Libs/AmiiboSNHelper.cs#L92C1-L103)
   """
   @spec sanitize(t() | partial_uid()) :: t()
   def sanitize(<<@nxp, uid1, uid2, @ct, uid4, uid5, uid6>>) do
     sanitize(<<@nxp, uid1, uid2, @ct + 1, uid4, uid5, uid6>>)
-  end
-
-  def sanitize(<<@nxp, uid1, uid2, uid3, @ct, uid5, uid6>>) do
-    sanitize(<<@nxp, uid1, uid2, uid3, @ct + 1, uid5, uid6>>)
   end
 
   def sanitize(<<uid::binary-size(7)>>) do
