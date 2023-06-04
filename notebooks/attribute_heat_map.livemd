@@ -9,6 +9,7 @@ Mix.install([
 ])
 
 alias VegaLite, as: Vl
+alias AmiiboSerialization.Amiibo
 ```
 
 ## Summary
@@ -53,6 +54,8 @@ focus_input = Kino.Input.text("File name (optional)") |> Kino.render()
 :ok
 ```
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 focus_name = Kino.Input.read(focus_input)
 dir = input |> Kino.Input.read() |> Path.expand()
@@ -68,12 +71,16 @@ focus_name =
 The following cells show the list of files found and the number found. This is useful for 
 debugging if something looks wrong.
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 bins =
-  for f <- File.ls!(dir) do
+  for f <- File.ls!(dir), Path.extname(f) == ".bin" do
     Path.join(dir, f)
   end
 ```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 length(bins)
@@ -81,10 +88,12 @@ length(bins)
 
 Next, grabs all the attributes and prepares it for display.
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 attributes =
   Enum.flat_map(bins, fn b ->
-    {:ok, amiibo} = AmiiboSerialization.Amiibo.read_file(b)
+    {:ok, amiibo} = Amiibo.read_file(b)
 
     for {name, {_, _, value}} <- SSBU.Attributes.Serializer.parse_amiibo(amiibo) do
       %{"attribute" => name, "value" => value, "name" => Path.basename(b)}
@@ -92,8 +101,20 @@ attributes =
   end)
 ```
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 attribute_names = attributes |> Enum.map(& &1["attribute"]) |> Enum.uniq()
+```
+
+Show the focused bin's personality just for some extra info.
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+bin = Enum.find(bins, &(Path.basename(&1) == focus_name))
+{:ok, focus_amiibo} = Amiibo.read_file(bin)
+SSBU.Personality.parse_amiibo(focus_amiibo)
 ```
 
 ## Coarse Heat Map
@@ -104,6 +125,8 @@ Now for the actual heat map generation. This heat map shows the attributes group
 Once generated, you can download the image by clicking on the elipses (`...`) or right-clicking
 and saving.
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 title =
   if String.length(focus_name) > 0 do
@@ -112,6 +135,8 @@ title =
     "#{Path.basename(dir)} (#{length(bins)} bins)"
   end
 ```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 Vl.new(width: 1000, height: 1000)
@@ -147,6 +172,8 @@ This heat map is the same as the prior heat map. The only difference is the buck
 to 1%. This may give a better view of some detail but if the list of bins are different enough
 then any trends might not be obvious.
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 Vl.new(width: 1000, height: 1000)
 |> Vl.data_from_values(attributes)
@@ -175,4 +202,4 @@ Vl.new(width: 1000, height: 1000)
 ])
 ```
 
-<!-- livebook:{"offset":4677,"stamp":{"token":"QTEyOEdDTQ.ofuWyKT6aErMbqf3Vozzy_R16c-s_vn8pNH_vkPiY7WAMxPfhplpNVQJ_Uk.JR90EgAf7ACtPqC2.MlxNCC_2R59WkYeZaSHHJp32247KGUD3QxXQrBrbenvk-BGsVfLhVvUofbBY-A.7vvOd4C336NMMr4c8AEAxg","version":1}} -->
+<!-- livebook:{"offset":5605,"stamp":{"token":"QTEyOEdDTQ.XR-mxhyFKHXPG8iVcJ-a34Dd-D-SAoro3loEoVmZIv12c-Akbo_XHI--hBg.W-BQ73mYjjldc4aM.rtMwvv5Ewg9XsWcAz6eOuWHkws-Q3LsuBqqoRu1mTlNTBLOAMK0wnGiveY3bSw.0_cOtXg7aMWmAwmRy4qkKQ","version":1}} -->
