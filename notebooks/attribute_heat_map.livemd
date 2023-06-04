@@ -51,6 +51,7 @@ found, then there will be no overlay.
 ```elixir
 input = Kino.Input.text("Bin directory") |> Kino.render()
 focus_input = Kino.Input.text("File name (optional)") |> Kino.render()
+secondary_input = Kino.Input.text("Secondary file name (optional)") |> Kino.render()
 :ok
 ```
 
@@ -58,7 +59,15 @@ focus_input = Kino.Input.text("File name (optional)") |> Kino.render()
 
 ```elixir
 focus_name = Kino.Input.read(focus_input)
+secondary_name = Kino.Input.read(secondary_input)
 dir = input |> Kino.Input.read() |> Path.expand()
+
+secondary_name =
+  if String.ends_with?(secondary_name, ".bin") do
+    secondary_name
+  else
+    secondary_name <> ".bin"
+  end
 
 focus_name =
   if String.ends_with?(focus_name, ".bin") do
@@ -129,10 +138,15 @@ and saving.
 
 ```elixir
 title =
-  if String.length(focus_name) > 0 do
-    "#{Path.basename(dir)} (#{length(bins)} bins) focused on #{focus_name}"
-  else
-    "#{Path.basename(dir)} (#{length(bins)} bins)"
+  case {focus_name, secondary_name} do
+    {"", _} ->
+      "#{Path.basename(dir)} (#{length(bins)} bins)"
+
+    {focus_name, ""} ->
+      "#{Path.basename(dir)} (#{length(bins)} bins) focused on #{focus_name}"
+
+    {focus_name, secondary_name} ->
+      "#{Path.basename(dir)} (#{length(bins)} bins) focused on #{focus_name}/#{secondary_name}"
   end
 ```
 
@@ -159,6 +173,13 @@ Vl.new(width: 1000, height: 1000)
   Vl.new()
   |> Vl.mark(:point, color: :firebrick)
   |> Vl.transform(filter: "datum.name == \"#{focus_name}\"")
+  |> Vl.encode_field(:x, "value",
+    type: :quantitative,
+    title: "Value"
+  ),
+  Vl.new()
+  |> Vl.mark(:square, color: :black)
+  |> Vl.transform(filter: "datum.name == \"#{secondary_name}\"")
   |> Vl.encode_field(:x, "value",
     type: :quantitative,
     title: "Value"
@@ -202,4 +223,4 @@ Vl.new(width: 1000, height: 1000)
 ])
 ```
 
-<!-- livebook:{"offset":5605,"stamp":{"token":"QTEyOEdDTQ.XR-mxhyFKHXPG8iVcJ-a34Dd-D-SAoro3loEoVmZIv12c-Akbo_XHI--hBg.W-BQ73mYjjldc4aM.rtMwvv5Ewg9XsWcAz6eOuWHkws-Q3LsuBqqoRu1mTlNTBLOAMK0wnGiveY3bSw.0_cOtXg7aMWmAwmRy4qkKQ","version":1}} -->
+<!-- livebook:{"offset":6048,"stamp":{"token":"QTEyOEdDTQ.LjHkTIn4-csnok1CSvKAUYqZXxR0hht113i1B2RQJtL6RVFrMUlZvVyBhuc.DcT2KNzir4FJG90a.UAhIIbKBW_V-bK6m5gWFr2FOJMd5waPfdJnc63cocr_mBGWX3BaoOsNkO5bZFA.N5g5Sr49UevY4N2lanwqUg","version":1}} -->
