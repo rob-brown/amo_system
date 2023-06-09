@@ -31,10 +31,14 @@ did this right, then you can decrypt the amiibo bin files.
 
 ![](https://raw.githubusercontent.com/rob-brown/amo_system/main/notebooks/img/key_retail.png)
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 value = Kino.Input.read(input)
 path = Kino.Input.file_path(value.file_ref)
 ```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 case System.get_env("LB_KEY_RETAIL") do
@@ -45,6 +49,8 @@ case System.get_env("LB_KEY_RETAIL") do
     System.put_env("KEY_RETAIL", key)
 end
 ```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 {:ok, amiibo} = AmiiboSerialization.Amiibo.read_file(path)
@@ -58,6 +64,8 @@ First, let's visualize the attributes in a text form. This is nice for putting t
 into a diff program for a side-by-side comparison.
 
 Uses the raw values just so the attribute names look nicer.
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 raw_attributes = SSBU.Attributes.Serializer.parse_amiibo(amiibo)
@@ -79,6 +87,8 @@ the attributes.
 <!-- livebook:{"break_markdown":true} -->
 
 #### Behavioral Attributes
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 raw_attributes
@@ -132,6 +142,8 @@ end)
 
 #### Grounded Moves
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 grounded_moves =
   raw_attributes
@@ -160,6 +172,8 @@ end)
 
 #### Aerial Moves
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 aerial_moves =
   raw_attributes
@@ -186,6 +200,8 @@ end)
 
 #### Dodge Directions
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 dodge =
   raw_attributes
@@ -205,6 +221,8 @@ end)
 ```
 
 #### Taunt Directions
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 taunt =
@@ -228,6 +246,8 @@ end)
 
 Using the attributes we can calculate the personality.
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 attributes = SSBU.Attributes.parse(amiibo)
 SSBU.Personality.calculate_personality(attributes)
@@ -235,8 +255,10 @@ SSBU.Personality.calculate_personality(attributes)
 
 Or you can do it all in one line.
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 SSBU.Personality.parse_amiibo(amiibo)
 ```
 
-<!-- livebook:{"offset":5708,"stamp":{"token":"QTEyOEdDTQ.o4YVIDCnoh8flnz4i0OAlWZikZ8JlksIT8z5owu1CwATVAX-dJ1BKy1zmZo.in85GH15x998ZEtu.DrJ9SSGYhNBP7HoEDN8usL5e9EOFG95JqbyQgRr47Lp3cHP8gy1BBE_0qeMN8A.F5VvKgC-omGpk9NtbEWMVg","version":1}} -->
+<!-- livebook:{"offset":6291,"stamp":{"token":"QTEyOEdDTQ.HPdxKo812i_gMIAYmqnn94I9MHeUY5VeoJ9f5M-z9fKvimeBxdeVUBXASy4.270P552Zl3Pc-uGO.i4_0klT5x0R3W0sw5efOMec8ar-mzBSyCymbIsZmhRMMfsOnZDZSMYPEM46W6A.7dzT2N_w6WU6nKGgmyJaGg","version":1}} -->
