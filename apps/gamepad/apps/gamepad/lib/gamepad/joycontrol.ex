@@ -77,13 +77,13 @@ defmodule Gamepad.Joycontrol do
   end
 
   def handle_info({_port, {:exit_status, 0}}, state) do
-    _ = Logger.debug("Vision exited normally")
+    _ = Logger.debug("Joycontrol exited normally")
     Notifier.notify(:disconnected)
     {:stop, :normal, state}
   end
 
   def handle_info({_port, {:exit_status, code}}, state) do
-    _ = Logger.error("Vision exited: #{code}")
+    _ = Logger.error("Joycontrol exited: #{code}")
     Notifier.notify(:disconnected)
     {:stop, code, state}
   end
