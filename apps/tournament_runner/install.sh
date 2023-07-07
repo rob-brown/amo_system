@@ -16,6 +16,6 @@ echo Uncompressing release files
 tar -xzf ~/tournament_runner/tournament_runner.tar.gz -C ~/tournament_runner
 
 echo Installing startup script
-echo "@reboot pi /usr/bin/env CHALLONGE_API_KEY=$CHALLONGE_API_KEY /home/pi/tournament_runner/bin/tournament_runner start" | sudo tee /etc/cron.d/tournament_runner >> /dev/null
+echo "@reboot pi /usr/bin/env CHALLONGE_API_KEY=$CHALLONGE_API_KEY /home/pi/tournament_runner/bin/tournament_runner start_iex" | sudo tee /etc/cron.d/tournament_runner >> /dev/null
 
 echo Reboot your Raspberry Pi to start the tournament runner
