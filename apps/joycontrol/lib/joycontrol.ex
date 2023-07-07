@@ -77,19 +77,18 @@ defmodule Joycontrol do
 
   ## Helpers
 
-  # sudo env PYTHONPATH=/home/pi/amiibo_system/apps/joycontrol/joycontrol python3 run_controller_cli.py PRO_CONTROLLER -r auto
-
   defp open_port() do
     Port.open({:spawn_executable, executable()}, port_args())
   end
 
   defp port_args() do
-    with python_path = Path.expand("../joycontrol", __DIR__),
+    with python_path = priv_dir("joycontrol"),
+         joycontrol_script = priv_dir("run_controller_cli.py"),
          args = [
            "env",
            "PYTHONPATH=#{python_path}",
            python3(),
-           joycontrol_script(),
+           joycontrol_script,
            "PRO_CONTROLLER",
            "-r",
            "auto"
@@ -104,10 +103,6 @@ defmodule Joycontrol do
 
   defp python3() do
     System.find_executable("python3")
-  end
-
-  defp joycontrol_script() do
-    Path.expand("../run_controller_cli.py", __DIR__)
   end
 
   defp should_log?(data) do
@@ -133,5 +128,9 @@ defmodule Joycontrol do
       "OSError: [Errno 107] Transport endpoint is not connected",
       "ConnectionRefusedError: [Errno 111] Connection refused"
     ]
+  end
+
+  defp priv_dir(path) do
+    Path.expand(path, :code.priv_dir(:joycontrol))
   end
 end

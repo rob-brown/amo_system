@@ -1,3 +1,3 @@
 [submodule "apps/joycontrol/joycontrol"]
-	path = apps/joycontrol/joycontrol
+	path = apps/joycontrol/priv/joycontrol
 	url = https://github.com/Poohl/joycontrol.git
