@@ -33,3 +33,10 @@ end
 Be aware that any images you use for tracking are resolution dependent. If you change
 the capture card to be a different resolution, then you will need to update any images
 you use.
+
+## Installation
+
+In order to use this library, you will need to have OpenCV installed. For a Rasperry
+Pi, you will want to use a
+[pre-compiled binary](https://github.com/prepkg/opencv-raspberrypi) to avoid long
+compile times.

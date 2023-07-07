@@ -19,6 +19,10 @@ First, you will need to install
 This involves editing some system files too. You may need to run the
 `run_controller_cli.py` script to pair your Nintendo Switch to your Raspberry Pi.
 
+## OpenCV Installation
+
+See the [Vision library](../vision/README.md) for details about installing OpenCV.
+
 ## Challonge API Key
 
 See the [Challonge API documentation](https://api.challonge.com/v1) for instructions
