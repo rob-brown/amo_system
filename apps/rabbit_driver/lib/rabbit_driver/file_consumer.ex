@@ -5,7 +5,7 @@ defmodule RabbitDriver.FileConsumer do
     defaults = [
       module: __MODULE__,
       topics: ["image.#", "script.list", "script.get", "script.put", "script.delete"],
-      queue: "image_consumer"
+      queue: "file_consumer"
     ]
 
     opts = Keyword.merge(defaults, opts)

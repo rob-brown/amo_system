@@ -25,20 +25,25 @@ defmodule RabbitDriver.VisionConsumer do
     path = temp_path()
     Vision.capture(path)
 
-    case wait_for_file(path, timeout) do
-      {:ok, bytes} ->
-        {:reply,
-         %{
-           screenshot: %{
-             type: "image/png",
-             size: byte_size(bytes),
-             bytes: bytes
-           }
-         }}
+    result =
+      case wait_for_file(path, timeout) do
+        {:ok, bytes} ->
+          {:reply,
+           %{
+             screenshot: %{
+               type: "image/png",
+               size: byte_size(bytes),
+               bytes: Base.encode64(bytes)
+             }
+           }}
 
-      :timeout ->
-        {:reply, %{screenshot: nil, error: :timeout}}
-    end
+        :timeout ->
+          {:reply, %{screenshot: nil, error: :timeout}}
+      end
+
+    clean_up_file(path)
+
+    result
   end
 
   def handle_msg(topic, _payload) do
@@ -67,7 +72,15 @@ defmodule RabbitDriver.VisionConsumer do
     if File.regular?(path) do
       {:ok, File.read!(path)}
     else
+      Process.sleep(sleep_time)
       wait_for_file(path, timeout - sleep_time, sleep_time)
     end
+  end
+
+  defp clean_up_file(path) do
+    Task.start(fn ->
+      Process.sleep(:timer.seconds(5))
+      _ = File.rm(path)
+    end)
   end
 end

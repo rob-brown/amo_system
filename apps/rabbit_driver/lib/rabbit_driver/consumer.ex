@@ -24,6 +24,8 @@ defmodule RabbitDriver.Consumer do
   def init(opts) do
     opts = Options.new(opts)
 
+    opts.module.init(opts)
+
     {:ok, conn} = Connection.open(opts.url)
     {:ok, chan} = Channel.open(conn)
     setup_queue(chan, opts)
