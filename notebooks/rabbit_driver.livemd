@@ -1,0 +1,263 @@
+# Untitled notebook
+
+```elixir
+Mix.install([
+  {:jason, "~> 1.4"},
+  {:amqp, "~> 3.3"},
+  {:stb_image, "~> 0.6.2"},
+  {:nx, "~> 0.6.0"},
+  {:kino, "~> 0.10.0"}
+])
+```
+
+## Setup RabbitMQ
+
+The first thing to do is to start up a connection to the RabbitMQ broker. If you are running
+this on a Raspberry Pi with the default domain name and port, then you just need to enter
+the username and password you previously set up.
+
+```elixir
+username_input = Kino.Input.text("Username") |> Kino.render()
+password_input = Kino.Input.text("Password") |> Kino.render()
+domain_input = Kino.Input.text("Domain", default: "raspberrypi.local") |> Kino.render()
+port_input = Kino.Input.number("Port", default: 5672) |> Kino.render()
+:ok
+```
+
+If you input the correct info, the following cell will create an `AMQP.Channel`.
+
+```elixir
+username = Kino.Input.read(username_input)
+password = Kino.Input.read(password_input)
+domain = Kino.Input.read(domain_input)
+port = Kino.Input.read(port_input)
+
+exchange = "rabbit_driver.topic"
+
+url = "amqp://#{username}:#{password}@#{domain}:#{port}"
+
+{:ok, conn} = AMQP.Connection.open(url)
+{:ok, channel} = AMQP.Channel.open(conn)
+```
+
+Now to set up some code to handle all the boilerplate of sending and receiving RabbitMQ 
+messages. Like a `GenServer` the `Rabbit.cast` function is used to send a message and not worry
+about a response. The `Rabbit.call` function sends a request and expects a response back.
+
+For the payload, you may send a string or a map. Any maps will be encoded into JSON format for 
+you. The JSON responses are automatically decoded into a map.
+
+```elixir
+defmodule Rabbit do
+  def cast(channel, exchange, topic, payload = %{}) do
+    cast(channel, exchange, topic, Jason.encode!(payload))
+  end
+
+  def cast(channel, exchange, topic, "" <> payload) do
+    AMQP.Basic.publish(channel, exchange, topic, payload)
+  end
+
+  def call(channel, exchange, topic, payload, opts \\ [])
+
+  def call(channel, exchange, topic, payload = %{}, opts) do
+    call(channel, exchange, topic, Jason.encode!(payload), opts)
+  end
+
+  def call(channel, exchange, topic, "" <> payload, opts) do
+    id =
+      :erlang.unique_integer()
+      |> :erlang.integer_to_binary()
+      |> Base.encode64()
+
+    timeout = Keyword.get(opts, :timeout_ms, :timer.seconds(5))
+    reply_queue = Keyword.get(opts, :reply_to)
+
+    queue =
+      if reply_queue do
+        reply_queue
+      else
+        {:ok, %{queue: queue}} =
+          AMQP.Queue.declare(channel, "", exclusive: true, auto_delete: true)
+
+        queue
+      end
+
+    me = self()
+
+    {:ok, tag} =
+      AMQP.Queue.subscribe(channel, queue, fn
+        payload, meta = %{correlation_id: ^id} ->
+          send(me, {:ok, payload, meta})
+
+        _payload, _meta ->
+          :ok
+      end)
+
+    AMQP.Basic.publish(channel, exchange, topic, payload,
+      reply_to: queue,
+      correlation_id: id
+    )
+
+    await(channel, tag, timeout)
+  end
+
+  defp await(channel, tag, timeout) do
+    receive do
+      {:ok, payload, meta} ->
+        AMQP.Queue.unsubscribe(channel, tag)
+        json = Jason.decode!(payload)
+        {:ok, json, meta}
+
+      _ ->
+        await(channel, tag, timeout)
+    after
+      timeout ->
+        AMQP.Queue.unsubscribe(channel, tag)
+        {:error, :timeout}
+    end
+  end
+end
+```
+
+Here are a few more helper functions. You can call `cast.(topic, payload)` for example instead
+of `Rabbit.cast(channel, exchange, topic, payload)`. It's shorter and avoids needing to pass
+in the channel and exchange.
+
+```elixir
+cast = fn topic, payload ->
+  Rabbit.cast(channel, exchange, topic, payload)
+end
+
+call = fn topic, payload ->
+  Rabbit.call(channel, exchange, topic, payload)
+end
+
+call_with_opts = fn topic, payload, opts ->
+  Rabbit.call(channel, exchange, topic, payload, opts)
+end
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Screenshot
+
+This section has some cells that are useful for debugging your capture card. Or you can use this
+to get screenshots that you can then modify for use as targets in your automation.
+
+<blockquote style="background-color:#F5FF7B; color:black">
+💡 This section runs in parallel with other code. That way you can watch the 
+continuous screen capture while running something else. You can skip over this section if you
+don't need it. </blockquote>
+
+First, is some basic code to handle requesting and handling the image. 
+</blockquote>
+
+```elixir
+defmodule Screenshot do
+  def capture(channel, exchange, fun, opts \\ []) do
+    {:ok, json, _meta} =
+      Rabbit.call(channel, exchange, "vision.screenshot", %{timeout_ms: 1000}, opts)
+
+    bytes = Base.decode64!(json["screenshot"]["bytes"])
+
+    fun.(bytes)
+  rescue
+    _error ->
+      nil
+  end
+
+  def capture_forever(channel, exchange, delay, fun) do
+    # Create a queue so we don't make a new one with each request.
+    {:ok, %{queue: queue}} = AMQP.Queue.declare(channel, "", exclusive: true, auto_delete: true)
+
+    capture(channel, exchange, fun, reply_to: queue)
+    Process.sleep(delay)
+    capture_forever(channel, exchange, delay, fun)
+  end
+end
+```
+
+The next cell will capture a single image and display it. It's most useful for when grabbing an
+image to use as an automation target. If the full image doesn't appear completely, then run the
+cell again.
+
+```elixir
+Screenshot.capture(channel, exchange, fn bytes ->
+  bytes
+end)
+```
+
+This next cell will continuously capture images every few seconds. You can change the capture
+rate. It's a number in milliseconds. Or you can use the `:timer.seconds` function. Be sure to 
+click the <strong>Stop</strong> button when you are done watching.
+
+```elixir
+frame = Kino.Frame.new() |> Kino.render()
+
+Screenshot.capture_forever(channel, exchange, :timer.seconds(5), fn bytes ->
+  Kino.Frame.render(frame, bytes)
+end)
+```
+
+## Scripting
+
+```elixir
+script = """
+press("right", 200)
+press("a", "1s")
+press("b")
+"""
+
+cast.("script.put", %{name: "test.lua", bytes: Base.encode64(script)})
+```
+
+```elixir
+call.("script.list", %{})
+```
+
+```elixir
+call.("script.list", %{name: "test.lua"})
+```
+
+```elixir
+call_with_opts.("script.run", %{name: "test.lua", timeout_ms: 5000}, timeout: 5000)
+```
+
+```elixir
+script = """
+press("left", 200)
+press("left", 200)
+press("left", 200)
+press("a", "1s")
+press("b")
+"""
+
+call_with_opts.("script.run", %{raw: script, timeout_ms: 5000}, timeout: 5000)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Other RabbitMQ Messages
+
+```elixir
+call.("image.list", %{})
+```
+
+```elixir
+name = "Acyrlic Coins - Kirby.png"
+bytes = "~/Downloads" |> Path.join(name) |> Path.expand() |> File.read!() |> Base.encode64()
+
+cast.("image.put", %{name: name, bytes: bytes})
+```
+
+```elixir
+call.("image.get", %{name: name})
+```
+
+```elixir
+cast.("image.delete", %{name: name})
+```
+
+```elixir
+call.("image.list", %{})
+```
