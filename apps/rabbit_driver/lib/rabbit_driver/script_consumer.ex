@@ -45,6 +45,26 @@ defmodule RabbitDriver.ScriptConsumer do
     end
   end
 
+  def handle_msg(~w"script run", payload = %{"raw" => string}) do
+    timeout = Map.get(payload, "timeout_ms", :timer.seconds(5))
+
+    task = Task.async(Autopilot.LuaScript, :run_string, [string])
+
+    case Task.yield(task, timeout) || Task.shutdown(task) do
+      {:ok, :ok} ->
+        {:reply, %{error: nil}}
+
+      {:ok, {:error, reason}} ->
+        {:reply, %{error: "Script error #{inspect(reason)}"}}
+
+      nil ->
+        {:reply, %{error: "Script timed out"}}
+
+      {:exit, reason} ->
+        {:reply, %{error: "Task crashed #{inspect(reason)}"}}
+    end
+  end
+
   def handle_msg(topic, _payload) do
     {:error, "Unknown message #{topic}"}
   end

@@ -12,6 +12,7 @@ defmodule RabbitDriver.Application do
       Vision,
       RabbitDriver.CommandQueue,
       RabbitDriver.FileConsumer,
+      RabbitDriver.ScriptConsumer,
       RabbitDriver.VisionConsumer
     ]
 
