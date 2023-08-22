@@ -203,6 +203,20 @@ end)
 
 ```elixir
 script = """
+for i = 0,10,1
+do
+  press("left", 200)
+  press("left", 200)
+  press("right", 200)
+  press("right", 200)
+end
+"""
+
+call_with_opts.("script.run", %{raw: script, timeout_ms: 20_000}, timeout_ms: 20_000)
+```
+
+```elixir
+script = """
 press("right", 200)
 press("a", "1s")
 press("b")
@@ -220,44 +234,102 @@ call.("script.list", %{name: "test.lua"})
 ```
 
 ```elixir
-call_with_opts.("script.run", %{name: "test.lua", timeout_ms: 5000}, timeout: 5000)
-```
-
-```elixir
-script = """
-press("left", 200)
-press("left", 200)
-press("left", 200)
-press("a", "1s")
-press("b")
-"""
-
-call_with_opts.("script.run", %{raw: script, timeout_ms: 5000}, timeout: 5000)
+call_with_opts.("script.run", %{name: "test.lua", timeout_ms: 5000}, timeout_ms: 5000)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## Other RabbitMQ Messages
+## Squad Strike Automation
+
+To run the automation, we first send some target images that we want to look for. They are 
+usually small, unambiguous parts fo the screen.
+
+![](img/ready_to_fight.png)
+
+The scripts will reference these images. Typically checking if the image is visible, waiting until it becomes visible, or waiting until it disappears.
+
+These images are dependent on the screen resolution of the capture card. If you don't use 
+**640x480** as your resolution, then you must update all the images accordingly.
 
 ```elixir
-call.("image.list", %{})
+images = ~w[kirby.png pointer.png ready_to_fight.png]
+dir = Path.join(__DIR__, "img")
+
+for img <- images do
+  bytes = img |> Path.expand(dir) |> File.read!() |> Base.encode64()
+  data_url = "data:image/png;base64,#{bytes}"
+
+  cast.("image.put", %{name: img, bytes: data_url})
+end
+```
+
+The automations also need the scripts. The scripts can be sent and run in the same message. Though for scripts that are run frequently, we can save some time but sending them upfront and then referencing them later.
+
+The scripts are written in Lua. This is an embedded programming language that is able to safely call into the original Elixir code without recompiling.
+
+```elixir
+scripts = %{
+  launch_ssbu_to_squad_strike: """
+  -- Focus on first game.
+  -- Assumes this is the desired game.
+  press("home")
+  wait("1500ms")
+  -- Open game
+  press("a")
+  wait("2s")
+  -- Select first player account.
+  press("a", "500ms")
+  -- Wait a long time for game to launch.
+  wait_until_found("kirby.png", "40s")
+  -- Skip intro video to title screen.
+  press("a")
+  wait("2s")
+  -- Advance to game menu.
+  press("a")
+  wait("4s")
+  -- Select Smash mode.
+  press("a")
+  wait("1s")
+  -- Navigate to Squad Strike menu.
+  press("down")
+  press("left")
+  press("a")
+  wait("4s")
+  -- Select first rule set.
+  press("a")
+  wait("4s")
+  -- Select 3-on-3 mode.
+  press("a")
+  wait("2s")
+  """,
+  close_game: """
+  -- Go to home screen.
+  -- If on home screen, focus on running game.
+  press("home")
+  wait("700ms")
+  -- Trigger game close.
+  press("x")
+  wait("700ms")
+  -- Ackknowledge game close.
+  press("a")
+  wait("1s")
+  """
+}
+
+for {name, script} <- scripts do
+  payload = %{name: "#{name}.lua", bytes: script}
+  cast.("script.put", payload)
+end
 ```
 
 ```elixir
-name = "Acyrlic Coins - Kirby.png"
-bytes = "~/Downloads" |> Path.join(name) |> Path.expand() |> File.read!() |> Base.encode64()
-
-cast.("image.put", %{name: name, bytes: bytes})
+call.("script.list", %{})
 ```
 
 ```elixir
-call.("image.get", %{name: name})
-```
+timeout = :timer.minutes(2)
 
-```elixir
-cast.("image.delete", %{name: name})
-```
-
-```elixir
-call.("image.list", %{})
+call_with_opts.("script.run", %{name: "launch_ssbu_to_squad_strike.lua", timeout_ms: timeout},
+  timeout_ms: timeout
+)
 ```

@@ -1,24 +1,30 @@
 defmodule RabbitDriver.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
 
+  @env Mix.env()
+
   @impl true
   def start(_type, _args) do
-    children = [
-      Joycontrol,
-      Vision,
-      RabbitDriver.CommandQueue,
-      RabbitDriver.FileConsumer,
-      RabbitDriver.ScriptConsumer,
-      RabbitDriver.VisionConsumer
-    ]
-
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: RabbitDriver.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(children(), opts)
+  end
+
+  if @env == :test do
+    defp children() do
+      []
+    end
+  else
+    defp children() do
+      [
+        Joycontrol,
+        Vision,
+        RabbitDriver.CommandQueue,
+        RabbitDriver.ImageConsumer,
+        RabbitDriver.ScriptConsumer,
+        RabbitDriver.VisionConsumer
+      ]
+    end
   end
 end
