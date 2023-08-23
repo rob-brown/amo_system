@@ -62,32 +62,26 @@ defmodule RabbitDriver.ScriptConsumer do
   end
 
   def handle_msg(~w"script delete", %{"name" => name}) do
-    path = path(name)
+    case lookup(name) do
+      {:ok, path} ->
+        File.rm!(path)
+        :noreply
 
-    if File.regular?(path) do
-      File.rm!(path)
+      _ ->
+        :noreply
     end
-
-    :noreply
   end
 
   def handle_msg(~w"script run", payload = %{"name" => name}) do
-    timeout = Map.get(payload, "timeout_ms", :timer.seconds(5))
-    args = payload |> Map.get("inputs", []) |> process_args()
-    path = path(name)
-
-    if File.exists?(path) and File.regular?(path) do
-      script = File.read!(path)
-
-      case run_script(script, args, timeout) do
-        :ok ->
-          {:reply, %{error: nil}}
-
-        {:error, reason} ->
-          {:reply, %{error: reason}}
-      end
+    with timeout = Map.get(payload, "timeout_ms", :timer.seconds(5)),
+         args = payload |> Map.get("inputs", []) |> process_args(),
+         {:ok, path} <- lookup(name),
+         {:ok, script} <- File.read(path),
+         :ok <- run_script(script, args, timeout) do
+      {:reply, %{error: nil}}
     else
-      {:reply, %{error: "Script doesn't exist"}}
+      {:error, reason} ->
+        {:reply, %{error: reason}}
     end
   end
 
@@ -108,6 +102,16 @@ defmodule RabbitDriver.ScriptConsumer do
   end
 
   ## Helpers
+
+  defp lookup(name) do
+    path = path(name)
+
+    if File.exists?(path) and File.regular?(path) do
+      {:ok, path}
+    else
+      {:error, "No such file"}
+    end
+  end
 
   defp path(name) do
     if String.ends_with?(name, ".lua") do

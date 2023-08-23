@@ -75,13 +75,27 @@ defmodule RabbitDriver.ImageConsumer do
   end
 
   def handle_msg(~w"image delete", %{"name" => name}) do
-    path = path(name)
+    case lookup(name) do
+      {:ok, path} ->
+        File.rm!(path)
+        :noreply
 
-    if File.regular?(path) do
-      File.rm!(path)
+      _ ->
+        :noreply
     end
+  end
 
-    :noreply
+  def handle_msg(~w"image visible", payload = %{"name" => name}) do
+    with {:ok, path} <- lookup(name),
+         timeout = Map.get(payload, "timeout_ms", :timer.seconds(5)),
+         confidence = Map.get(payload, "confidence", 0.8),
+         opts = [ timeout: timeout, confidence: confidence],
+         true <- Vision.visible(path, opts) || {:error, "Not found"} do
+      {:reply, %{error: nil}}
+    else
+      {:error, reason} ->
+        {:reply, %{error: reason}}
+    end
   end
 
   def handle_msg(topic, _payload) do
@@ -89,6 +103,16 @@ defmodule RabbitDriver.ImageConsumer do
   end
 
   ## Helpers
+
+  defp lookup(name) do
+    path = path(name)
+
+    if File.exists?(path) and File.regular?(path) do
+      {:ok, path}
+    else
+      {:error, "No such file"}
+    end
+  end
 
   defp images() do
     File.ls!(image_dir())
