@@ -30,6 +30,7 @@ defmodule RabbitDriver.ImageConsumer do
   @impl RabbitDriver.Consumer
   def init(_opts) do
     _ = File.mkdir_p(image_dir())
+    _ = File.mkdir_p(screenshot_dir())
   end
 
   @impl RabbitDriver.Consumer
@@ -89,13 +90,39 @@ defmodule RabbitDriver.ImageConsumer do
     with {:ok, path} <- lookup(name),
          timeout = Map.get(payload, "timeout_ms", :timer.seconds(5)),
          confidence = Map.get(payload, "confidence", 0.8),
-         opts = [ timeout: timeout, confidence: confidence],
+         opts = [timeout: timeout, confidence: confidence],
          {:ok, info} <- Vision.visible(path, opts) || {:error, "Not found"} do
       {:reply, Map.put(info, :error, nil)}
     else
       {:error, reason} ->
         {:reply, %{error: reason}}
     end
+  end
+
+  def handle_msg(~w"image screenshot", payload) do
+    timeout = Map.get(payload, "timeout_ms", :timer.seconds(5))
+    path = temp_path()
+    Vision.capture(path)
+
+    result =
+      case wait_for_file(path, timeout) do
+        {:ok, bytes} ->
+          {:reply,
+           %{
+             screenshot: %{
+               type: "image/png",
+               size: byte_size(bytes),
+               bytes: Base.encode64(bytes)
+             }
+           }}
+
+        :timeout ->
+          {:reply, %{screenshot: nil, error: :timeout}}
+      end
+
+    clean_up_file(path)
+
+    result
   end
 
   def handle_msg(topic, _payload) do
@@ -118,6 +145,16 @@ defmodule RabbitDriver.ImageConsumer do
     File.ls!(image_dir())
   end
 
+  defp screenshot_dir() do
+    Path.join(System.tmp_dir(), "rabbit-driver-screenshots")
+  end
+
+  defp temp_path() do
+    name = RabbitDriver.Random.string() <> ".png"
+
+    Path.join(screenshot_dir(), name)
+  end
+
   defp path(name = <<c::utf8>> <> _) when c in [?., ?/] do
     raise "Unsafe file name #{name}"
   end
@@ -128,5 +165,27 @@ defmodule RabbitDriver.ImageConsumer do
     else
       Path.join(image_dir(), name <> ".png")
     end
+  end
+
+  defp wait_for_file(path, timeout, sleep_time \\ 100)
+
+  defp wait_for_file(_path, timeout, _sleep_time) when timeout < 0 do
+    :timeout
+  end
+
+  defp wait_for_file(path, timeout, sleep_time) do
+    if File.regular?(path) do
+      {:ok, File.read!(path)}
+    else
+      Process.sleep(sleep_time)
+      wait_for_file(path, timeout - sleep_time, sleep_time)
+    end
+  end
+
+  defp clean_up_file(path) do
+    Task.start(fn ->
+      Process.sleep(:timer.seconds(5))
+      _ = File.rm(path)
+    end)
   end
 end

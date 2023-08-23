@@ -111,9 +111,8 @@ defmodule RabbitDriver.Consumer do
     # receiving messages.
     exception ->
       _ =
-        IO.inspect(exception, label: :exception)
         Logger.error("Failed to process message from #{topic}",
-          extra: %{meta: meta, payload: payload}
+          extra: %{meta: meta, payload: payload, exception: inspect(exception)}
         )
 
       :ok = Basic.reject(channel, tag, requeue: not meta.redelivered)

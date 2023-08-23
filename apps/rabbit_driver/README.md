@@ -23,12 +23,13 @@ purposes are listed below.
 | image.get         | App       | Get a specified image. |
 | image.put         | App       | Send an image to be stored for later use. |
 | image.delete      | App       | Send an image to be stored for later use. |
+| image.screenshot  | App       | Create a screenshot and return it. |
+| image.visible     | App       | Returns the bounding box of the specified image, if found. |
 | script.list       | App       | List all the known scripts. |
 | script.get        | App       | Get a specified script. |
 | script.put        | App       | Send a script to be stored for later use. |
 | script.delete     | App       | Send a script to be stored for later use. |
 | script.run        | App       | Run a specified script. |
-| vision.screenshot | App       | Create a screenshot and return it. |
 | log.[level]       | Client    | Log messages for a particular level, ex. warning, error. |
 | log.enable        | App       | Enable log messages, enabled by default. |
 | log.disable       | App       | Disable log messages, enabled by default. |

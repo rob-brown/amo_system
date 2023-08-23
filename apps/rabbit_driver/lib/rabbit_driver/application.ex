@@ -22,8 +22,7 @@ defmodule RabbitDriver.Application do
         Vision,
         RabbitDriver.CommandQueue,
         RabbitDriver.ImageConsumer,
-        RabbitDriver.ScriptConsumer,
-        RabbitDriver.VisionConsumer
+        RabbitDriver.ScriptConsumer
       ]
     end
   end
