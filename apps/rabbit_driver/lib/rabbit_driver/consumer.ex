@@ -109,8 +109,9 @@ defmodule RabbitDriver.Consumer do
     # You might also want to catch :exit signal in production code.
     # Make sure you call ack, nack or reject otherwise consumer will stop
     # receiving messages.
-    _exception ->
+    exception ->
       _ =
+        IO.inspect(exception, label: :exception)
         Logger.error("Failed to process message from #{topic}",
           extra: %{meta: meta, payload: payload}
         )

@@ -90,8 +90,8 @@ defmodule RabbitDriver.ImageConsumer do
          timeout = Map.get(payload, "timeout_ms", :timer.seconds(5)),
          confidence = Map.get(payload, "confidence", 0.8),
          opts = [ timeout: timeout, confidence: confidence],
-         true <- Vision.visible(path, opts) || {:error, "Not found"} do
-      {:reply, %{error: nil}}
+         {:ok, info} <- Vision.visible(path, opts) || {:error, "Not found"} do
+      {:reply, Map.put(info, :error, nil)}
     else
       {:error, reason} ->
         {:reply, %{error: reason}}
