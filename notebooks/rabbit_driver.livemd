@@ -24,7 +24,7 @@ port_input = Kino.Input.number("Port", default: 5672) |> Kino.render()
 :ok
 ```
 
-If you input the correct info, the following cell will create an `AMQP.Channel`.
+If you input the correct info, the following cells will create an `AMQP.Channel`.
 
 ```elixir
 username = Kino.Input.read(username_input)
@@ -137,6 +137,65 @@ end
 call_with_opts = fn topic, payload, opts ->
   Rabbit.call(channel, exchange, topic, payload, opts)
 end
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Logs
+
+The app will send out logs, which you can watch. This section is optional to run but
+recommended. Once run, this will print logs to the must recently run cell. Only run this cell 
+once, or will get each log multiple times.
+
+```elixir
+require Logger
+
+{:ok, %{queue: queue}} = AMQP.Queue.declare(channel, "", exclusive: true, auto_delete: true)
+
+me = self()
+ref = make_ref()
+
+spawn(fn ->
+  AMQP.Queue.bind(channel, queue, exchange, routing_key: "log.#")
+  {:ok, tag} = AMQP.Basic.consume(channel, queue, nil, no_ack: true)
+
+  send(me, {:tag, ref, tag})
+
+  handler = fn recurse ->
+    receive do
+      {:basic_cancel, _meta} ->
+        :ok
+
+      {:basic_deliver, payload, _meta} ->
+        %{"level" => level, "msg" => msg} = Jason.decode!(payload)
+
+        if level in ~w"emergency alert critical error warning warn notice info debug" do
+          level = String.to_atom(level)
+          # The level is shown twice, just to ensure the correct level is printed.
+          Logger.bare_log(level, "[#{level}] #{msg}")
+        end
+
+        recurse.(recurse)
+
+      _ ->
+        recurse.(recurse)
+    end
+  end
+
+  handler.(handler)
+end)
+
+log_tag =
+  receive do
+    {:tag, ^ref, tag} ->
+      tag
+  end
+```
+
+You can stop the logger by running the next cell.
+
+```elixir
+AMQP.Queue.unsubscribe(channel, log_tag)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
