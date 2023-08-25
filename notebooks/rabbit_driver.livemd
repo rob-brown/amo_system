@@ -167,13 +167,9 @@ spawn(fn ->
         :ok
 
       {:basic_deliver, payload, _meta} ->
-        %{"level" => level, "msg" => msg} = Jason.decode!(payload)
+        %{"level" => level, "msg" => msg, "timestamp" => time} = Jason.decode!(payload)
 
-        if level in ~w"emergency alert critical error warning warn notice info debug" do
-          level = String.to_atom(level)
-          # The level is shown twice, just to ensure the correct level is printed.
-          Logger.bare_log(level, "[#{level}] #{msg}")
-        end
+        IO.puts("#{time} [#{level}] #{msg}")
 
         recurse.(recurse)
 
