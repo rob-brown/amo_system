@@ -8,7 +8,7 @@ wait("2s")
 -- Select first player account.
 press("a", "500ms")
 -- Wait a long time for game to launch.
-wait_until_found("kirby.png", "40s")
+wait_until_found("ss_kirby.png", "40s")
 -- Skip intro video to title screen.
 press("a")
 wait("2s")

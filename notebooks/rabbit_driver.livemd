@@ -137,7 +137,7 @@ First, is some basic code to handle requesting and handling the image.
 ```elixir
 defmodule Screenshot do
   def capture(fun, opts \\ []) do
-    {:ok, json, _meta} = SquadStrike.MQ.call("image.screenshot", %{timeout_ms: 1000}, opts)
+    {:ok, json, _meta} = MQ.call("image.screenshot", %{timeout_ms: 1000}, opts)
 
     bytes = Base.decode64!(json["screenshot"]["bytes"])
 
@@ -149,8 +149,9 @@ defmodule Screenshot do
 
   def capture_forever(delay, fun) do
     # Create a queue so we don't make a new one with each request.
-    channel = SquadStrike.MQ.channel()
-    {:ok, %{queue: queue}} = AMQP.Queue.declare(channel, "", exclusive: true, auto_delete: true)
+    {:ok, conn} = AMQP.Connection.open(MQ.url())
+    {:ok, channel} = AMQP.Channel.open(conn)
+    {:ok, %{queue: queue}} = AMQP.Queue.declare(channel, "", auto_delete: true)
 
     capture(fun, reply_to: queue)
     Process.sleep(delay)
@@ -225,27 +226,4 @@ timeout = :timer.minutes(2)
 MQ.call("script.run", %{name: "ss_launch_ssbu.lua", timeout_ms: timeout}, timeout_ms: timeout)
 ```
 
-```elixir
-timeout = :timer.minutes(2)
-
-# TODO: Set up the tournament.
-
-amiibo_files = []
-
-inputs =
-  amiibo_files
-  |> Enum.with_index(1)
-  |> Map.new(fn {file, n} ->
-    bytes = file |> File.read!() |> Base.encode64()
-    data_url = "data:application/octet-stream;base64,#{bytes}"
-    {"amiibo#{n}", data_url}
-  end)
-
-call_with_opts.(
-  "script.run",
-  %{name: "load_squad_strike.lua", timeout_ms: timeout, inputs: inputs},
-  timeout_ms: timeout
-)
-```
-
-<!-- livebook:{"offset":7670,"stamp":{"token":"QTEyOEdDTQ.ZYcwxBzvs2w14GCPcOCPPl9JGs2YvbC9MmDSFkmz5UA03hj9nZcuQQQXnuc.i4FtMI7Q9ZakF8Tr.RyT8gHPUT5bu-lJjdtFCtT_pO1VC1Hsuk6gc2XYd3fKXpFiFEg_LSoJSMLk.2CpDkKjwVxhJWr3hFbLBNA","version":1}} -->
+<!-- livebook:{"offset":7242,"stamp":{"token":"QTEyOEdDTQ._Q9fW2xut98I6kFkyhV6SvSo0Ym-sW5g-kLamofpNFqwXZOzV8dcCQAzdZc.BaksiRunP7oESZ-B.rSkRyEKfm0fLhnx55Vfnpx9nc0CckD5L1diTBdCEVpOufvqnlFD5pbthbxY.xYc4Ob-RiP_UIaOhPo3YeA","version":1}} -->
