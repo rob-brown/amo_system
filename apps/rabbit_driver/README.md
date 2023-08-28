@@ -25,14 +25,13 @@ purposes are listed below.
 | image.delete      | App       | Send an image to be stored for later use. |
 | image.screenshot  | App       | Create a screenshot and return it. |
 | image.visible     | App       | Returns the bounding box of the specified image, if found. |
+| image.count       | App       | Returns the number of images matching the given image. |
 | script.list       | App       | List all the known scripts. |
 | script.get        | App       | Get a specified script. |
 | script.put        | App       | Send a script to be stored for later use. |
 | script.delete     | App       | Send a script to be stored for later use. |
 | script.run        | App       | Run a specified script. |
 | log.[level]       | Client    | Log messages for a particular level, ex. warning, error. |
-| log.enable        | App       | Enable log messages, enabled by default. |
-| log.disable       | App       | Disable log messages, enabled by default. |
 | system.configure  | App       | Configure the system options (TBD). |
 | system.clear      | App       | Clear all queued commands. |
 | system.status     | App       | Get the status of the system. |

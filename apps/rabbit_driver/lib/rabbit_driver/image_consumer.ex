@@ -91,8 +91,21 @@ defmodule RabbitDriver.ImageConsumer do
          timeout = Map.get(payload, "timeout_ms", :timer.seconds(5)),
          confidence = Map.get(payload, "confidence", 0.8),
          opts = [timeout: timeout, confidence: confidence],
-         {:ok, info} <- Vision.visible(path, opts) || {:error, "Not found"} do
+         {:ok, info} <- visible(path, opts) do
       {:reply, Map.put(info, :error, nil)}
+    else
+      {:error, reason} ->
+        {:reply, %{error: reason}}
+    end
+  end
+
+  def handle_msg(~w"image count", payload = %{"name" => name}) do
+    with {:ok, path} <- lookup(name),
+         timeout = Map.get(payload, "timeout_ms", :timer.seconds(5)),
+         confidence = Map.get(payload, "confidence", 0.89),
+         opts = [timeout: timeout, confidence: confidence],
+         {:ok, count} <- Vision.count(path, opts) || {:error, "Not found"} do
+      {:reply, %{error: nil, count: count}}
     else
       {:error, reason} ->
         {:reply, %{error: reason}}
@@ -130,6 +143,19 @@ defmodule RabbitDriver.ImageConsumer do
   end
 
   ## Helpers
+  
+  defp visible(path, opts) do
+    case Vision.visible(path, opts) do
+      {:ok, nil} ->
+        {:error, "Not found"}
+
+      {:ok, info = %{}} ->
+        {:ok, info}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
 
   defp lookup(name) do
     path = path(name)

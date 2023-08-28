@@ -1,4 +1,4 @@
-# Untitled notebook
+# Squad Strike Runner
 
 ```elixir
 Mix.install([
@@ -503,7 +503,7 @@ inputs =
   |> Enum.with_index(1)
   |> Map.new(fn {file, n} ->
     bytes = file |> File.read!() |> Base.encode64()
-    data_url = "data:application/octet-stream,#{bytes}"
+    data_url = "data:application/octet-stream;base64,#{bytes}"
     {"amiibo#{n}", data_url}
   end)
 

@@ -1,0 +1,5 @@
+wait("1s")
+press("a")
+wait("2s")
+press("a")
+wait("700ms")
