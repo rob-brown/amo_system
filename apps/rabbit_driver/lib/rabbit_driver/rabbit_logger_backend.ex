@@ -37,13 +37,15 @@ defmodule RabbitDriver.RabbitLoggerBackend do
           Time.new!(hour, minute, second, {ms * 1000, 3})
         )
 
-      payload =
-        Jason.encode!(%{
+      data =
+        encode_metadata(%{
           msg: msg,
           timestamp: datetime,
           level: level,
-          meta: encode_metadata(metadata)
+          meta: metadata
         })
+
+      payload = Jason.encode!(data)
 
       AMQP.Basic.publish(channel, exchange, topic, payload)
     end
@@ -142,25 +144,71 @@ defmodule RabbitDriver.RabbitLoggerBackend do
     end)
   end
 
-  defp encode_metadata(meta) do
+  defguardp is_json_literal(v) when is_number(v) or is_binary(v) or is_atom(v) or is_boolean(v)
+
+  defguardp is_json_incompatible(v)
+            when is_port(v) or is_reference(v) or is_pid(v) or is_function(v)
+
+  defp encode_metadata(meta = %struct{}) do
     meta
-    |> Enum.filter(fn {k, v} -> valid_key?(k) and valid_value?(v) end)
-    |> Map.new()
+    |> Map.from_struct()
+    |> Map.put("struct_name", struct)
+    |> encode_metadata()
   end
 
-  defp valid_key?(k) do
-    is_binary(k) or is_atom(k)
+  defp encode_metadata(meta) do
+    for {k, v} <- meta, mapped = map_pair(k, v), mapped != :skip, into: %{} do
+      mapped
+    end
   end
 
-  defp valid_value?(v) when is_list(v) do
-    Enum.all?(v, &valid_value?/1)
+  defp map_pair(k, _v) when not is_binary(k) and not is_atom(k) do
+    :skip
   end
 
-  defp valid_value?(v) when is_map(v) do
+  defp map_pair(k, v) do
+    {k, map_item(v)}
+  end
+
+  defp map_item(v) when is_map(v) do
     encode_metadata(v)
   end
 
-  defp valid_value?(v) do
-    is_binary(v) or is_atom(v) or is_number(v) or is_boolean(v)
+  defp map_item(v) when is_list(v) do
+    if improper_list?(v) do
+      # Assumes any improper lists are iodata.
+      IO.iodata_to_binary(v)
+    else
+      Enum.map(v, &map_item/1)
+    end
+  end
+
+  defp map_item(v) when is_json_literal(v) do
+    v
+  end
+
+  defp map_item(v) when is_json_incompatible(v) do
+    # Convert the item to a string.
+    inspect(v)
+  end
+
+  defp map_item(v) when is_tuple(v) do
+    v |> Tuple.to_list() |> Enum.map(&map_item/1)
+  end
+
+  def improper_list?([]) do
+    false
+  end
+
+  def improper_list?([_head | tail]) when not is_list(tail) do
+    true
+  end
+
+  def improper_list?([head | tail]) when is_list(head) and is_list(tail) do
+    improper_list?(head) or improper_list?(tail)
+  end
+
+  def improper_list?([_head | tail]) do
+    improper_list?(tail)
   end
 end
