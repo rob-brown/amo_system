@@ -117,6 +117,7 @@ defmodule SquadStrike.MQ do
   def setup() do
     load_scripts()
     load_images()
+    :ok
   end
 
   ## Helpers
@@ -132,9 +133,11 @@ defmodule SquadStrike.MQ do
 
   defp load_images() do
     for %{name: name, path: path} <- files("images", ".png") do
+      data = Base.encode64(File.read!(path))
+
       cast("image.put", %{
         name: name,
-        bytes: File.read!(path)
+        bytes: "data:image/png;base64," <> data
       })
     end
   end

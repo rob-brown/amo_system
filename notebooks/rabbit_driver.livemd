@@ -24,7 +24,6 @@ amqp://username:password@raspberrypi.local:5672
 If you enter it wrong, then you may see an error like this when running the setup cell.
 
 ```
-
 01:12:17.379 [info] Application squad_strike exited: SquadStrike.Application.start(:normal, []) returned an error: shutdown: failed to start child: SquadStrike.MQ
     ** (EXIT) an exception was raised:
         ** (MatchError) no match of right hand side value: {:error, :econnrefused}
@@ -37,6 +36,20 @@ If you enter it wrong, then you may see an error like this when running the setu
 
 The default domain for a Raspberry Pi is `raspberrypi.local`. However, if you changed it, then
 you will need to update the AMQP URL as well.
+
+<blockquote style="background-color:#F5FF7B; color:black">
+💡 This Livebook calls a helper project so you don't need to see all the code that's working in
+the background. If you want to see it, you will find it at 
+<code>notebooks/rabbit_driver/squad_strike</code>.
+</blockquote>
+
+The main modules used from the helper project are `SquadStrike` and `SquadStrike.MQ`. We'll alias the latter to just `MQ`.
+
+You'll often see `MQ.cast` and `MQ.call`. `MQ.cast` sends a message but doesn't expect a reply. Similarly, `MQ.call` will send a message and wait for a response.
+
+```elixir
+alias SquadStrike.MQ, as: MQ
+```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -53,9 +66,10 @@ logs while running something else. You can skip over this section if you don't n
 ```elixir
 require Logger
 
-url = SquadStrike.MQ.url()
-exchange = SquadStrike.MQ.exchange()
+url = MQ.url()
+exchange = MQ.exchange()
 
+# Creating a new connection fixes some problems with stopping the cell.
 {:ok, conn} = AMQP.Connection.open(url)
 {:ok, channel} = AMQP.Channel.open(conn)
 {:ok, %{queue: queue}} = AMQP.Queue.declare(channel, "", exclusive: true, auto_delete: true)
@@ -160,21 +174,6 @@ image =
   end)
 ```
 
-```elixir
-bytes = image |> Base.encode64()
-data_url = "data:image/png;base64,#{bytes}"
-
-cast.("image.put", %{name: "homescreen.png", bytes: data_url})
-```
-
-```elixir
-call.("image.list", %{})
-```
-
-```elixir
-call.("image.visible", %{name: "homescreen.png"})
-```
-
 This next cell will continuously capture images every few seconds. You can change the capture
 rate. It's a number in milliseconds. Or you can use the `:timer.seconds` function. Be sure to 
 click the <strong>Stop</strong> button when you are done watching.
@@ -182,47 +181,9 @@ click the <strong>Stop</strong> button when you are done watching.
 ```elixir
 frame = Kino.Frame.new() |> Kino.render()
 
-Screenshot.capture_forever(channel, exchange, :timer.seconds(5), fn bytes ->
+Screenshot.capture_forever(:timer.seconds(5), fn bytes ->
   Kino.Frame.render(frame, bytes)
 end)
-```
-
-## Scripting
-
-```elixir
-script = """
-for i = 0,10,1
-do
-  press("left", 200)
-  press("left", 200)
-  press("right", 200)
-  press("right", 200)
-end
-"""
-
-call_with_opts.("script.run", %{raw: script, timeout_ms: 20_000}, timeout_ms: 20_000)
-```
-
-```elixir
-script = """
-press("right", 200)
-press("a", "1s")
-press("b")
-"""
-
-cast.("script.put", %{name: "test.lua", bytes: Base.encode64(script)})
-```
-
-```elixir
-call.("script.list", %{})
-```
-
-```elixir
-call.("script.list", %{name: "test.lua"})
-```
-
-```elixir
-call_with_opts.("script.run", %{name: "test.lua", timeout_ms: 5000}, timeout_ms: 5000)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
@@ -239,167 +200,29 @@ The scripts will reference these images. Typically checking if the image is visi
 These images are dependent on the screen resolution of the capture card. If you don't use 
 **640x480** as your resolution, then you must update all the images accordingly.
 
+The scripts can also be sent ahead of time, or they can be run on demand. The following cell will send both the images and the scripts so they can be used by name.
+
 ```elixir
-images = ~w[kirby.png pointer.png ready_to_fight.png]
-dir = Path.join(__DIR__, "img")
-
-for img <- images do
-  bytes = img |> Path.expand(dir) |> File.read!() |> Base.encode64()
-  data_url = "data:image/png;base64,#{bytes}"
-
-  cast.("image.put", %{name: img, bytes: data_url})
-end
+MQ.setup()
 ```
 
-You can then check that the images were uploaded. Other images may also be present.
+You can then check that the images were uploaded. Other images may also be present. You will
+notice the Squad Strike images start with `ss_` to avoid name conflicts with other files.
 
 ```elixir
-call.("image.list", %{})
+MQ.call("image.list", %{})
 ```
 
-The automations also need the scripts. The scripts can be sent and run in the same message. Though for scripts that are run frequently, we can save some time but sending them upfront and then referencing them later.
-
-The scripts are written in Lua. This is an embedded programming language that is able to safely call into the original Elixir code without recompiling.
+And the same for the scripts.
 
 ```elixir
-scripts = %{
-  launch_ssbu_to_squad_strike: """
-  -- Focus on first game.
-  -- Assumes this is the desired game.
-  press("home")
-  wait("1500ms")
-  -- Open game
-  press("a")
-  wait("2s")
-  -- Select first player account.
-  press("a", "500ms")
-  -- Wait a long time for game to launch.
-  wait_until_found("kirby.png", "40s")
-  -- Skip intro video to title screen.
-  press("a")
-  wait("2s")
-  -- Advance to game menu.
-  press("a")
-  wait("4s")
-  -- Select Smash mode.
-  press("a")
-  wait("1s")
-  -- Navigate to Squad Strike menu.
-  press("down")
-  press("left")
-  press("a")
-  wait("4s")
-  -- Select first rule set.
-  press("a")
-  wait("4s")
-  -- Select 3-on-3 mode.
-  press("a")
-  wait("2s")
-  """,
-  close_game: """
-  -- Go to home screen.
-  -- If on home screen, focus on running game.
-  press("home")
-  wait("700ms")
-  -- Trigger game close.
-  press("x")
-  wait("700ms")
-  -- Ackknowledge game close.
-  press("a")
-  wait("1s")
-  """,
-  load_squad_strike: """
-  -- Press button to wake-up controller if needed.
-  press("x")
-
-  -- Load FP1
-  load_amiibo_binary(amiibo1)
-  move_pointer("pointer.png", {30, 125}, {65, 140})
-  press("a")
-  wait("200ms")
-  press("a")
-  wait("5s")
-
-  -- Load FP2
-  load_amiibo_binary(amiibo2)
-  move_pointer("pointer.png", {30, 253}, {65, 270})
-  press("a")
-  wait("200ms")
-  press("a")
-  wait("5s")
-
-  -- Load FP3
-  load_amiibo_binary(amiibo3)
-  move_pointer("pointer.png", {30, 385}, {65, 400})
-  press("a")
-  wait("200ms")
-  press("a")
-  wait("5s")
-
-  -- Load FP4
-  load_amiibo_binary(amiibo4)
-  move_pointer("pointer.png", {595, 385}, {605, 400})
-  press("a")
-  wait("200ms")
-  press("a")
-  wait("5s")
-
-  -- Load FP5
-  load_amiibo_binary(amiibo5)
-  move_pointer("pointer.png", {595, 253}, {615, 270})
-  press("a")
-  wait("200ms")
-  press("a")
-  wait("5s")
-
-  -- Load FP6
-  load_amiibo_binary(amiibo6)
-  move_pointer("pointer.png", {595, 125}, {615, 140})
-  press("a")
-  wait("200ms")
-  press("a")
-  wait("5s")
-
-  -- Move pointer out of the way to count the loaded FPs.
-  press("up", "400ms")
-
-  -- Take a screenshot to later check if any matchups loaded wrong.
-  press("capture")
-
-  -- Clear the amiibo to avoid problems later.
-  clear_amiibo()
-  """,
-  squad_start: """
-  -- Acknowledge character selection.
-  press("plus")
-  wait("5s")
-  -- Randomize the squad.
-  press("x")
-  wait("5s")
-  -- Start the match.
-  press("a")
-  wait("2s")
-  """
-}
-
-for {name, script} <- scripts do
-  payload = %{name: "#{name}.lua", bytes: script}
-  cast.("script.put", payload)
-end
-```
-
-Similarly, you can check that the scripts were uploaded.
-
-```elixir
-call.("script.list", %{})
+MQ.call("script.list", %{})
 ```
 
 ```elixir
 timeout = :timer.minutes(2)
 
-call_with_opts.("script.run", %{name: "launch_ssbu_to_squad_strike.lua", timeout_ms: timeout},
-  timeout_ms: timeout
-)
+MQ.call("script.run", %{name: "ss_launch_ssbu.lua", timeout_ms: timeout}, timeout_ms: timeout)
 ```
 
 ```elixir
@@ -425,4 +248,4 @@ call_with_opts.(
 )
 ```
 
-<!-- livebook:{"offset":10817,"stamp":{"token":"QTEyOEdDTQ.1GkAdX6lPRkLjCJaX6Jk7Q-mdpspoY_ZM0MRHk1KebBrRKur_VCuABrPQw0.ciE2F25SuEfC_h5X.oRxKMrVdnV8eA1LQ0kucbiw2pu-HzAHp0KNT1istmR8lzGib0PxaFd_n_rw.4azRcVtDC9ioboJW13dyMw","version":1}} -->
+<!-- livebook:{"offset":7670,"stamp":{"token":"QTEyOEdDTQ.ZYcwxBzvs2w14GCPcOCPPl9JGs2YvbC9MmDSFkmz5UA03hj9nZcuQQQXnuc.i4FtMI7Q9ZakF8Tr.RyT8gHPUT5bu-lJjdtFCtT_pO1VC1Hsuk6gc2XYd3fKXpFiFEg_LSoJSMLk.2CpDkKjwVxhJWr3hFbLBNA","version":1}} -->

@@ -43,7 +43,7 @@ defmodule RabbitDriver.Queue do
   end
 end
 
-defimpl Enumerable, for: TournamentRunner.Queue do
+defimpl Enumerable, for: RabbitDriver.Queue do
   def count(q) do
     {:ok, :queue.len(q.queue)}
   end
@@ -61,7 +61,7 @@ defimpl Enumerable, for: TournamentRunner.Queue do
   end
 end
 
-defimpl Collectable, for: TournamentRunner.Queue do
+defimpl Collectable, for: RabbitDriver.Queue do
   def into(q) do
     collector = fn
       acc, {:cont, elem} ->
