@@ -4,6 +4,7 @@ defmodule RabbitDriver.Application do
   use Application
 
   @env Mix.env()
+  @target Mix.target()
 
   @impl true
   def start(_type, _args) do
@@ -17,13 +18,23 @@ defmodule RabbitDriver.Application do
     end
   else
     defp children() do
-      [
-        Joycontrol,
-        Vision,
-        RabbitDriver.CommandQueue,
-        RabbitDriver.ImageConsumer,
-        RabbitDriver.ScriptConsumer
-      ]
+      case @target do
+        :host ->
+          [
+            RabbitDriver.CommandQueue,
+            RabbitDriver.ImageConsumer,
+            RabbitDriver.ScriptConsumer
+          ]
+
+        :rpi ->
+          [
+            Joycontrol,
+            Vision,
+            RabbitDriver.CommandQueue,
+            RabbitDriver.ImageConsumer,
+            RabbitDriver.ScriptConsumer
+          ]
+      end
     end
   end
 end
