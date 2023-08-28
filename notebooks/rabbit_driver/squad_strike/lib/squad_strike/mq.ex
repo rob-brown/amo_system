@@ -7,8 +7,15 @@ defmodule SquadStrike.MQ do
   defstruct [:conn, :channel, :exchange]
 
   def start_link(_) do
-    url = System.get_env("AMQP_URL", "amqp://guest:guest@localhost:5672")
-    exchange = System.get_env("AMQP_EXCHANGE", "rabbit_driver.topic")
+    url =
+      System.get_env("AMQP_URL") ||
+        System.get_env("LB_AMQP_URL") ||
+        "amqp://guest:guest@localhost:5672"
+
+    exchange =
+      System.get_env("AMQP_EXCHANGE") ||
+        System.get_env("LB_AMQP_EXCHANGE") ||
+        "rabbit_driver.topic"
 
     Agent.start_link(
       fn ->
