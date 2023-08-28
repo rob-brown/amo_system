@@ -21,23 +21,30 @@ defmodule SquadStrike.MQ do
     )
   end
 
-  def cast(agent \\ @name, topic, payload = %{}) do
-    cast(channel, exchange, topic, Jason.encode!(payload))
+  @spec cast(binary(), binary() | map()) :: :ok
+  def cast(topic, payload)
+
+  def cast(topic, payload = %{}) do
+    cast(topic, Jason.encode!(payload))
   end
 
-  def cast(agent \\ @name, topic, "" <> payload) do
-    %__MODULE{channel: channel, exchange: exchange} = Agent.get(agent, & &1)
+  def cast(topic, "" <> payload) do
+    %__MODULE{channel: channel, exchange: exchange} = Agent.get(@name, & &1)
 
     AMQP.Basic.publish(channel, exchange, topic, payload)
   end
 
-  def call(agent \\ @name, topic, payload, opts \\ [])
+  @spec call(binary(), binary() | map(), Keyword.t()) ::
+          {:ok, payload :: map(), meta :: map()} | {:error, any()}
+  def call(topic, payload, opts \\ [])
 
-  def call(agent, topic, payload = %{}, opts) do
-    call(channel, exchange, topic, Jason.encode!(payload), opts)
+  def call(topic, payload = %{}, opts) do
+    call(topic, Jason.encode!(payload), opts)
   end
 
-  def call(agent, topic, "" <> payload, opts) do
+  def call(topic, "" <> payload, opts) do
+    %__MODULE{channel: channel, exchange: exchange} = Agent.get(@name, & &1)
+
     id =
       :erlang.unique_integer()
       |> :erlang.integer_to_binary()
@@ -75,7 +82,9 @@ defmodule SquadStrike.MQ do
     await(channel, tag, timeout)
   end
 
-  def run_script(agent \\ @name, script, opts \\ []) do
+  @spec run_script(binary(), Keyword.t()) ::
+          {:ok, payload :: map(), meta :: map()} | {:error, any()}
+  def run_script(script, opts \\ []) do
     inputs = Keyword.get(opts, :inputs, [])
     timeout = Keyword.get(opts, :timeout_ms, :timer.seconds(5))
 
@@ -90,14 +99,14 @@ defmodule SquadStrike.MQ do
     )
   end
 
-  def setup(agent \\ @name) do
-    load_scripts(agent)
-    load_images(agent)
+  def setup() do
+    load_scripts()
+    load_images()
   end
 
   ## Helpers
 
-  defp load_scripts(agent \\ @name) do
+  defp load_scripts() do
     for %{name: name, path: path} <- files("scripts", ".lua") do
       cast("script.put", %{
         name: name,
@@ -106,7 +115,7 @@ defmodule SquadStrike.MQ do
     end
   end
 
-  defp load_images(agent \\ @name) do
+  defp load_images() do
     for %{name: name, path: path} <- files("images", ".png") do
       cast("image.put", %{
         name: name,

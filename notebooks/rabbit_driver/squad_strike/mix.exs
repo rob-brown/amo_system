@@ -20,8 +20,8 @@ defmodule SquadStrike.MixProject do
 
   defp deps do
     [
-      {:submission_info, path: "../submission_info"},
-      {:challonge, path: "../challonge"},
+      {:challonge, github: "rob-brown/amo_system", subdir: "apps/challonge"},
+      {:submission_info, github: "rob-brown/amo_system", subdir: "apps/submission_info"},
       {:amqp, "~> 3.0"},
       {:jason, "~> 1.3"}
     ]

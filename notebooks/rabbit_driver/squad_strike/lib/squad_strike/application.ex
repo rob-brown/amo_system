@@ -10,6 +10,6 @@ defmodule SquadStrike.Application do
     ]
 
     opts = [strategy: :one_for_one, name: SquadStrike.Supervisor]
-    Supervisor.start_link(children(), opts)
+    Supervisor.start_link(children, opts)
   end
 end

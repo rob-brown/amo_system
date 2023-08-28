@@ -20,8 +20,6 @@ defmodule SquadStrike do
   @tsv_suffix "-entries.tsv"
   @match_duration :timer.seconds(450)
 
-  @behaviour TournamentRunner.Driver
-
   def tsv_suffix() do
     @tsv_suffix
   end
@@ -64,20 +62,6 @@ defmodule SquadStrike do
     sync_with_challonge(storage)
   end
 
-  def resume(storage = %Storage{}) do
-    state = Storage.restore(storage)
-
-    if state.remaining_matches == [] do
-      Logger.warn("No more matches")
-    else
-      CommandQueue.queue_automation(storage)
-
-      CommandQueue.queue_function(fn ->
-        __MODULE__.resume(storage)
-      end)
-    end
-  end
-
   def sync_with_challonge(storage = %Storage{}) do
     with :ok <- Challonge.retry(fn -> upload_completed_matches(storage) end),
          :ok <- Challonge.retry(fn -> download_remaining_matches(storage) end) do
@@ -88,7 +72,7 @@ defmodule SquadStrike do
     end
   end
 
-  def run(storage = %Storage{}) do
+  def resume(storage = %Storage{}) do
     state = Storage.restore(storage)
 
     case state.remaining_matches do
@@ -100,9 +84,11 @@ defmodule SquadStrike do
         fp_team2 = Enum.map(team2.amiibo, & &1.binary)
         scores = run(fp_team1, fp_team2)
         report_scores(storage, match, scores)
+        resume(storage)
 
-      _ ->
-        nil
+      [] ->
+        Logger.warn("No more matches")
+        :ok
     end
   end
 

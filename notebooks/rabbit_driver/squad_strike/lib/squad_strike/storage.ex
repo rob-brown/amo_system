@@ -14,11 +14,9 @@ defmodule SquadStrike.Storage do
     end
   end
 
-  def save(storage = %__MODULE__{dir: dir}, state) do
-    file_name = SquadStrike.save_file_name(storage)
-
+  def save(%__MODULE__{dir: dir}, state) do
     dir
-    |> Path.join(file_name)
+    |> Path.join(save_file_name())
     |> File.write(:erlang.term_to_binary(state))
     |> case do
       :ok ->
@@ -29,16 +27,14 @@ defmodule SquadStrike.Storage do
     end
   end
 
-  def restore(storage = %__MODULE__{dir: dir}) do
-    file_name = SquadStrike.save_file_name(storage)
-
+  def restore(%__MODULE__{dir: dir}) do
     dir
-    |> Path.join(file_name)
+    |> Path.join(save_file_name())
     |> File.read!()
     |> :erlang.binary_to_term()
   end
 
-  def save_file_name(storage = %__MODULE__{}) do
+  def save_file_name() do
     "state.bin"
   end
 end
