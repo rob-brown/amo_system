@@ -155,7 +155,7 @@ defmodule RabbitDriver.ImageConsumer do
     Path.join(screenshot_dir(), name)
   end
 
-  defp path(name = <<c::utf8>> <> _) when c in [?., ?/] do
+  defp path(name = <<c::utf8>> <> _) when c in [?~, ?., ?/] do
     raise "Unsafe file name #{name}"
   end
 

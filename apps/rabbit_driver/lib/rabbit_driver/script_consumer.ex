@@ -113,6 +113,10 @@ defmodule RabbitDriver.ScriptConsumer do
     end
   end
 
+  defp path(name = <<c::utf8>> <> _) when c in [?~, ?., ?/] do
+    raise "Unsafe file name #{name}"
+  end
+
   defp path(name) do
     if String.ends_with?(name, ".lua") do
       Path.join(script_dir(), name)
