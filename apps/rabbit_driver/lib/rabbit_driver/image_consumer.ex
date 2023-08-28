@@ -143,7 +143,7 @@ defmodule RabbitDriver.ImageConsumer do
   end
 
   ## Helpers
-  
+
   defp visible(path, opts) do
     case Vision.visible(path, opts) do
       {:ok, nil} ->

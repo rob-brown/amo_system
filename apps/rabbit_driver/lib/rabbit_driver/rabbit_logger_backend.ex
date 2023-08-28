@@ -37,13 +37,12 @@ defmodule RabbitDriver.RabbitLoggerBackend do
           Time.new!(hour, minute, second, {ms * 1000, 3})
         )
 
-      data =
-        encode_metadata(%{
-          msg: msg,
-          timestamp: datetime,
-          level: level,
-          meta: metadata
-        })
+      data = %{
+        msg: encode_string(msg),
+        timestamp: datetime,
+        level: level,
+        meta: encode_metadata(metadata)
+      }
 
       payload = Jason.encode!(data)
 
@@ -148,6 +147,14 @@ defmodule RabbitDriver.RabbitLoggerBackend do
 
   defguardp is_json_incompatible(v)
             when is_port(v) or is_reference(v) or is_pid(v) or is_function(v)
+
+  defp encode_string(string) when is_binary(string) do
+    string
+  end
+
+  defp encode_string(list) when is_list(list) do
+    IO.iodata_to_binary(list)
+  end
 
   defp encode_metadata(meta = %struct{}) do
     meta

@@ -3,8 +3,8 @@ defmodule SquadStrike.MQ do
 
   @name __MODULE__
 
-  @enforce_keys [:conn, :channel, :exchange]
-  defstruct [:conn, :channel, :exchange]
+  @enforce_keys [:url, :conn, :channel, :exchange]
+  defstruct [:url, :conn, :channel, :exchange]
 
   def start_link(_) do
     url =
@@ -22,10 +22,18 @@ defmodule SquadStrike.MQ do
         {:ok, conn} = AMQP.Connection.open(url)
         {:ok, channel} = AMQP.Channel.open(conn)
 
-        %__MODULE__{conn: conn, channel: channel, exchange: exchange}
+        %__MODULE__{url: url, conn: conn, channel: channel, exchange: exchange}
       end,
       name: @name
     )
+  end
+
+  def url() do
+    Agent.get(@name, & &1.url)
+  end
+
+  def exchange() do
+    Agent.get(@name, & &1.exchange)
   end
 
   @spec cast(binary(), binary() | map()) :: :ok
