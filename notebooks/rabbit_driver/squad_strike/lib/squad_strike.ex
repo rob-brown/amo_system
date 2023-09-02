@@ -17,12 +17,7 @@ defmodule SquadStrike do
   alias Challonge.Score
   alias Challonge.Match
 
-  @tsv_suffix "-entries.tsv"
   @match_duration :timer.seconds(450)
-
-  def tsv_suffix() do
-    @tsv_suffix
-  end
 
   def create_tournament(storage = %Storage{}, options \\ []) do
     {:ok, tournament_name, teams} = initial_info(storage)
@@ -84,6 +79,7 @@ defmodule SquadStrike do
         fp_team2 = Enum.map(team2.amiibo, & &1.binary)
         scores = run(fp_team1, fp_team2)
         report_scores(storage, match, scores)
+        Process.sleep(:timer.seconds(3))
         resume(storage)
 
       [] ->
@@ -103,14 +99,14 @@ defmodule SquadStrike do
     try do
       MQ.run_script("ss_load_squad_strike",
         timeout_ms: :timer.seconds(60),
-        inputs: [
+        inputs: %{
           amiibo1: encode_amiibo(fp1),
           amiibo2: encode_amiibo(fp2),
           amiibo3: encode_amiibo(fp3),
           amiibo4: encode_amiibo(fp4),
           amiibo5: encode_amiibo(fp5),
           amiibo6: encode_amiibo(fp6)
-        ]
+        }
       )
 
       unless ready_to_fight?() do
@@ -119,8 +115,7 @@ defmodule SquadStrike do
 
       MQ.run_script("ss_squad_start")
 
-      watch_match()
-      scores = determine_winner()
+      scores = watch_match()
 
       MQ.run_script("ss_squad_after_match")
 
@@ -129,33 +124,26 @@ defmodule SquadStrike do
       "" <> error ->
         Logger.error(error)
 
-        # TODO: Do I need a message to clear the amiibo?
-        # Joycontrol.clear_amiibo()
-
+        MQ.run_script("ss_unload_amiibo")
         MQ.run_script("ss_close_game")
         MQ.run_script("ss_launch_ssbu")
+        Process.sleep(:timer.seconds(3))
         run([fp1, fp2, fp3], [fp4, fp5, fp6], retry_count - 1)
     end
   end
 
   ## Helpers
 
-  defp initial_info(%Storage{dir: dir}) do
-    bin_dir = Path.join(dir, "bins")
+  defp initial_info(storage = %Storage{}) do
+    with {:ok, tsv} <- Storage.entries_spreadsheet(storage),
+         {:ok, bin_dir} <- Storage.bins_dir(storage) do
+      teams = tsv |> EntriesParser.parse_tsv() |> Enum.map(&add_binaries(&1, bin_dir))
+      tournament_name = Storage.tournament_name(storage)
 
-    dir
-    |> File.ls!()
-    |> Enum.find(&String.ends_with?(&1, @tsv_suffix))
-    |> case do
-      nil ->
-        {:error, :bad_dir}
-
-      file ->
-        path = Path.join(dir, file)
-        teams = path |> EntriesParser.parse_tsv() |> Enum.map(&add_binaries(&1, bin_dir))
-        tournament_name = String.trim_trailing(file, @tsv_suffix)
-
-        {:ok, tournament_name, teams}
+      {:ok, tournament_name, teams}
+    else
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -229,17 +217,21 @@ defmodule SquadStrike do
 
   defp watch_match(deadline) do
     if DateTime.compare(DateTime.utc_now(), deadline) == :lt do
-      case visible("ss_squad_victory") do
-        {:ok, _} ->
-          :ok
+      cond do
+        team1_win?() ->
+          {1, 0}
 
-        _ ->
+        team2_win?() ->
+          {0, 1}
+
+        true ->
           # Sleep for a bit just so the Pi isn't busy-waiting.
           # This will keep the Pi cooler.
           Process.sleep(:timer.seconds(1))
           watch_match(deadline)
       end
     else
+      Logger.error("Match timed out")
       {:error, :timeout}
     end
   end
@@ -275,18 +267,31 @@ defmodule SquadStrike do
       count_image("ss_cpu") == {:ok, 0}
   end
 
-  defp determine_winner() do
-    case visible("ss_squad_victory") do
-      {:error, "Not found"} ->
-        throw("Winner not found")
+  defp team1_win?() do
+    case visible("ss_team1_victory") do
+      {:error, "not found"} ->
+        false
 
       {:ok, %{"x1" => x, "width" => w}} when x / w < 0.5 ->
-        Logger.info("Team 1 Wins")
-        {1, 0}
+        Logger.info("Team 1 wins")
+        true
 
-      {:ok, %{"x1" => _}} ->
-        Logger.info("Team 2 Wins")
-        {0, 1}
+      _ ->
+        false
+    end
+  end
+
+  defp team2_win?() do
+    case visible("ss_team2_victory") do
+      {:error, "not found"} ->
+        false
+
+      {:ok, %{"x1" => x, "width" => w}} when x / w > 0.5 ->
+        Logger.info("Team 2 wins")
+        true
+
+      _ ->
+        false
     end
   end
 

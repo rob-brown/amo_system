@@ -4,7 +4,7 @@ config :logger,
   level: :debug,
   backends: [:console, RabbitDriver.RabbitLoggerBackend],
   console: [
-    level: :warning
+    level: :debug
   ],
   rabbit_logger_backend: [
     level: :debug,

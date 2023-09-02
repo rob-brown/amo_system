@@ -10,6 +10,10 @@ defmodule RabbitDriver.CommandQueue do
 
   @name __MODULE__
 
+  def queue_automation(driver) do
+    GenServer.cast(@name, {:enqueue, {:run_automation, driver}})
+  end
+
   def queue_function(fun) when is_function(fun, 0) do
     GenServer.cast(@name, {:enqueue, {:run_function, fun}})
   end
@@ -93,6 +97,17 @@ defmodule RabbitDriver.CommandQueue do
   end
 
   ## Helpers
+
+  defp run_command({:run_automation, driver = %module{}}) do
+    me = self()
+
+    Task.start(fn ->
+      module.run(driver)
+      GenServer.cast(me, :process_command)
+    end)
+
+    :wait
+  end
 
   defp run_command({:run_function, fun}) do
     fun.()
