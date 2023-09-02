@@ -21,7 +21,6 @@ defmodule RabbitDriver.Application do
       case @target do
         :host ->
           [
-            RabbitDriver.CommandQueue,
             RabbitDriver.ImageConsumer,
             RabbitDriver.ScriptConsumer
           ]
@@ -30,7 +29,6 @@ defmodule RabbitDriver.Application do
           [
             Joycontrol,
             Vision,
-            RabbitDriver.CommandQueue,
             RabbitDriver.ImageConsumer,
             RabbitDriver.ScriptConsumer
           ]

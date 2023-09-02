@@ -10,3 +10,6 @@ config :logger,
     level: :debug,
     metadata: :all
   ]
+
+# Set to true to get logs as Autopilot runs scripts.
+config :autopilot, :debug, false

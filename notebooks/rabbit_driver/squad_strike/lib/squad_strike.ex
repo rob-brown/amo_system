@@ -119,7 +119,7 @@ defmodule SquadStrike do
       # Wait a few seconds to ensure the game is accepting inputs.
       Process.sleep(:timer.seconds(3))
 
-      MQ.run_script("ss_squad_after_match", timeout_ms: :timer.seconds(35))
+      MQ.run_script("ss_after_match", timeout_ms: :timer.seconds(35))
 
       scores
     catch
