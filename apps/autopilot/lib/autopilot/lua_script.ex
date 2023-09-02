@@ -4,6 +4,8 @@ defmodule Autopilot.LuaScript do
   See the private functions for details of each of the functions.
   """
 
+  require Logger
+
   @doc """
   Reads the given Lua script file and exectutes it. May be given bindings to pass data into the script.
   """
@@ -85,7 +87,11 @@ defmodule Autopilot.LuaScript do
   # Expects a file path (relative or absolute) to an amiibo bin file.
   defp load_amiibo_file(cwd) do
     fn [path | _], lua_state ->
-      binary = path |> Path.expand(cwd) |> File.read!()
+      path = Path.expand(path, cwd)
+
+      debug_log("Loading amiibo from #{path}")
+
+      binary = File.read!(path)
       Joycontrol.load_amiibo(binary)
       {[], lua_state}
     end
@@ -93,12 +99,16 @@ defmodule Autopilot.LuaScript do
 
   # Expects a raw amiibo bin data. Must be 532, 540, or 572 bytes.
   defp load_amiibo_binary([binary | _], lua_state) when is_amiibo_bin(binary) do
+    debug_log("Loading amiibo #{byte_size(binary)} bytes")
+
     Joycontrol.load_amiibo(binary)
     {[], lua_state}
   end
 
   # No args. Clears the previously loaded amiibo.
   defp clear_amiibo(_, lua_state) do
+    debug_log("Unloading amiibo")
+
     Joycontrol.clear_amiibo()
     {[], lua_state}
   end
@@ -110,6 +120,8 @@ defmodule Autopilot.LuaScript do
   #   move_pointer("targets/pointer.png", {100, 200}, {150, 2050})
   defp move_pointer(cwd) do
     fn [target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state ->
+      debug_log("Moving pointer to (#{x1}, #{y1}) (#{x2}, #{y2})")
+
       target = Path.expand(target, cwd)
       Autopilot.Pointer.move({x1..x2, y1..y2}, target)
       {[], lua_state}
@@ -124,6 +136,9 @@ defmodule Autopilot.LuaScript do
   #   wait(500)
   defp wait([duration | _], lua_state) do
     duration = parse_duration(duration)
+
+    debug_log("Waiting #{duration}")
+
     Process.sleep(duration)
     {[], lua_state}
   end
@@ -135,16 +150,18 @@ defmodule Autopilot.LuaScript do
       target = Path.expand(target, cwd)
       timeout = parse_duration(timeout)
 
-      case Vision.wait_until_found(target, timeout) do
-        {:ok, nil} ->
-          {[false], lua_state}
+      debug_fun("Waiting until found #{target}", fn ->
+        case Vision.wait_until_found(target, timeout) do
+          {:ok, nil} ->
+            {[false], lua_state}
 
-        {:ok, _} ->
-          {[true], lua_state}
+          {:ok, _} ->
+            {[true], lua_state}
 
-        _ ->
-          {[false], lua_state}
-      end
+          _ ->
+            {[false], lua_state}
+        end
+      end)
     end
   end
 
@@ -155,16 +172,18 @@ defmodule Autopilot.LuaScript do
       target = Path.expand(target, cwd)
       timeout = parse_duration(timeout)
 
-      case Vision.wait_until_gone(target, timeout) do
-        {:ok, nil} ->
-          {[true], lua_state}
+      debug_fun("Waiting until gone #{target}", fn ->
+        case Vision.wait_until_gone(target, timeout) do
+          {:ok, nil} ->
+            {[true], lua_state}
 
-        {:ok, _} ->
-          {[false], lua_state}
+          {:ok, _} ->
+            {[false], lua_state}
 
-        _ ->
-          {[false], lua_state}
-      end
+          _ ->
+            {[false], lua_state}
+        end
+      end)
     end
   end
 
@@ -172,6 +191,9 @@ defmodule Autopilot.LuaScript do
   defp capture(cwd) do
     fn [save_path | _], lua_state when is_binary(save_path) ->
       save_path = Path.expand(save_path, cwd)
+
+      debug_log("Capturing to #{save_path}")
+
       Vision.capture(save_path)
       {[], lua_state}
     end
@@ -185,6 +207,9 @@ defmodule Autopilot.LuaScript do
        when is_binary(save_path) and is_number(x1) and is_number(x2) and is_number(y1) and
               is_number(y2) ->
       save_path = Path.expand(save_path, cwd)
+
+      debug_log("Capturing crop to #{save_path}")
+
       Vision.capture_crop(save_path, {y1, x1}, {y2, x2})
       {[], lua_state}
     end
@@ -192,6 +217,8 @@ defmodule Autopilot.LuaScript do
 
   # Sends an arbitrary command to Joycontrol with the given string.
   defp joycontrol([command | _], lua_state) when is_binary(command) do
+    debug_log("Raw command #{command}")
+
     Joycontrol.command(command)
     {[], lua_state}
   end
@@ -202,6 +229,9 @@ defmodule Autopilot.LuaScript do
   #   press("b", 2000)
   defp press([button, duration | _], lua_state) when is_button(button) do
     duration = parse_duration(duration)
+
+    debug_log("Pressing #{button} #{duration}")
+
     Joycontrol.command("press #{button} #{duration}")
     Process.sleep(duration)
     {[], lua_state}
@@ -216,16 +246,18 @@ defmodule Autopilot.LuaScript do
     fn [target | _], lua_state when is_binary(target) ->
       target = Path.expand(target, cwd)
 
-      case Vision.visible(target) do
-        {:ok, nil} ->
-          {[false], lua_state}
+      debug_fun("Looking for #{target}", fn ->
+        case Vision.visible(target) do
+          {:ok, nil} ->
+            {[false], lua_state}
 
-        {:ok, _} ->
-          {[true], lua_state}
+          {:ok, _} ->
+            {[true], lua_state}
 
-        _ ->
-          {[false], lua_state}
-      end
+          _ ->
+            {[false], lua_state}
+        end
+      end)
     end
   end
 
@@ -234,13 +266,15 @@ defmodule Autopilot.LuaScript do
     fn [target | _], lua_state when is_binary(target) ->
       target = Path.expand(target, cwd)
 
-      case Vision.count(target) do
-        {:ok, n} ->
-          {[n], lua_state}
+      debug_fun("Counting #{target}", fn ->
+        case Vision.count(target) do
+          {:ok, n} ->
+            {[n], lua_state}
 
-        _ ->
-          {[0], lua_state}
-      end
+          _ ->
+            {[0], lua_state}
+        end
+      end)
     end
   end
 
@@ -253,13 +287,15 @@ defmodule Autopilot.LuaScript do
               is_number(y2) ->
       target = Path.expand(target, cwd)
 
-      case Vision.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
-        {:ok, n} ->
-          {[n], lua_state}
+      debug_fun("Counting cropped #{target}", fn ->
+        case Vision.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
+          {:ok, n} ->
+            {[n], lua_state}
 
-        _ ->
-          {[0], lua_state}
-      end
+          _ ->
+            {[0], lua_state}
+        end
+      end)
     end
   end
 
@@ -301,5 +337,27 @@ defmodule Autopilot.LuaScript do
 
   def parse_duration(duration) when is_integer(duration) do
     duration
+  end
+
+  defp debug?() do
+    Application.get_env(:autopilot, :debug) == true
+  end
+
+  defp debug_log(msg) do
+    if debug?() do
+      Logger.debug(msg)
+    end
+  end
+
+  defp debug_fun(msg, fun) when is_function(fun, 0) do
+    debug_log(msg)
+
+    result = fun.()
+
+    if debug?() do
+      Logger.debug(inspect(result))
+    end
+
+    result
   end
 end
