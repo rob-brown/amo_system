@@ -148,7 +148,7 @@ messages are included. All messages are in JSON format.
 ```json
 {
   "confidence": 0.8231834173202515,
-  "error": nil,
+  "error": null,
   "height": 480,
   "width": 640,
   "x1": 573,
@@ -173,7 +173,7 @@ messages are included. All messages are in JSON format.
 ```json
 {
   "count": 0,
-  "error": nil
+  "error": null
 }
 ```
 
@@ -259,7 +259,7 @@ or
 
 ```json
 {
-  "raw": "press("a")\npress("b")",
+  "raw": "press(\"a\")\npress(\"b\")",
   "timeout_ms": 2000
 }
 ```
