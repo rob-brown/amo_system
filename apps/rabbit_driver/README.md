@@ -32,12 +32,6 @@ purposes are listed below.
 | <a href="#script.delete">script.delete</a>         | App       | Send a script to be stored for later use. |
 | <a href="#script.run">script.run</a>               | App       | Run a specified script. |
 | <a href="#log.level">log.[level]</a>               | Client    | Log messages for a particular level, ex. warning, error. |
-| <a href="#system.status">system.status</a>         | App       | Get the status of the system. |
-| <a href="#system.heartbeat">system.heartbeat</a>   | App       | A regular message sent out to show the system is still running. |
-| <a href="#bluetooth.pair">bluetooth.pair</a>       | App       | Pair to a Nintendo Switch. |
-| <a href="#bluetooth.reset">bluetooth.reset</a>     | App       | Unpair from a Nintendo Switch. |
-| <a href="#bluetooth.restart">bluetooth.restart</a> | App       | Restart the Bluetooth stack. |
-| <a href="#bluetooth.status">bluetooth.status</a>   | App       | Get the status of the bluetooth stack. |
 
 ## Payloads
 
