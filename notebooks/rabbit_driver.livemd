@@ -70,6 +70,28 @@ alias SquadStrike.MQ, as: MQ
 alias SquadStrike.Storage, as: Storage
 ```
 
+Next, specify where the tournament info can be found. In the following cell, type in a 
+directory path that contains the entries spreadsheet downloaded from submissionapp.com. There should 
+also be a directory named `bins` that has all the bin files. All files must be named exactly as 
+downloaded.
+
+Ideally the directory you pick should have only these files. Other files will be written as the 
+automation runs.
+
+```elixir
+dir_input = Kino.Input.text("Squad Strike Directory")
+```
+
+```elixir
+dir = dir_input |> Kino.Input.read() |> Path.expand()
+
+storage = Storage.new(dir)
+```
+
+```elixir
+MQ.call("image.count", %{name: "ss_squad_victory.png"})
+```
+
 <!-- livebook:{"branch_parent_index":0} -->
 
 ## Logs
@@ -86,8 +108,6 @@ logs while running something else. You can skip over this section if you don't n
 </blockquote>
 
 ```elixir
-require Logger
-
 url = MQ.url()
 exchange = MQ.exchange()
 
@@ -240,27 +260,6 @@ And the same for the scripts.
 MQ.call("script.list", %{})
 ```
 
-Next is to set up the tournament. In the following cell, type in a directory that contains the entries 
-spreadsheet downloaded from submissionapp.com. There should also be a directory named `bins`
-that has all the bin files. All files must be named exactly as downloaded.
-
-Ideally the directory you pick should have only these files. Other files will be written as the automation runs.
-
-If your browser automatically unzipped the bin file, get the original from the trash or re-zip 
-the file.
-
-```elixir
-dir_input = Kino.Input.text("Squad Strike Directory")
-```
-
-<!-- livebook:{"reevaluate_automatically":true} -->
-
-```elixir
-dir = dir_input |> Kino.Input.read() |> Path.expand()
-
-storage = Storage.new(dir)
-```
-
 <!-- livebook:{"branch_parent_index":3} -->
 
 ## Challonge Setup
@@ -305,8 +304,11 @@ SquadStrike.create_tournament(storage, type: type)
 SquadStrike.add_participants(storage)
 ```
 
-**Before running the next cell**, open [Challonge](https://challonge.com/) and make sure your
-bracket looks right. You will probably want to randomize the entries.
+<blockquote style="background-color:#F5FF7B; color:black">
+💡 <strong>Before running the next cell</strong>, open 
+<a href="https://challonge.com/">Challonge</a> and make sure your bracket looks right. You will 
+probably want to randomize the entries.</blockquote>
+</blockquote>
 
 ```elixir
 SquadStrike.start_tournament(storage)
@@ -316,12 +318,12 @@ SquadStrike.start_tournament(storage)
 
 ## Squad Strike Automation
 
-Now the real fun starts. You are finally ready to start the tournament. Stopping this cell will
-stop the automation. Though if a script is in progress, it will run to completion. The state is
+Now the real fun starts. You are ready to start the tournament. Stopping this cell will stop 
+the automation. Though if a script is in progress, it will run to completion. The state is
 saved so you can resume an existing tournament.
 
 ```elixir
 SquadStrike.resume(storage)
 ```
 
-<!-- livebook:{"offset":10208,"stamp":{"token":"QTEyOEdDTQ.756wQwFBTijJiPd0FG4FgM_DucTQ_vjP-SK8esBWZVGMs0eXFFijLqiHScI.oPX-_50uB4CcarPl.RNFCCgVZdEU954BglB9YC13TVdRYJGGS_gvtxt0p2cxI2BLIJKalgSL1Ilf0S5lfQ30SAatuqCn9pc58FwuJsMQ7nLA4BTAQE1ZoTGVxMU7R.JXzZHH7B2Fl8vHrcs3dF1Q","version":1}} -->
+<!-- livebook:{"offset":10241,"stamp":{"token":"QTEyOEdDTQ.Eey5qWrvok3z8w9ytHmJHpb0x-rx1j20neGaF-9-VcfvrfaGGDbytzyBgTA.OWBs7I2A4ovtQPAH.fXnbXhgNPb9DguVP2l9Btk58dol1BA85qGUlKen7PuIvENQXsaDTIRkdUp-gLs6nAtpDg9tJs7B7Sp47gIJMsxq_8Va1nIZF982eAWD1r2xu.ZCX72bAkscPp-LA5QThYUg","version":1}} -->
