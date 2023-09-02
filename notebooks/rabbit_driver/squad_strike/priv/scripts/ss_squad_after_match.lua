@@ -11,7 +11,6 @@ wait("500ms")
 press("b")
 wait("3s")
 press("right")
-wait("100ms")
 press("a")
 wait("4s")
 -- Go back into Squad Strike

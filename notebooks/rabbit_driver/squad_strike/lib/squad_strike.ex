@@ -79,7 +79,6 @@ defmodule SquadStrike do
         fp_team2 = Enum.map(team2.amiibo, & &1.binary)
         scores = run(fp_team1, fp_team2)
         report_scores(storage, match, scores)
-        Process.sleep(:timer.seconds(3))
         resume(storage)
 
       [] ->
@@ -117,7 +116,10 @@ defmodule SquadStrike do
 
       scores = watch_match()
 
-      MQ.run_script("ss_squad_after_match")
+      # Wait a few seconds to ensure the game is accepting inputs.
+      Process.sleep(:timer.seconds(3))
+
+      MQ.run_script("ss_squad_after_match", timeout_ms: :timer.seconds(35))
 
       scores
     catch
@@ -125,9 +127,8 @@ defmodule SquadStrike do
         Logger.error(error)
 
         MQ.run_script("ss_unload_amiibo")
-        MQ.run_script("ss_close_game")
-        MQ.run_script("ss_launch_ssbu")
-        Process.sleep(:timer.seconds(3))
+        MQ.run_script("ss_close_game", timeout_ms: :timer.seconds(8))
+        MQ.run_script("ss_launch_ssbu", timeout_ms: :timer.seconds(60))
         run([fp1, fp2, fp3], [fp4, fp5, fp6], retry_count - 1)
     end
   end
@@ -227,7 +228,7 @@ defmodule SquadStrike do
         true ->
           # Sleep for a bit just so the Pi isn't busy-waiting.
           # This will keep the Pi cooler.
-          Process.sleep(:timer.seconds(1))
+          Process.sleep(:timer.seconds(3))
           watch_match(deadline)
       end
     else

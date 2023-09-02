@@ -1,6 +1,10 @@
 # Squad Strike Runner
 
 ```elixir
+Application.put_env(:challonge, :challonge_api_key, System.get_env("LB_CHALLONGE_API_KEY"))
+
+Application.put_env(:amiibo_serialization, :key_retail, System.get_env("LB_KEY_RETAIL"))
+
 Mix.install([
   {:squad_strike, path: Path.join([__DIR__, "rabbit_driver", "squad_strike"])},
   {:jason, "~> 1.4"},
@@ -14,7 +18,11 @@ Mix.install([
 **Before Running This Livbook!**
 
 You first, need to open the Secrets tab in the sidebar to the left. In there you need to create
-a secret named `AMQP_URL`. You will then put in the URL to connect to your RabbitMQ broker. It
+three secrets, named `AMQP_URL`, `CHALLONGE_API_KEY`, and `KEY_RETAIL`. These will be explained below.
+
+### `AMQP_URL`
+
+You will then put in the URL to connect to your RabbitMQ broker. It
 will look like this:
 
 ```
@@ -37,6 +45,16 @@ If you enter it wrong, then you may see an error like this when running the setu
 The default domain for a Raspberry Pi is `raspberrypi.local`. However, if you changed it, then
 you will need to update the AMQP URL as well.
 
+### `CHALLONGE_API_KEY`
+
+From the Challonge website, you can [create a Challonge API key](https://challonge.com/settings/developer). Save it as a secret named `CHALLONGE_API_KEY`.
+
+### `KEY_RETAIL`
+
+This is the secret key used to decrypt amiibo. Dig around on the Internet long enough and you
+will find it. Use the single-file version. It must be base64-encoded and set to `KEY_RETAIL`
+in the secrets.
+
 <blockquote style="background-color:#F5FF7B; color:black">
 💡 This Livebook calls a helper project so you don't need to see all the code that's working in
 the background. If you want to see it, you will find it at 
@@ -49,14 +67,18 @@ You'll often see `MQ.cast` and `MQ.call`. `MQ.cast` sends a message but doesn't 
 
 ```elixir
 alias SquadStrike.MQ, as: MQ
+alias SquadStrike.Storage, as: Storage
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
 ## Logs
 
-The app will send out logs, which you can watch. Once run, this will print logs to the must
-recently run cell. Stopping this cell will stop the logs from appearing.
+The app will send out logs, which you can watch. Once run, this will print logs below this 
+cell. Stopping this cell will stop the logs from appearing.
+
+You must run this cell **before** starting other cells. If a long-running cell is running, then 
+you won't be able to run this cell until after it finishes.
 
 <blockquote style="background-color:#F5FF7B; color:black">
 💡 This section runs in parallel with other code. That way you can watch the 
@@ -187,9 +209,7 @@ Screenshot.capture_forever(:timer.seconds(5), fn bytes ->
 end)
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
-
-## Squad Strike Automation
+## Squad Strike Setup
 
 To run the automation, we first send some target images that we want to look for. They are 
 usually small, unambiguous parts fo the screen.
@@ -220,10 +240,106 @@ And the same for the scripts.
 MQ.call("script.list", %{})
 ```
 
-```elixir
-timeout = :timer.minutes(2)
+Next is to set up the tournament. In the following cell, type in a directory that contains the entries 
+spreadsheet downloaded from submissionapp.com. There should also be a directory named `bins`
+that has all the bin files. All files must be named exactly as downloaded.
 
-MQ.call("script.run", %{name: "ss_launch_ssbu.lua", timeout_ms: timeout}, timeout_ms: timeout)
+Ideally the directory you pick should have only these files. Other files will be written as the automation runs.
+
+If your browser automatically unzipped the bin file, get the original from the trash or re-zip 
+the file.
+
+```elixir
+dir_input = Kino.Input.text("Squad Strike Directory")
 ```
 
-<!-- livebook:{"offset":7242,"stamp":{"token":"QTEyOEdDTQ._Q9fW2xut98I6kFkyhV6SvSo0Ym-sW5g-kLamofpNFqwXZOzV8dcCQAzdZc.BaksiRunP7oESZ-B.rSkRyEKfm0fLhnx55Vfnpx9nc0CckD5L1diTBdCEVpOufvqnlFD5pbthbxY.xYc4Ob-RiP_UIaOhPo3YeA","version":1}} -->
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+dir = dir_input |> Kino.Input.read() |> Path.expand()
+
+storage = Storage.new(dir)
+```
+
+```elixir
+# MQ.call("script.run", %{name: "ss_launch_ssbu.lua"})
+```
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Challonge Setup
+
+This section will set up the tournament in Challonge. **Only run this section once!**
+Otherwise, a new tournament will be created, and you might not be able to continue the old 
+tournament.
+
+```elixir
+with {:ok, _tsv} <- Storage.entries_spreadsheet(storage),
+     {:ok, _bin_dir} <- Storage.bins_dir(storage) do
+  :ok
+else
+  {:error, reason} ->
+    IO.puts(inspect(reason))
+end
+
+storage
+```
+
+If everything looks good, you can proceed to create the tournament in Challonge.
+
+```elixir
+tournament_types = [
+  {"single elimination", "single elimination"},
+  {"double elimination", "double elimination"}
+]
+
+type_input = Kino.Input.select("Tournament Type", tournament_types)
+```
+
+```elixir
+type = Kino.Input.read(type_input)
+
+SquadStrike.create_tournament(storage, type: type)
+```
+
+```elixir
+SquadStrike.add_participants(storage)
+```
+
+**Before running the next cell**, open [Challonge](https://challonge.com/) and make sure your
+bracket looks right. You will probably want to randomize the entries.
+
+```elixir
+SquadStrike.start_tournament(storage)
+```
+
+## Squad Strike Automation
+
+Now the real fun starts. You are finally ready to start the tournament.
+
+```elixir
+script = """
+press("a")
+
+"""
+
+# MQ.call("script.run", %{raw: script})
+
+# MQ.call("script.run", %{name: "ss_close_game.lua"})
+
+# MQ.call("script.run", %{name: "ss_launch_ssbu.lua"})
+
+# SquadStrike.sync_with_challonge(storage)
+
+# {:ok, %{"image" => %{"bytes" => bytes}}, meta} = MQ.call("image.get", %{name: "ss_squad_victory.png"})
+```
+
+```elixir
+SquadStrike.resume(storage)
+```
+
+```elixir
+# TODO: Figure out how to pause the automation.
+```
+
+<!-- livebook:{"offset":10366,"stamp":{"token":"QTEyOEdDTQ.f0sntRmrvSwxtgumXLweBNWywW2TPLU75aAJKij_vSaWZE7ebEjrLflzLPo.XScstvI1M0C22JOk.ccczoyfRwlbZJ3nBS3LqT4lk4BP6BfXgAtYSj61gR2J8hnRo-1-35bpjAXnbvyDwy42IdQwo7Qo1pYZB7B7tNn-7Dxm-sHBvWmLOdqF7pyH5.zW5cFDWeICf2OPa_BBIFcw","version":1}} -->
