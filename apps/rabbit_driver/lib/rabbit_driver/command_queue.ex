@@ -4,15 +4,14 @@ defmodule RabbitDriver.CommandQueue do
   require Logger
 
   alias RabbitDriver.Queue
-  alias RabbitDriver.ImageConsumer
 
   @enforce_keys [:queue, :running?]
   defstruct [:queue, :running?]
 
   @name __MODULE__
 
-  def queue_script(script, args, timeout, caller, ref) do
-    GenServer.cast(@name, {:enqueue, {:run_script, script, args, timeout, caller, ref}})
+  def queue_automation(driver) do
+    GenServer.cast(@name, {:enqueue, {:run_automation, driver}})
   end
 
   def queue_function(fun) when is_function(fun, 0) do
@@ -99,33 +98,11 @@ defmodule RabbitDriver.CommandQueue do
 
   ## Helpers
 
-  defp run_command({:run_script, script, args, timeout, caller, ref}) do
+  defp run_command({:run_automation, driver = %module{}}) do
     me = self()
 
     Task.start(fn ->
-      task =
-        Task.async(Autopilot.LuaScript, :run_string, [
-          script,
-          [{:cwd, ImageConsumer.image_dir()}, {:bindings, args}]
-        ])
-
-      result =
-        case Task.yield(task, timeout) || Task.shutdown(task) do
-          {:ok, :ok} ->
-            :ok
-
-          {:ok, {:error, reason}} ->
-            {:error, "Script error #{inspect(reason)}"}
-
-          nil ->
-            {:error, "Script timed out"}
-
-          {:exit, reason} ->
-            {:error, "Task crashed #{inspect(reason)}"}
-        end
-
-      send(caller, {ref, result})
-
+      module.run(driver)
       GenServer.cast(me, :process_command)
     end)
 

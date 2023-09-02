@@ -3,7 +3,6 @@ defmodule RabbitDriver.ScriptConsumer do
 
   @lua_type "application/x-lua"
 
-  alias RabbitDriver.CommandQueue
   alias RabbitDriver.ImageConsumer
   alias RabbitDriver.DataURL
 
@@ -144,25 +143,24 @@ defmodule RabbitDriver.ScriptConsumer do
   end
 
   defp run_script(script, args, timeout) do
-    ref = make_ref()
+    task =
+      Task.async(Autopilot.LuaScript, :run_string, [
+        script,
+        [{:cwd, ImageConsumer.image_dir()}, {:bindings, args}]
+      ])
 
-    CommandQueue.queue_script(script, args, timeout, self(), ref)
-
-    receive do
-      {^ref, {:ok, :ok}} ->
+    case Task.yield(task, timeout) || Task.shutdown(task) do
+      {:ok, :ok} ->
         :ok
 
-      {^ref, {:ok, {:error, reason}}} ->
+      {:ok, {:error, reason}} ->
         {:error, "Script error #{inspect(reason)}"}
 
-      {^ref, nil} ->
+      nil ->
         {:error, "Script timed out"}
 
-      {^ref, {:exit, reason}} ->
+      {:exit, reason} ->
         {:error, "Task crashed #{inspect(reason)}"}
-    after
-      timeout ->
-        {:error, "Script timed out"}
     end
   end
 
