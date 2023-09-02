@@ -17,27 +17,27 @@ advantageous since the automations can be run with a Livebook.
 The messages are sent to a single topic exchange. The following topics and their
 purposes are listed below.
 
-| Topic                                             | Recipient | Description       |
-|:--------------------------------------------------|:----------|:------------------|
-| <a href="image.list">image.list</a>               | App       | List all the known images. |
-| <a href="image.get">image.get</a>                 | App       | Get a specified image. |
-| <a href="image.put">image.put</a>                 | App       | Send an image to be stored for later use. |
-| <a href="image.delete">image.delete</a>           | App       | Send an image to be stored for later use. |
-| <a href="image.screenshot">image.screenshot</a>   | App       | Create a screenshot and return it. |
-| <a href="image.visible">image.visible</a>         | App       | Returns the bounding box of the specified image, if found. |
-| <a href="image.count">image.count</a>             | App       | Returns the number of images matching the given image. |
-| <a href="script.list">script.list</a>             | App       | List all the known scripts. |
-| <a href="script.get">script.get</a>               | App       | Get a specified script. |
-| <a href="script.put">script.put</a>               | App       | Send a script to be stored for later use. |
-| <a href="script.delete">script.delete</a>         | App       | Send a script to be stored for later use. |
-| <a href="script.run">script.run</a>               | App       | Run a specified script. |
-| <a href="log.level">log.[level]</a>               | Client    | Log messages for a particular level, ex. warning, error. |
-| <a href="system.status">system.status</a>         | App       | Get the status of the system. |
-| <a href="system.heartbeat">system.heartbeat</a>   | App       | A regular message sent out to show the system is still running. |
-| <a href="bluetooth.pair">bluetooth.pair</a>       | App       | Pair to a Nintendo Switch. |
-| <a href="bluetooth.reset">bluetooth.reset</a>     | App       | Unpair from a Nintendo Switch. |
-| <a href="bluetooth.restart">bluetooth.restart</a> | App       | Restart the Bluetooth stack. |
-| <a href="bluetooth.status">bluetooth.status</a>   | App       | Get the status of the bluetooth stack. |
+| Topic                                              | Recipient | Description       |
+|:---------------------------------------------------|:----------|:------------------|
+| <a href="#image.list">image.list</a>               | App       | List all the known images. |
+| <a href="#image.get">image.get</a>                 | App       | Get a specified image. |
+| <a href="#image.put">image.put</a>                 | App       | Send an image to be stored for later use. |
+| <a href="#image.delete">image.delete</a>           | App       | Send an image to be stored for later use. |
+| <a href="#image.screenshot">image.screenshot</a>   | App       | Create a screenshot and return it. |
+| <a href="#image.visible">image.visible</a>         | App       | Returns the bounding box of the specified image, if found. |
+| <a href="#image.count">image.count</a>             | App       | Returns the number of images matching the given image. |
+| <a href="#script.list">script.list</a>             | App       | List all the known scripts. |
+| <a href="#script.get">script.get</a>               | App       | Get a specified script. |
+| <a href="#script.put">script.put</a>               | App       | Send a script to be stored for later use. |
+| <a href="#script.delete">script.delete</a>         | App       | Send a script to be stored for later use. |
+| <a href="#script.run">script.run</a>               | App       | Run a specified script. |
+| <a href="#log.level">log.[level]</a>               | Client    | Log messages for a particular level, ex. warning, error. |
+| <a href="#system.status">system.status</a>         | App       | Get the status of the system. |
+| <a href="#system.heartbeat">system.heartbeat</a>   | App       | A regular message sent out to show the system is still running. |
+| <a href="#bluetooth.pair">bluetooth.pair</a>       | App       | Pair to a Nintendo Switch. |
+| <a href="#bluetooth.reset">bluetooth.reset</a>     | App       | Unpair from a Nintendo Switch. |
+| <a href="#bluetooth.restart">bluetooth.restart</a> | App       | Restart the Bluetooth stack. |
+| <a href="#bluetooth.status">bluetooth.status</a>   | App       | Get the status of the bluetooth stack. |
 
 ## Payloads
 
