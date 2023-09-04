@@ -13,6 +13,10 @@ language has a RabbitMQ library (sometimes called AMQP). Though using Elixir can
 advantageous since the automations can be run with a Livebook. Plus this repo contains many
 libraries to help in building automations.
 
+There is an
+[example Livebook](https://github.com/rob-brown/amo_system/blob/rabbit-driver/notebooks/rabbit_driver.livemd)
+that runs Squad Strike matches in SSBU.
+
 ## Topics
 
 The messages are sent to a single topic exchange. The following topics and their
