@@ -10,7 +10,8 @@ app.
 The benefit of using RabbitMQ to drive the automation is that any programm language
 that can talk to RabbitMQ can control the automation. Pretty much every programming
 language has a RabbitMQ (sometimes called AMQP) library. Though using Elixir can still be
-advantageous since the automations can be run with a Livebook.
+advantageous since the automations can be run with a Livebook. Plus this repo contains many
+libraries to help in building automations.
 
 ## Topics
 
@@ -270,3 +271,82 @@ or
   "meta": {...}
 }
 ```
+
+## Initial Setup
+
+See the common [OS Setup doc](../../docs/os-setup.markdown) for details to
+install an OS for the Raspberry Pi.
+
+## Joycontrol Installation
+
+First, you will need to install
+[Joycontrol and its dependencies](https://github.com/poohl/joycontrol).
+This involves editing some system files too. You may need to run the
+`run_controller_cli.py` script to pair your Nintendo Switch to your Raspberry Pi.
+
+## OpenCV Installation
+
+See the [Vision library](../vision/README.md) for details about installing OpenCV.
+
+## USB Capture Card
+
+See the [Vision library](../vision/README.md) for details about supported USB
+capture cards.
+
+## Rabbit Driver Installation
+
+You probably have `curl` and `cron` already installed. This guide will also assume you
+are installing RabbitMQ locally. You can install all 3 packages like this:
+
+```bash
+sudo apt update
+sudo apt install curl cron rabbitmq-server --yes
+```
+
+You can install the app like this:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/rabbit_driver/install.sh | bash -s
+```
+
+> **WARNING:** You shouldn't just trust someone to run an arbitrary script on your
+system, especially one that has root permissions like this one does. Take some
+time and look over the script to ensure it's not doing anything nefarious. You
+can also run the commands yourself to better see the effects.
+
+Once you've installed the app, you will need to pair your Pi with your Nintendo
+Switch. Then every time after your Pi boots, it will try to connect to your
+Nintendo Switch.
+
+## Questions you are Probably Thinking
+
+<details>
+  <summary>Does this replace <a href="https://github.com/rob-brown/amo_system/tree/rabbit-driver/apps/tournament_runner">Tournament Runner</a>?</summary>
+
+  <p>No, Tournament Runner is designed to run entirely on a Raspberry Pi. Rabbit Driver is instead reliant on another computer to run the main logic. Though you could install a Livebook server on the Pi which runs the automation. This retains the flexibility of Rabbit Driver but also runs entirely on the Pi.
+  </p>
+</details>
+
+<details>
+  <summary>What languages can I use with Rabbit Driver?</summary>
+
+  <p>The RabbitMQ website has <a href="https://www.rabbitmq.com/tutorials/tutorial-one-elixir.html">tutorials</a> for Python, Java, Spring, Ruby, PHP, C♯, Javascript, Go, Elixir, Objective-C, and Swift. Though these are not a complete list of languages that include a RabbitMQ library.
+  </p>
+</details>
+
+<details>
+  <summary>What hardware is needed?</summary>
+
+  <p>I recommend using a Raspberry Pi 3, 4 or Zero 2 W. You can probably get older devices to work, but the computer vision code will be slower. Other harware (not Raspberry Pi) can work but may require modifications.
+  </p>
+
+  <p>You will also need a USB capture card. See the [Vision library](../vision/README.md) for details about supported USB capture cards.
+  </p>
+</details
+
+<details>
+  <summary>Wait! Since Rabbit Driver doesn't have specifics to SSBU, can I use it on a different game?</summary>
+
+  <p>YES! You could make automations for Link's Awakening, Pokémon Brilliant Diamond, or any other game you want. Though I recommend only using it for 2D and 2.5D games. 3D games are much harder.
+  </p>
+</details
