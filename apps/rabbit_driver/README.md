@@ -9,7 +9,7 @@ app.
 
 The benefit of using RabbitMQ to drive the automation is that any programm language
 that can talk to RabbitMQ can control the automation. Pretty much every programming
-language has a RabbitMQ (sometimes called AMQP) library. Though using Elixir can still be
+language has a RabbitMQ library (sometimes called AMQP). Though using Elixir can still be
 advantageous since the automations can be run with a Livebook. Plus this repo contains many
 libraries to help in building automations.
 
@@ -309,10 +309,9 @@ You can install the app like this:
 curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/rabbit_driver/install.sh | bash -s
 ```
 
-> **WARNING:** You shouldn't just trust someone to run an arbitrary script on your
-system, especially one that has root permissions like this one does. Take some
-time and look over the script to ensure it's not doing anything nefarious. You
-can also run the commands yourself to better see the effects.
+<blockquote style="background-color:#FC6666; color:black">
+⛔️ <strong>WARNING</strong>You shouldn't just trust someone to run an arbitrary script on your system, especially one that has root permissions like this one does. Take some time and look over the script to ensure it's not doing anything nefarious. You can also run the commands yourself to better see the effects.
+</blockquote>
 
 Once you've installed the app, you will need to pair your Pi with your Nintendo
 Switch. Then every time after your Pi boots, it will try to connect to your
@@ -337,7 +336,7 @@ Nintendo Switch.
 <details>
   <summary><strong>What hardware is needed?</strong></summary><br/>
 
-  <p>I recommend using a Raspberry Pi 3, 4 or Zero 2 W. You can probably get older devices to work, but the computer vision code will be slower. Other harware (not Raspberry Pi) can work but may require modifications.
+  <p>I recommend using a Raspberry Pi 3, 4, 400, or Zero 2 W. You can probably get older devices to work, but the computer vision code will be slower. Other harware (not Raspberry Pi) can work but may require modifications.
   </p>
 
   <p>You will also need a USB capture card. See the <a href="../vision/README.md">Vision library</a> for details about supported USB capture cards.
@@ -345,7 +344,7 @@ Nintendo Switch.
 </details>
 
 <details>
-  <summary><strong>Wait! Since Rabbit Driver doesn't have specifics to SSBU, can I use it on a different game?</strong></summary><br/>
+  <summary><strong>Wait! Since Rabbit Driver isn't specific to SSBU, can I use it on a different game?</strong></summary><br/>
 
   <p>YES! You could make automations for Link's Awakening, Pokémon Brilliant Diamond, or any other game you want. Though I recommend only using it for 2D and 2.5D games. 3D games are much harder.
   </p>

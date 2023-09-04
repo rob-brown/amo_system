@@ -51,10 +51,9 @@ curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/tour
 
 Replace `[CHALLONGE_API_KEY]` with your own API key.
 
-> **WARNING:** You shouldn't just trust someone to run an arbitrary script on your
-system, especially one that has root permissions like this one does. Take some
-time and look over the script to ensure it's not doing anything nefarious. You
-can also run the commands yourself to better see the effects.
+<blockquote style="background-color:#FC6666; color:black">
+⛔️ <strong>WARNING</strong>You shouldn't just trust someone to run an arbitrary script on your system, especially one that has root permissions like this one does. Take some time and look over the script to ensure it's not doing anything nefarious. You can also run the commands yourself to better see the effects.
+</blockquote>
 
 Once you've installed the app, you will need to pair your Pi with your Nintendo
 Switch. Then every time after your Pi boots, it will try to connect to your
