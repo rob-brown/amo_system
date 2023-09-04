@@ -318,7 +318,7 @@ Once you've installed the app, you will need to pair your Pi with your Nintendo
 Switch. Then every time after your Pi boots, it will try to connect to your
 Nintendo Switch.
 
-## Questions you are Probably Thinking
+## FAQ
 
 <details>
   <summary>Does this replace <a href="https://github.com/rob-brown/amo_system/tree/rabbit-driver/apps/tournament_runner">Tournament Runner</a>?</summary>
@@ -330,7 +330,7 @@ Nintendo Switch.
 <details>
   <summary>What languages can I use with Rabbit Driver?</summary>
 
-  <p>The RabbitMQ website has <a href="https://www.rabbitmq.com/tutorials/tutorial-one-elixir.html">tutorials</a> for Python, Java, Spring, Ruby, PHP, C♯, Javascript, Go, Elixir, Objective-C, and Swift. Though these are not a complete list of languages that include a RabbitMQ library.
+  <p>The RabbitMQ website has <a href="https://www.rabbitmq.com/tutorials/tutorial-one-elixir.html">tutorials</a> for Python, Java, Spring, Ruby, PHP, C♯, Javascript, Go, Elixir, Objective-C, and Swift. Though these are not a complete list of languages that have a RabbitMQ library.
   </p>
 </details>
 
@@ -340,9 +340,9 @@ Nintendo Switch.
   <p>I recommend using a Raspberry Pi 3, 4 or Zero 2 W. You can probably get older devices to work, but the computer vision code will be slower. Other harware (not Raspberry Pi) can work but may require modifications.
   </p>
 
-  <p>You will also need a USB capture card. See the [Vision library](../vision/README.md) for details about supported USB capture cards.
+  <p>You will also need a USB capture card. See the <a href="../vision/README.md">Vision library</a> for details about supported USB capture cards.
   </p>
-</details
+</details>
 
 <details>
   <summary>Wait! Since Rabbit Driver doesn't have specifics to SSBU, can I use it on a different game?</summary>
