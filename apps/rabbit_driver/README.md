@@ -321,21 +321,21 @@ Nintendo Switch.
 ## FAQ
 
 <details>
-  <summary>Does this replace <a href="https://github.com/rob-brown/amo_system/tree/rabbit-driver/apps/tournament_runner">Tournament Runner</a>?</summary>
+  <summary><strong>Does this replace <a href="https://github.com/rob-brown/amo_system/tree/rabbit-driver/apps/tournament_runner">Tournament Runner</a>?</strong></summary><br/>
 
   <p>No, Tournament Runner is designed to run entirely on a Raspberry Pi. Rabbit Driver is instead reliant on another computer to run the main logic. Though you could install a Livebook server on the Pi which runs the automation. This retains the flexibility of Rabbit Driver but also runs entirely on the Pi.
   </p>
 </details>
 
 <details>
-  <summary>What languages can I use with Rabbit Driver?</summary>
+  <summary><strong>What languages can I use with Rabbit Driver?</strong></summary><br/>
 
   <p>The RabbitMQ website has <a href="https://www.rabbitmq.com/tutorials/tutorial-one-elixir.html">tutorials</a> for Python, Java, Spring, Ruby, PHP, C♯, Javascript, Go, Elixir, Objective-C, and Swift. Though these are not a complete list of languages that have a RabbitMQ library.
   </p>
 </details>
 
 <details>
-  <summary>What hardware is needed?</summary>
+  <summary><strong>What hardware is needed?</strong></summary><br/>
 
   <p>I recommend using a Raspberry Pi 3, 4 or Zero 2 W. You can probably get older devices to work, but the computer vision code will be slower. Other harware (not Raspberry Pi) can work but may require modifications.
   </p>
@@ -345,7 +345,7 @@ Nintendo Switch.
 </details>
 
 <details>
-  <summary>Wait! Since Rabbit Driver doesn't have specifics to SSBU, can I use it on a different game?</summary>
+  <summary><strong>Wait! Since Rabbit Driver doesn't have specifics to SSBU, can I use it on a different game?</strong></summary><br/>
 
   <p>YES! You could make automations for Link's Awakening, Pokémon Brilliant Diamond, or any other game you want. Though I recommend only using it for 2D and 2.5D games. 3D games are much harder.
   </p>
