@@ -349,4 +349,4 @@ Nintendo Switch.
 
   <p>YES! You could make automations for Link's Awakening, Pokémon Brilliant Diamond, or any other game you want. Though I recommend only using it for 2D and 2.5D games. 3D games are much harder.
   </p>
-</details
+</details>
