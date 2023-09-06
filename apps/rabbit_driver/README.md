@@ -27,14 +27,14 @@ purposes are listed below.
 | <a href="#image.list">image.list</a>               | App       | List all the known images. |
 | <a href="#image.get">image.get</a>                 | App       | Get a specified image. |
 | <a href="#image.put">image.put</a>                 | App       | Send an image to be stored for later use. |
-| <a href="#image.delete">image.delete</a>           | App       | Send an image to be stored for later use. |
+| <a href="#image.delete">image.delete</a>           | App       | Delete a stored image. |
 | <a href="#image.screenshot">image.screenshot</a>   | App       | Create a screenshot and return it. |
 | <a href="#image.visible">image.visible</a>         | App       | Returns the bounding box of the specified image, if found. |
 | <a href="#image.count">image.count</a>             | App       | Returns the number of images matching the given image. |
 | <a href="#script.list">script.list</a>             | App       | List all the known scripts. |
 | <a href="#script.get">script.get</a>               | App       | Get a specified script. |
 | <a href="#script.put">script.put</a>               | App       | Send a script to be stored for later use. |
-| <a href="#script.delete">script.delete</a>         | App       | Send a script to be stored for later use. |
+| <a href="#script.delete">script.delete</a>         | App       | Delete a stored script. |
 | <a href="#script.run">script.run</a>               | App       | Run a specified script. |
 | <a href="#log.level">log.[level]</a>               | Client    | Log messages for a particular level, ex. warning, error. |
 
