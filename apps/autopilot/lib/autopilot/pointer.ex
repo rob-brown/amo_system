@@ -1,6 +1,4 @@
 defmodule Autopilot.Pointer do
-  alias Joycontrol
-  alias Vision
 
   # This confidence level was measured based on moving the 
   # pointer around with 0.3 confidence without ever moving
@@ -47,7 +45,7 @@ defmodule Autopilot.Pointer do
     # Sleep a little bit to let things settle.
     Process.sleep(100)
 
-    case Vision.visible(pointer, confidence: @confidence) do
+    case Vision.Native.visible(pointer, confidence: @confidence) do
       {:ok, %{x1: x, y1: y}} ->
         {:ok, {x, y}}
 

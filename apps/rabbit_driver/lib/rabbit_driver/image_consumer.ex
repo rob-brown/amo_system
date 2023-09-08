@@ -104,7 +104,7 @@ defmodule RabbitDriver.ImageConsumer do
          timeout = Map.get(payload, "timeout_ms", :timer.seconds(5)),
          confidence = Map.get(payload, "confidence", 0.89),
          opts = [timeout: timeout, confidence: confidence],
-         {:ok, count} <- Vision.count(path, opts) || {:error, "Not found"} do
+         {:ok, count} <- Vision.Native.count(path, opts) || {:error, "Not found"} do
       {:reply, %{error: nil, count: count}}
     else
       {:error, reason} ->
@@ -115,7 +115,7 @@ defmodule RabbitDriver.ImageConsumer do
   def handle_msg(~w"image screenshot", payload) do
     timeout = Map.get(payload, "timeout_ms", :timer.seconds(5))
     path = temp_path()
-    Vision.capture(path)
+    Vision.Native.capture(path)
 
     result =
       case wait_for_file(path, timeout) do
@@ -145,7 +145,7 @@ defmodule RabbitDriver.ImageConsumer do
   ## Helpers
 
   defp visible(path, opts) do
-    case Vision.visible(path, opts) do
+    case Vision.Native.visible(path, opts) do
       {:ok, nil} ->
         {:error, "Not found"}
 

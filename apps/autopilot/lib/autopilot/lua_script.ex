@@ -151,7 +151,7 @@ defmodule Autopilot.LuaScript do
       timeout = parse_duration(timeout)
 
       debug_fun("Waiting until found #{target}", fn ->
-        case Vision.wait_until_found(target, timeout) do
+        case Vision.Native.wait_until_found(target, timeout) do
           {:ok, nil} ->
             {[false], lua_state}
 
@@ -173,7 +173,7 @@ defmodule Autopilot.LuaScript do
       timeout = parse_duration(timeout)
 
       debug_fun("Waiting until gone #{target}", fn ->
-        case Vision.wait_until_gone(target, timeout) do
+        case Vision.Native.wait_until_gone(target, timeout) do
           {:ok, nil} ->
             {[true], lua_state}
 
@@ -194,7 +194,7 @@ defmodule Autopilot.LuaScript do
 
       debug_log("Capturing to #{save_path}")
 
-      Vision.capture(save_path)
+      Vision.Native.capture(save_path)
       {[], lua_state}
     end
   end
@@ -210,7 +210,7 @@ defmodule Autopilot.LuaScript do
 
       debug_log("Capturing crop to #{save_path}")
 
-      Vision.capture_crop(save_path, {y1, x1}, {y2, x2})
+      Vision.Native.capture_crop(save_path, {y1, x1}, {y2, x2})
       {[], lua_state}
     end
   end
@@ -247,7 +247,7 @@ defmodule Autopilot.LuaScript do
       target = Path.expand(target, cwd)
 
       debug_fun("Looking for #{target}", fn ->
-        case Vision.visible(target) do
+        case Vision.Native.visible(target) do
           {:ok, nil} ->
             {[false], lua_state}
 
@@ -267,7 +267,7 @@ defmodule Autopilot.LuaScript do
       target = Path.expand(target, cwd)
 
       debug_fun("Counting #{target}", fn ->
-        case Vision.count(target) do
+        case Vision.Native.count(target) do
           {:ok, n} ->
             {[n], lua_state}
 
@@ -288,7 +288,7 @@ defmodule Autopilot.LuaScript do
       target = Path.expand(target, cwd)
 
       debug_fun("Counting cropped #{target}", fn ->
-        case Vision.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
+        case Vision.Native.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
           {:ok, n} ->
             {[n], lua_state}
 

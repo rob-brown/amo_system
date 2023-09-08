@@ -27,7 +27,7 @@ defmodule RabbitDriver.Application do
   defp children(_env, _target) do
     [
       Joycontrol,
-      Vision,
+      {Vision.Native, 0},
       RabbitDriver.ImageConsumer,
       RabbitDriver.ScriptConsumer
     ]
