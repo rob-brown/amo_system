@@ -60,18 +60,16 @@ defmodule Vision.Native do
 
   def wait_until_found(image_file, duration, options \\ [])
       when is_binary(image_file) and is_number(duration) do
-    timeout = Keyword.get(options, :timeout, :infinity)
+    timeout = Keyword.get(options, :timeout, duration + 5000)
     path = Path.expand(image_file)
-    timeout = timeout || duration + 5000
-    GenServer.call(@name, {:wait_until_found, path, duration}, timeout)
+    GenServer.call(@name, {:wait_until_found, path, duration, options}, timeout)
   end
 
   def wait_until_gone(image_file, duration, options \\ [])
       when is_binary(image_file) and is_number(duration) do
-    timeout = Keyword.get(options, :timeout, :infinity)
+    timeout = Keyword.get(options, :timeout, duration + 5000)
     path = Path.expand(image_file)
-    timeout = timeout || duration + 5000
-    GenServer.call(@name, {:wait_until_gone, path, duration}, timeout)
+    GenServer.call(@name, {:wait_until_gone, path, duration, options}, timeout)
   end
 
   ## GenServer
@@ -148,16 +146,42 @@ defmodule Vision.Native do
     end
   end
 
-  def handle_call({:count_crop, _path, _box, _confidence}, _from, state) do
-    {:noreply, state}
+  def handle_call({:count_crop, path, box, confidence}, _from, state = %__MODULE__{capture: c}) do
+    with {:ok, template} <- read_image(path),
+         {:ok, img} <- capture_frame(c),
+         cropped = crop(img, box),
+         {:ok, count} <- count(cropped, template, confidence) do
+      {:reply, {:ok, count}, state}
+    else
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
   end
 
-  def handle_call({:wait_until_found, _path, _duration}, _from, state) do
-    {:noreply, state}
+  def handle_call(
+        {:wait_until_found, path, duration, options},
+        _from,
+        state = %__MODULE__{capture: c}
+      ) do
+    confidence = Keyword.get(options, :confidence, 0.8)
+    interval = Keyword.get(options, :interval, 100)
+    deadline = DateTime.utc_now() |> DateTime.add(duration, :millisecond)
+    {:ok, template} = read_image(path)
+    result = loop_until_found(c, template, deadline, confidence, interval)
+    {:reply, result, state}
   end
 
-  def handle_call({:wait_until_gone, _path, _duration}, _from, state) do
-    {:noreply, state}
+  def handle_call(
+        {:wait_until_gone, path, duration, options},
+        _from,
+        state = %__MODULE__{capture: c}
+      ) do
+    confidence = Keyword.get(options, :confidence, 0.8)
+    interval = Keyword.get(options, :interval, 100)
+    deadline = DateTime.utc_now() |> DateTime.add(duration, :millisecond)
+    {:ok, template} = read_image(path)
+    result = loop_until_gone(c, template, deadline, confidence, interval)
+    {:reply, result, state}
   end
 
   def handle_info({_port, {:exit_status, 0}}, state) do
@@ -235,12 +259,53 @@ defmodule Vision.Native do
   defp count(img, template, confidence) do
     case Evision.matchTemplate(img, template, @cv_tm_ccoeff_normed) do
       match = %Mat{} ->
+        # The match is a 2D array of confidences where it believes the top-left
+        # pixel is the start of the template. 
+        # Then counts the number of confidences greater than the given level. 
+        # If the confidence is too low, then you may get lots of overlapping 
+        # bounds.
         match
-        |> Evision.Mat.to_nx(Nx.BinaryBackend)
+        |> Evision.Mat.to_nx()
         |> Nx.to_list()
         |> Enum.flat_map(& &1)
-        |> Enum.count(& &1 > confidence)
-        |> then(& {:ok, &1})
+        |> Enum.count(&(&1 > confidence))
+        |> then(&{:ok, &1})
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp loop_until_found(capture, template, deadline, confidence, interval) do
+    with :lt <- DateTime.compare(DateTime.utc_now(), deadline),
+         {:ok, img} <- capture_frame(capture),
+         {:ok, box} <- find(img, template, confidence) do
+      {:ok, box}
+    else
+      {:error, :not_found} ->
+        Process.sleep(interval)
+        loop_until_found(capture, template, deadline, confidence, interval)
+
+      {:error, reason} ->
+        {:error, reason}
+
+      x when x in [:eq, :gt] ->
+        {:ok, nil}
+    end
+  end
+
+  defp loop_until_gone(capture, template, deadline, confidence, interval) do
+    with {:ok, img} <- capture_frame(capture),
+         {:error, :not_found} <- find(img, template, confidence) do
+      {:ok, nil}
+    else
+      {:ok, box} ->
+        if DateTime.compare(DateTime.utc_now(), deadline) == :lt do
+          Process.sleep(interval)
+          loop_until_gone(capture, template, deadline, confidence, interval)
+        else
+          {:ok, box}
+        end
 
       {:error, reason} ->
         {:error, reason}
