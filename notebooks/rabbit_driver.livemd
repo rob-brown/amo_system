@@ -88,10 +88,6 @@ dir = dir_input |> Kino.Input.read() |> Path.expand()
 storage = Storage.new(dir)
 ```
 
-```elixir
-MQ.call("image.count", %{name: "ss_squad_victory.png"})
-```
-
 <!-- livebook:{"branch_parent_index":0} -->
 
 ## Logs
@@ -326,4 +322,4 @@ saved so you can resume an existing tournament.
 SquadStrike.resume(storage)
 ```
 
-<!-- livebook:{"offset":10241,"stamp":{"token":"QTEyOEdDTQ.Eey5qWrvok3z8w9ytHmJHpb0x-rx1j20neGaF-9-VcfvrfaGGDbytzyBgTA.OWBs7I2A4ovtQPAH.fXnbXhgNPb9DguVP2l9Btk58dol1BA85qGUlKen7PuIvENQXsaDTIRkdUp-gLs6nAtpDg9tJs7B7Sp47gIJMsxq_8Va1nIZF982eAWD1r2xu.ZCX72bAkscPp-LA5QThYUg","version":1}} -->
+<!-- livebook:{"offset":10298,"stamp":{"token":"QTEyOEdDTQ.Nj-h668K4Y-Yk1EcI7F_qT1R59kEtBQlm1EYNB21JT3KalPuge1qisrUxmc.d_gmGpK3raBkpDBB.prKt9UCIlNP3Fn4iPxMHwXpzptK_tksKXq-kM0W6oDX_8vAmItmVQ1nba5qrMUZ0ej-lQYk7NpsLXdkSp3DSxfDyheNPZ3_CLEvCMKCOqkjG.6gLoDS_0V9RgqC_SL336Gw","version":1}} -->

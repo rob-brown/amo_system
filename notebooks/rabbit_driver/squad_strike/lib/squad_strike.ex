@@ -273,7 +273,7 @@ defmodule SquadStrike do
       {:error, "not found"} ->
         false
 
-      {:ok, %{"x1" => x, "width" => w}} when x / w < 0.5 ->
+      {:ok, %{"x1" => _}} ->
         Logger.info("Team 1 wins")
         true
 
@@ -287,7 +287,7 @@ defmodule SquadStrike do
       {:error, "not found"} ->
         false
 
-      {:ok, %{"x1" => x, "width" => w}} when x / w > 0.5 ->
+      {:ok, %{"x1" => _}} ->
         Logger.info("Team 2 wins")
         true
 
