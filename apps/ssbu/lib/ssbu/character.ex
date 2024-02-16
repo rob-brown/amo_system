@@ -430,6 +430,9 @@ defmodule SSBU.Character do
   defp internal_lookup("3dc1" <> _, _),
     do: %__MODULE__{name: "Steve", icon: "https://ssb.wiki.gallery/images/1/11/SteveHeadSSBU.png"}
 
+  defp internal_lookup("3f00" <> _, _),
+    do: %__MODULE__{name: "Sora", icon: "https://ssb.wiki.gallery/images/0/0e/SoraHeadSSBU.png"}
+
   defp internal_lookup("010101" <> _, _),
     do: %__MODULE__{name: "Sheik", icon: "https://www.ssbwiki.com/images/3/37/SheikHeadSSBU.png"}
 
