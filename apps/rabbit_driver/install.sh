@@ -10,6 +10,6 @@ echo Uncompressing release files
 tar -xzf ~/rabbit_driver/rabbit_driver.tar.gz -C ~/rabbit_driver
 
 echo Installing startup script
-echo "@reboot pi /usr/bin/env /home/pi/rabbit_driver/bin/rabbit_driver start_iex" | sudo tee /etc/cron.d/rabbit_driver >> /dev/null
+echo "@reboot pi /usr/bin/env TARGET=rpi /home/pi/rabbit_driver/bin/rabbit_driver start_iex" | sudo tee /etc/cron.d/rabbit_driver >> /dev/null
 
 echo Reboot your Raspberry Pi to start the rabbit driver
