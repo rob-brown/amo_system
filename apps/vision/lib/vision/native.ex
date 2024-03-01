@@ -15,6 +15,9 @@ defmodule Vision.Native do
   @cap_prop_fps 5
   @cap_prop_buffersize 38
 
+  @frame_width 640
+  @frame_height 480
+
   @enforce_keys [:capture]
   defstruct [:capture]
 
@@ -82,8 +85,8 @@ defmodule Vision.Native do
     capture = VideoCapture.videoCapture(index)
 
     if VideoCapture.isOpened(capture) do
-      VideoCapture.set(capture, @cap_prop_frame_width, 640)
-      VideoCapture.set(capture, @cap_prop_frame_height, 480)
+      VideoCapture.set(capture, @cap_prop_frame_width, @frame_width)
+      VideoCapture.set(capture, @cap_prop_frame_height, @frame_height)
       VideoCapture.set(capture, @cap_prop_fps, 30)
       VideoCapture.set(capture, @cap_prop_buffersize, 1)
 
@@ -230,6 +233,26 @@ defmodule Vision.Native do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp crop(img, box = %{top: t}) when is_float(t) and t >= 0.0 and t <= 1.0 do
+    new_box = %{box | top: trunc(@frame_height * t)}
+    crop(img, new_box)
+  end
+
+  defp crop(img, box = %{bottom: b}) when is_float(b) and b >= 0.0 and b <= 1.0 do
+    new_box = %{box | bottom: trunc(@frame_height * b)}
+    crop(img, new_box)
+  end
+
+  defp crop(img, box = %{left: l}) when is_float(l) and l >= 0.0 and l <= 1.0 do
+    new_box = %{box | left: trunc(@frame_width * l)}
+    crop(img, new_box)
+  end
+
+  defp crop(img, box = %{right: r}) when is_float(r) and r >= 0.0 and r <= 1.0 do
+    new_box = %{box | right: trunc(@frame_width * r)}
+    crop(img, new_box)
   end
 
   defp crop(img, %{top: t, bottom: b, left: l, right: r}) do
