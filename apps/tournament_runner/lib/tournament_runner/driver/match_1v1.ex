@@ -136,8 +136,12 @@ defmodule TournamentRunner.Driver.Match1v1 do
           throw("Previously loaded amiibo detected")
       end
 
-      unless ready_to_fight?() do
-        throw("Failed to prepare match")
+      case check_ready_to_fight() do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          throw("Failed to prepare match: #{inspect(reason)}")
       end
 
       # Start the match
@@ -275,15 +279,43 @@ defmodule TournamentRunner.Driver.Match1v1 do
     )
   end
 
-  defp ready_to_fight?() do
-    with {:ok, nil} <- Vision.Native.visible(Image.cpu()),
-         {:ok, nil} <- Vision.Native.visible(Image.p1()),
-         {:ok, nil} <- Vision.Native.visible(Image.scan_nfc()),
-         {:ok, %{}} <- Vision.Native.visible(Image.ready_to_fight()) do
-      true
+  defp check_ready_to_fight() do
+    with :ok <- check_not_visible(Image.cpu()),
+         :ok <- check_not_visible(Image.p1()),
+         :ok <- check_not_visible(Image.scan_nfc()),
+         :ok <- check_visible(Image.ready_to_fight()) do
+      :ok
     else
-      _ ->
-        false
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp check_visible(image) do
+    case Vision.Native.visible(image) do
+      {:ok, %{}} ->
+        :ok
+
+      {:ok, nil} ->
+        name = Path.basename(image)
+        {:error, "#{name} not found"}
+
+      error ->
+        error
+    end
+  end
+
+  defp check_not_visible(image) do
+    case Vision.Native.visible(image) do
+      {:ok, nil} ->
+        :ok
+
+      {:ok, %{}} ->
+        name = Path.basename(image)
+        {:error, "#{name} found"}
+
+      error ->
+        error
     end
   end
 
