@@ -7,7 +7,7 @@ defmodule TournamentRunner.Application do
   def start(_type, _args) do
     children = [
       Joycontrol,
-      Vision,
+      {Vision.Native, 0},
       TournamentRunner.CommandQueue
     ]
 
