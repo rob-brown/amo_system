@@ -149,11 +149,11 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
       scores =
         if best_of == 1 do
-          watch_match()
+          watch_match(@match_duration)
           Script.advance_to_scores()
           determine_winner()
         else
-          watch_match()
+          watch_match(@match_duration * best_of)
           {s1, s2} = best_of_n_scores()
           Script.advance_to_scores()
 
@@ -179,7 +179,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
         Joycontrol.clear_amiibo()
         Script.close_game()
         Script.launch_ssbu_to_smash_menu()
-        run(fp1, fp2, retry_count - 1)
+        run(fp1, fp2, best_of, retry_count - 1)
     end
   end
 
@@ -273,10 +273,13 @@ defmodule TournamentRunner.Driver.Match1v1 do
     end
   end
 
-  defp watch_match() do
-    Vision.Native.wait_until_found(Image.end_of_match_icon(), @match_duration,
-      timeout: @match_duration
-    )
+  defp watch_match(timeout) do
+    try do
+      Vision.Native.wait_until_found(Image.end_of_match_icon(), timeout, timeout: timeout)
+    catch
+      :exit, _reason ->
+        throw("Timed out waiting for match")
+    end
   end
 
   defp check_ready_to_fight() do
