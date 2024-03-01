@@ -138,7 +138,9 @@ messages are included. All messages are in JSON format.
 
 ```json
 {
-  "name": "ss_squad_victory.png"
+  "name": "ss_squad_victory.png",
+  // Optional, default 0.8
+  "confidence": 0.8
 }
 ```
 
@@ -164,6 +166,8 @@ messages are included. All messages are in JSON format.
 ```json
 {
   "name": "ss_squad_victory.png"
+  // Optional, default 0.89
+  "confidence": 0.89
 }
 ```
 

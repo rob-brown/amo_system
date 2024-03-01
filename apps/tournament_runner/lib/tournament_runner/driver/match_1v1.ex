@@ -2,12 +2,14 @@ defmodule TournamentRunner.Driver.Match1v1 do
   defstruct [
     :tournament,
     :amiibo,
+    :best_of,
     amiibo_by_id: %{},
     remaining_matches: [],
     completed_matches: []
   ]
 
   require Logger
+  require Integer
 
   alias TournamentRunner.Storage
   alias TournamentRunner.CommandQueue
@@ -26,15 +28,14 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
   # TODO: Create option for best of 3.
 
-  # TODO: Clear the amiibo cache.
-
   def create_tournament(storage = %Storage{module: __MODULE__}, options \\ []) do
     {:ok, tournament_name, amiibo} = initial_info(storage)
+    {best_of, options} = best_of_count(options)
 
     {:ok, tournament} =
       Challonge.retry(fn -> Challonge.create_tournament(tournament_name, options) end)
 
-    state = %__MODULE__{tournament: tournament, amiibo: amiibo}
+    state = %__MODULE__{tournament: tournament, amiibo: amiibo, best_of: best_of}
     Storage.save(storage, state)
     state
   end
@@ -105,7 +106,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
       [match | _] ->
         fp1 = state.amiibo_by_id |> Map.get(match.p1_id) |> then(& &1.binary)
         fp2 = state.amiibo_by_id |> Map.get(match.p2_id) |> then(& &1.binary)
-        scores = run([fp1], [fp2])
+        scores = run(fp1, fp2, state.best_of)
         report_scores(storage, match, scores)
 
       _ ->
@@ -113,22 +114,26 @@ defmodule TournamentRunner.Driver.Match1v1 do
     end
   end
 
-  defp run(fp1, fp2, retry_count \\ 3)
+  defp run(fp1, fp2, best_of, retry_count \\ 3)
 
-  defp run(_, _, 0) do
+  defp run(_, _, _, 0) do
     Logger.error("Retries exhausted")
     {:skip, :skip}
   end
 
-  defp run([fp1], [fp2], retry_count) do
+  defp run(fp1, fp2, best_of, retry_count) do
     try do
-      {:ok, amiibo_count} = Vision.count(Image.fp())
-      previous_amiibo? = amiibo_count > 0
+      {:ok, amiibo_count} = Vision.Native.count(Image.fp())
 
-      if previous_amiibo? do
-        Script.load_subsequent_1v1(bindings: [amiibo1: fp1, amiibo2: fp2])
-      else
-        Script.load_initial_1v1(bindings: [amiibo1: fp1, amiibo2: fp2])
+      cond do
+        amiibo_count == 0 ->
+          Script.load_initial_1v1(bindings: [amiibo1: fp1, amiibo2: fp2])
+
+        amiibo_count == 2 ->
+          Script.load_subsequent_1v1(bindings: [amiibo1: fp1, amiibo2: fp2])
+
+        true ->
+          throw("Previously loaded amiibo detected")
       end
 
       unless ready_to_fight?() do
@@ -138,10 +143,30 @@ defmodule TournamentRunner.Driver.Match1v1 do
       # Start the match
       Joycontrol.command("plus")
 
-      watch_match()
-      Script.advance_to_scores()
-      scores = determine_winner()
+      scores =
+        if best_of == 1 do
+          watch_match()
+          Script.advance_to_scores()
+          determine_winner()
+        else
+          watch_match()
+          {s1, s2} = best_of_n_scores()
+          Script.advance_to_scores()
+
+          # Match the scores to the winner/loser.
+          case determine_winner() do
+            {1, 0} ->
+              {s1, s2}
+
+            {0, 1} ->
+              {s2, s1}
+          end
+        end
+
       Script.after_match()
+
+      # TODO: Clear the cache only if an amiibo comes up twice.
+      Script.clear_amiibo_cache()
 
       scores
     catch
@@ -150,11 +175,22 @@ defmodule TournamentRunner.Driver.Match1v1 do
         Joycontrol.clear_amiibo()
         Script.close_game()
         Script.launch_ssbu_to_smash_menu()
-        run([fp1], [fp2], retry_count - 1)
+        run(fp1, fp2, retry_count - 1)
     end
   end
 
   ## Helpers
+
+  defp best_of_count(options) do
+    # Get the value and remove it so it doesn't go to Challonge.
+    {best_of, options} = Keyword.pop(options, :best_of, 1)
+
+    if Integer.is_even(best_of) do
+      throw(":best_of must be odd, got #{best_of}")
+    end
+
+    {best_of, options}
+  end
 
   defp initial_info(%Storage{dir: dir, module: __MODULE__}) do
     bin_dir = Path.join(dir, "bins")
@@ -234,14 +270,16 @@ defmodule TournamentRunner.Driver.Match1v1 do
   end
 
   defp watch_match() do
-    Vision.wait_until_found(Image.end_of_match_icon(), @match_duration, timeout: @match_duration)
+    Vision.Native.wait_until_found(Image.end_of_match_icon(), @match_duration,
+      timeout: @match_duration
+    )
   end
 
   defp ready_to_fight?() do
-    with {:ok, nil} <- Vision.visible(Image.cpu()),
-         {:ok, nil} <- Vision.visible(Image.p1()),
-         {:ok, nil} <- Vision.visible(Image.scan_nfc()),
-         {:ok, %{}} <- Vision.visible(Image.ready_to_fight()) do
+    with {:ok, nil} <- Vision.Native.visible(Image.cpu()),
+         {:ok, nil} <- Vision.Native.visible(Image.p1()),
+         {:ok, nil} <- Vision.Native.visible(Image.scan_nfc()),
+         {:ok, %{}} <- Vision.Native.visible(Image.ready_to_fight()) do
       true
     else
       _ ->
@@ -249,8 +287,15 @@ defmodule TournamentRunner.Driver.Match1v1 do
     end
   end
 
+  defp best_of_n_scores() do
+    {:ok, top} = Vision.Native.count_crop(Image.best_of_n_win(), %{right: 0.5, bottom: 0.5})
+    {:ok, bottom} = Vision.Native.count_crop(Image.best_of_n_win(), %{right: 0.5, top: 0.5})
+
+    {top, bottom}
+  end
+
   defp determine_winner() do
-    case Vision.visible(Image.winner_icon()) do
+    case Vision.Native.visible(Image.winner_icon()) do
       {:ok, nil} ->
         throw("Winner not found")
 
