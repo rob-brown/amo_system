@@ -296,7 +296,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
       {:ok, %{}} ->
         :ok
 
-      {:ok, nil} ->
+      {:error, :not_found} ->
         name = Path.basename(image)
         {:error, "#{name} not found"}
 
@@ -307,7 +307,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
   defp check_not_visible(image) do
     case Vision.Native.visible(image) do
-      {:ok, nil} ->
+      {:error, :not_found} ->
         :ok
 
       {:ok, %{}} ->
@@ -328,7 +328,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
   defp determine_winner() do
     case Vision.Native.visible(Image.winner_icon()) do
-      {:ok, nil} ->
+      {:error, :not_found} ->
         throw("Winner not found")
 
       {:ok, %{x1: x, width: w}} when x / w < 0.5 ->
