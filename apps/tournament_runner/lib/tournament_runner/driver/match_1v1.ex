@@ -278,12 +278,30 @@ defmodule TournamentRunner.Driver.Match1v1 do
     end
   end
 
-  defp watch_match(timeout) do
-    try do
-      Vision.Native.wait_until_found(Image.end_of_match_icon(), timeout, timeout: timeout)
-    catch
-      :exit, _reason ->
-        throw("Timed out waiting for match")
+  defp watch_match(timeout) when is_integer(timeout) do
+    DateTime.utc_now()
+    |> DateTime.add(timeout, :millisecond)
+    |> watch_match()
+  end
+
+  defp watch_match(deadline = %DateTime{}) do
+    if DateTime.compare(DateTime.utc_now(), deadline) == :lt do
+      case Vision.Native.visible(Image.end_of_match_icon()) do
+        {:ok, _} ->
+          :ok
+
+        {:error, :not_found} ->
+          # Sleep for a bit just so the Pi isn't busy-waiting.
+          # This will keep the Pi cooler.
+          Process.sleep(:timer.seconds(3))
+          watch_match(deadline)
+
+        {:error, reason} ->
+          throw("Failed to watch match: #{inspect(reason)}")
+      end
+    else
+      Logger.error("Match timed out")
+      {:error, :timeout}
     end
   end
 
@@ -343,7 +361,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
       {:error, :not_found} ->
         throw("Winner not found")
 
-      {:ok, %{x1: x, width: w}} when x / w < 0.5 ->
+      {:ok, %{x1: x, frame_width: w}} when x / w < 0.5 ->
         Logger.info("P1 Wins")
         {1, 0}
 

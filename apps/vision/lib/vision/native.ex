@@ -236,7 +236,7 @@ defmodule Vision.Native do
   end
 
   defp crop(img, box = %{top: t}) when is_float(t) and t >= 0.0 and t <= 1.0 do
-    [height, _width| _] = Tuple.to_list(img.shape)
+    [height, _width | _] = Tuple.to_list(img.shape)
     new_box = %{box | top: trunc(height * t)}
     crop(img, new_box)
   end
@@ -270,10 +270,22 @@ defmodule Vision.Native do
     case Evision.matchTemplate(img, template, @cv_tm_ccoeff_normed) do
       match = %Mat{} ->
         {h, w, _chan} = template.shape
+        {frame_height, frame_width, _chan} = img.shape
         {_min_val, max_val, _min_loc, {x, y}} = Evision.minMaxLoc(match)
 
         if max_val >= confidence do
-          {:ok, %{x1: x, y1: y, x2: y + h, y2: x + w, confidence: max_val, width: w, height: h}}
+          {:ok,
+           %{
+             x1: x,
+             y1: y,
+             x2: y + h,
+             y2: x + w,
+             confidence: max_val,
+             width: w,
+             height: h,
+             frame_width: frame_width,
+             frame_height: frame_height
+           }}
         else
           {:error, :not_found}
         end
