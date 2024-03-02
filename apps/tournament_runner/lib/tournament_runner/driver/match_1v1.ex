@@ -345,7 +345,19 @@ defmodule TournamentRunner.Driver.Match1v1 do
     end
   end
 
-  defp best_of_n_scores(best_of) do
+  defp best_of_n_scores(best_of, reads \\ 5) when reads > 0 do
+    # Reading the loser's score sometimes fails. 
+    # It will never allow the loser to win though. 
+    # Try a few times and take the most common score.
+    for _ <- 1..reads do
+      read_best_of_n_scores(best_of)
+    end
+    |> Enum.frequencies()
+    |> Enum.max_by(fn {_x, n} -> n end)
+    |> elem(0)
+  end
+
+  defp read_best_of_n_scores(best_of) do
     {:ok, loser} =
       Vision.Native.count_crop(
         Image.best_of_n_win(),
