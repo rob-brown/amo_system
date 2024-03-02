@@ -355,7 +355,12 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
     max = ceil(best_of / 2)
 
-    {max, loser}
+    if loser < max do
+      {max, loser}
+    else
+      Logger.error("Failed to detect loser's score, found #{loser}, which is higher than #{max}")
+      {max, 0}
+    end
   end
 
   defp determine_winner() do
