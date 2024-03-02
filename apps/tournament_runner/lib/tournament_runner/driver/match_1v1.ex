@@ -345,36 +345,35 @@ defmodule TournamentRunner.Driver.Match1v1 do
     end
   end
 
-  defp best_of_n_scores(best_of, reads \\ 5) when reads > 0 do
-    # Reading the loser's score sometimes fails. 
-    # It will never allow the loser to win though. 
-    # Try a few times and take the most common score.
-    for _ <- 1..reads do
-      Process.sleep(100)
-      read_best_of_n_scores(best_of)
+  defp best_of_n_scores(3) do
+    match02 = Vision.Native.visible(Image.lose0_2())
+    match12 = Vision.Native.visible(Image.lose1_2())
+
+    case {match02, match12} do
+      {{:ok, %{confidence: c1}}, {:ok, %{confidence: c2}}} when c1 >= c2 ->
+        {2, 0}
+
+      {{:ok, %{confidence: c1}}, {:ok, %{confidence: c2}}} when c1 < c2 ->
+        {2, 1}
+
+      {{:ok, _}, _} ->
+        {2, 0}
+
+      {_, {:ok, _}} ->
+        {2, 1}
+
+      _ ->
+        Logger.error("Unknown bo3 score, using default")
+        {2, 0}
     end
-    |> Enum.frequencies()
-    |> Enum.max_by(fn {_x, n} -> n end)
-    |> elem(0)
   end
 
-  defp read_best_of_n_scores(best_of) do
-    {:ok, loser} =
-      Vision.Native.count_crop(
-        Image.best_of_n_win(),
-        %{left: 213, top: 307, right: 267, bottom: 337},
-        confidence: 0.9,
-        debug: true
-      )
+  defp best_of_n_scores(best_of) do
+    Logger.error("Best of n not implemented for #{best_of}. Using default win score")
 
     max = ceil(best_of / 2)
 
-    if loser < max do
-      {max, loser}
-    else
-      Logger.error("Failed to detect loser's score, found #{loser}, which is higher than #{max}")
-      {max, 0}
-    end
+    {max, 0}
   end
 
   defp determine_winner() do
