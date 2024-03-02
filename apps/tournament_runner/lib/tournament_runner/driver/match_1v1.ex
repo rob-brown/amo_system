@@ -154,6 +154,8 @@ defmodule TournamentRunner.Driver.Match1v1 do
           determine_winner()
         else
           watch_match(@match_duration * best_of)
+          # Get a screenshot for debugging.
+          Joycontrol.command(:capture)
           {s1, s2} = best_of_n_scores()
           Script.advance_to_scores()
 
@@ -166,6 +168,8 @@ defmodule TournamentRunner.Driver.Match1v1 do
               {s2, s1}
           end
         end
+
+      Logger.debug("Scores: #{inspect(scores)}")
 
       Script.after_match()
 
@@ -323,8 +327,19 @@ defmodule TournamentRunner.Driver.Match1v1 do
   end
 
   defp best_of_n_scores() do
-    {:ok, top} = Vision.Native.count_crop(Image.best_of_n_win(), %{right: 0.5, bottom: 0.5})
-    {:ok, bottom} = Vision.Native.count_crop(Image.best_of_n_win(), %{right: 0.5, top: 0.5})
+    {:ok, top} =
+      Vision.Native.count_crop(
+        Image.best_of_n_win(),
+        %{left: 45, top: 106, right: 96, bottom: 138},
+        confidence: 0.87
+      )
+
+    {:ok, bottom} =
+      Vision.Native.count_crop(
+        Image.best_of_n_win(),
+        %{left: 45, top: 213, right: 267, bottom: 337},
+        confidence: 0.87
+      )
 
     {top, bottom}
   end
