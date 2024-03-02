@@ -236,22 +236,26 @@ defmodule Vision.Native do
   end
 
   defp crop(img, box = %{top: t}) when is_float(t) and t >= 0.0 and t <= 1.0 do
-    new_box = %{box | top: trunc(@frame_height * t)}
+    [height, _width| _] = Tuple.to_list(img.shape)
+    new_box = %{box | top: trunc(height * t)}
     crop(img, new_box)
   end
 
   defp crop(img, box = %{bottom: b}) when is_float(b) and b >= 0.0 and b <= 1.0 do
-    new_box = %{box | bottom: trunc(@frame_height * b)}
+    [height, _width | _] = Tuple.to_list(img.shape)
+    new_box = %{box | bottom: trunc(height * b)}
     crop(img, new_box)
   end
 
   defp crop(img, box = %{left: l}) when is_float(l) and l >= 0.0 and l <= 1.0 do
-    new_box = %{box | left: trunc(@frame_width * l)}
+    [_height, width | _] = Tuple.to_list(img.shape)
+    new_box = %{box | left: trunc(width * l)}
     crop(img, new_box)
   end
 
   defp crop(img, box = %{right: r}) when is_float(r) and r >= 0.0 and r <= 1.0 do
-    new_box = %{box | right: trunc(@frame_width * r)}
+    [_height, width | _] = Tuple.to_list(img.shape)
+    new_box = %{box | right: trunc(width * r)}
     crop(img, new_box)
   end
 
