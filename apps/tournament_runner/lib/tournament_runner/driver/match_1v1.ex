@@ -353,7 +353,9 @@ defmodule TournamentRunner.Driver.Match1v1 do
         confidence: 0.84
       )
 
-    {best_of - loser, loser}
+    max = ceil(best_of / 2)
+
+    {max - loser, loser}
   end
 
   defp determine_winner() do
