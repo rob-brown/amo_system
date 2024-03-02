@@ -198,7 +198,7 @@ defmodule Vision.Native do
   end
 
   def terminate(reason, _state) do
-    _ = Logger.warn("Vision terminating because #{inspect(reason)}")
+    _ = Logger.warning("Vision terminating because #{inspect(reason)}")
   end
 
   ## Helpers

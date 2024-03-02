@@ -152,7 +152,7 @@ defmodule Vision do
   end
 
   def terminate(reason, state) do
-    _ = Logger.warn("Vision terminating because #{inspect(reason)}")
+    _ = Logger.warning("Vision terminating because #{inspect(reason)}")
     Port.close(state.port)
   end
 
