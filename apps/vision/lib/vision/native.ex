@@ -164,6 +164,7 @@ defmodule Vision.Native do
          cropped = crop(img, box),
          {:ok, count} <- count(cropped, template, confidence) do
       debug(img, debug)
+      debug(cropped, debug)
       {:reply, {:ok, count}, state}
     else
       {:error, reason} ->
