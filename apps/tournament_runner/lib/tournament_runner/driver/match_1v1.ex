@@ -158,6 +158,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
           Joycontrol.command(:capture)
           {s1, s2} = best_of_n_scores(best_of)
           Script.advance_to_scores()
+          Joycontrol.command(:capture)
 
           # Match the scores to the winner/loser.
           case determine_winner() do
@@ -327,14 +328,14 @@ defmodule TournamentRunner.Driver.Match1v1 do
   end
 
   defp best_of_n_scores(best_of) do
-    {:ok, top} =
+    {:ok, loser} =
       Vision.Native.count_crop(
         Image.best_of_n_win(),
-        %{left: 45, top: 106, right: 96, bottom: 138},
-        confidence: 0.87
+        %{left: 213, top: 307, right: 267, bottom: 337},
+        confidence: 0.84
       )
 
-    {top, best_of - top}
+    {best_of - loser, loser}
   end
 
   defp determine_winner() do
