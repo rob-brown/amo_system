@@ -39,14 +39,16 @@ defmodule Vision.Native do
     timeout = Keyword.get(options, :timeout, 5000)
     path = Path.expand(image_file)
     confidence = Keyword.get(options, :confidence, 0.8)
-    GenServer.call(@name, {:visible, path, confidence}, timeout)
+    debug = Keyword.get(options, :debug, false)
+    GenServer.call(@name, {:visible, path, confidence, debug}, timeout)
   end
 
   def count(image_file, options \\ []) do
     timeout = Keyword.get(options, :timeout, 5000)
     path = Path.expand(image_file)
     confidence = Keyword.get(options, :confidence, 0.89)
-    GenServer.call(@name, {:count, path, confidence}, timeout)
+    debug = Keyword.get(options, :debug, false)
+    GenServer.call(@name, {:count, path, confidence, debug}, timeout)
   end
 
   def count_crop(image_file, crop, options \\ []) when is_binary(image_file) and is_map(crop) do
@@ -57,8 +59,9 @@ defmodule Vision.Native do
     bottom = Map.get(crop, :bottom, 1.0)
     right = Map.get(crop, :right, 1.0)
     confidence = Keyword.get(options, :confidence, 0.89)
+    debug = Keyword.get(options, :debug, false)
     box = %{top: top, left: left, bottom: bottom, right: right}
-    GenServer.call(@name, {:count_crop, path, box, confidence}, timeout)
+    GenServer.call(@name, {:count_crop, path, box, confidence, debug}, timeout)
   end
 
   def wait_until_found(image_file, duration, options \\ [])
@@ -127,10 +130,11 @@ defmodule Vision.Native do
     {:noreply, state}
   end
 
-  def handle_call({:visible, path, confidence}, _from, state = %__MODULE__{capture: c}) do
+  def handle_call({:visible, path, confidence, debug}, _from, state = %__MODULE__{capture: c}) do
     with {:ok, template} <- read_image(path),
          {:ok, img} <- capture_frame(c),
          {:ok, info} <- find(img, template, confidence) do
+      debug(img, debug)
       {:reply, {:ok, info}, state}
     else
       {:error, reason} ->
@@ -138,10 +142,11 @@ defmodule Vision.Native do
     end
   end
 
-  def handle_call({:count, path, confidence}, _from, state = %__MODULE__{capture: c}) do
+  def handle_call({:count, path, confidence, debug}, _from, state = %__MODULE__{capture: c}) do
     with {:ok, template} <- read_image(path),
          {:ok, img} <- capture_frame(c),
          {:ok, count} <- count(img, template, confidence) do
+      debug(img, debug)
       {:reply, {:ok, count}, state}
     else
       {:error, reason} ->
@@ -149,11 +154,16 @@ defmodule Vision.Native do
     end
   end
 
-  def handle_call({:count_crop, path, box, confidence}, _from, state = %__MODULE__{capture: c}) do
+  def handle_call(
+        {:count_crop, path, box, confidence, debug},
+        _from,
+        state = %__MODULE__{capture: c}
+      ) do
     with {:ok, template} <- read_image(path),
          {:ok, img} <- capture_frame(c),
          cropped = crop(img, box),
          {:ok, count} <- count(cropped, template, confidence) do
+      debug(img, debug)
       {:reply, {:ok, count}, state}
     else
       {:error, reason} ->
@@ -349,5 +359,15 @@ defmodule Vision.Native do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp debug(img, debug?) do
+    if debug? do
+      Evision.imwrite(tmp_filename(), img)
+    end
+  end
+
+  defp tmp_filename() do
+    Path.join(System.tmp_dir(), "#{:erlang.monotonic_time()}.png")
   end
 end
