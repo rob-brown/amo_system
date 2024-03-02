@@ -363,7 +363,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
       Vision.Native.count_crop(
         Image.best_of_n_win(),
         %{left: 213, top: 307, right: 267, bottom: 337},
-        confidence: 0.84,
+        confidence: 0.9,
         debug: true
       )
 
