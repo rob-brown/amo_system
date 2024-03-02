@@ -350,8 +350,8 @@ defmodule TournamentRunner.Driver.Match1v1 do
     # It will never allow the loser to win though. 
     # Try a few times and take the most common score.
     for _ <- 1..reads do
-      read_best_of_n_scores(best_of)
       Process.sleep(100)
+      read_best_of_n_scores(best_of)
     end
     |> Enum.frequencies()
     |> Enum.max_by(fn {_x, n} -> n end)
