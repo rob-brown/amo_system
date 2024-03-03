@@ -4,6 +4,9 @@ wait("200ms")
 -- Back out of character selection.
 press("b", "1400ms")
 wait("6s")
+-- Ignore the missing costume message, if present.
+press("a")
+wait("500ms")
 -- Back out of the rules.
 press("b")
 wait("8s")
