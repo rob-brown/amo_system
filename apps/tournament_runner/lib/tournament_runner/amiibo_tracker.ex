@@ -16,6 +16,6 @@ defmodule TournamentRunner.AmiiboTracker do
   end
 
   def clear(name \\ @name) do
-    Agent.get(name, fn _ -> MapSet.new() end)
+    Agent.update(name, fn _ -> MapSet.new() end)
   end
 end
