@@ -6,6 +6,7 @@ defmodule TournamentRunner.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      TournamentRunner.AmiiboTracker,
       Joycontrol,
       {Vision.Native, 0},
       TournamentRunner.CommandQueue

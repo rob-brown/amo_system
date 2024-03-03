@@ -13,6 +13,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
   alias TournamentRunner.Storage
   alias TournamentRunner.CommandQueue
+  alias TournamentRunner.AmiiboTracker
   alias TournamentRunner.Image
   alias TournamentRunner.Script
   alias SubmissionInfo.Amiibo
@@ -125,6 +126,15 @@ defmodule TournamentRunner.Driver.Match1v1 do
     try do
       {:ok, amiibo_count} = Vision.Native.count(Image.fp())
 
+      # Only clears the amiibo cache if an amiibo is seen twice.
+      if AmiiboTracker.seen?(fp1) or AmiiboTracker.seen?(fp2) do
+        Script.clear_amiibo_cache()
+        AmiiboTracker.clear()
+      end
+
+      AmiiboTracker.insert(fp1)
+      AmiiboTracker.insert(fp2)
+
       cond do
         amiibo_count == 0 ->
           Script.load_initial_1v1(bindings: [amiibo1: fp1, amiibo2: fp2])
@@ -154,11 +164,8 @@ defmodule TournamentRunner.Driver.Match1v1 do
           determine_winner()
         else
           watch_match(@match_duration * best_of)
-          # Get a screenshot for debugging.
-          Joycontrol.command(:capture)
           {s1, s2} = best_of_n_scores(best_of)
           Script.advance_to_scores()
-          Joycontrol.command(:capture)
 
           # Match the scores to the winner/loser.
           case determine_winner() do
@@ -173,9 +180,6 @@ defmodule TournamentRunner.Driver.Match1v1 do
       Logger.debug("Scores: #{inspect(scores)}")
 
       Script.after_match()
-
-      # TODO: Clear the cache only if an amiibo comes up twice.
-      Script.clear_amiibo_cache()
 
       scores
     catch
