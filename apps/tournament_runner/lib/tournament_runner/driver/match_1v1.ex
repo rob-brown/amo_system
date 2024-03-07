@@ -231,7 +231,7 @@ defmodule TournamentRunner.Driver.Match1v1 do
 
   defp challonge_participant(amiibo = %Amiibo{}) do
     %{
-      name: "#{amiibo.name} (#{amiibo.trainer})",
+      name: "#{amiibo.trainer} - #{amiibo.character}",
       misc: amiibo.name
     }
   end
