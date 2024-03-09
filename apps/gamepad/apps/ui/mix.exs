@@ -49,7 +49,6 @@ defmodule Ui.MixProject do
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:amiibo_mod, github: "rob-brown/amiibo_mod"},
-      {:gamepad, path: "../gamepad"},
       {:amiibo_manager, path: "../amiibo_manager"},
       {:observer_cli, "~> 1.7"},
       {:ring_logger, "~> 0.8.5"}
@@ -66,16 +65,6 @@ defmodule Ui.MixProject do
     [
       setup: ["deps.get"],
       "assets.deploy": ["esbuild default --minify", "phx.digest"]
-    ]
-  end
-
-  defp releases do
-    [
-      gamepad: [
-        steps: [:assemble, :tar],
-        include_executables_for: [:unix],
-        version: @version
-      ]
     ]
   end
 end
