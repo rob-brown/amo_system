@@ -16,6 +16,7 @@ defmodule Proxy.EventProcessor do
         :ok
 
       action ->
+        Logger.info("Mapped #{inspect({type, code, value})} to #{inspect(action)}")
         process_action(action, value)
     end
   end
@@ -32,7 +33,37 @@ defmodule Proxy.EventProcessor do
     end
   end
 
-  defp process_action(action, value) when action in [{:pad, "dx"}, {:stick, "lx"}] do
+  defp process_action({:pad, "dx"}, value) do
+    cond do
+      value == 0 ->
+        InputTracker.release_buttons(["left", "right"])
+
+      value < 0 ->
+        InputTracker.hold_buttons(["left"])
+        InputTracker.release_buttons(["right"])
+
+      value > 0 ->
+        InputTracker.hold_buttons(["right"])
+        InputTracker.release_buttons(["left"])
+    end
+  end
+
+  defp process_action({:pad, "dy"}, value) do
+    cond do
+      value == 0 ->
+        InputTracker.release_buttons(["up", "down"])
+
+      value < 0 ->
+        InputTracker.hold_buttons(["up"])
+        InputTracker.release_buttons(["down"])
+
+      value > 0 ->
+        InputTracker.hold_buttons(["down"])
+        InputTracker.release_buttons(["up"])
+    end
+  end
+
+  defp process_action({:stick, "ly"}, value) do
     cond do
       value in 108..148 ->
         InputTracker.release_buttons(["up", "down"])
@@ -47,7 +78,7 @@ defmodule Proxy.EventProcessor do
     end
   end
 
-  defp process_action(action, value) when action in [{:pad, "dy"}, {:stick, "ly"}] do
+  defp process_action({:stick, "lx"}, value) do
     cond do
       value in 108..148 ->
         InputTracker.release_buttons(["left", "right"])

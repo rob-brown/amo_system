@@ -62,13 +62,14 @@ def connect(args):
             '+Connected',
             '%3',
             '+id',
-            ':{device.uniq}',
+            f'${len(device.uniq)}',
+            f'{device.uniq}',
             '+name',
-            '${len(device.name)}',
-            '{device.name}',
+            f'${len(device.name)}',
+            f'{device.name}',
             '+path',
-            '${len(device.path)}',
-            '{device.path}',
+            f'${len(device.path)}',
+            f'{device.path}',
         ]
         msg = '\n'.join(lines)
         send_msg(msg)

@@ -1,8 +1,31 @@
 defmodule Proxy.RespParser do
   require Logger
 
+  def parse_all(data) do
+    parse_all(data, [])
+  end
+
+  defp parse_all("", result) do
+    Enum.reverse(result)
+  end
+
+  defp parse_all(data, result) do
+    {item, rest} = parse(data)
+    parse_all(rest, [item | result])
+  end
+
+  def parse("") do
+    nil
+  end
+ 
   def parse(data) when is_binary(data) do
-    parse_next(data)
+    try do
+      parse_next(data)
+    rescue
+      e ->
+        Logger.error("Failed to parse RESP: #{inspect(data)}")
+        reraise e, __STACKTRACE__
+    end
   end
 
   # Map

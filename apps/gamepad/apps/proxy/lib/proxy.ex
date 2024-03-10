@@ -80,26 +80,9 @@ defmodule Proxy do
   end
 
   def handle_info({_port, {:data, data}}, state) do
-    msg = RespParser.parse(data)
-    {new_queue, caller} = Queue.pop_front(state.callers)
+    new_state = data |> RespParser.parse_all() |> handle_all_responses(state)
 
-    case {handle_response(msg, state), caller} do
-      {{:reply, new_state, {:error, error}}, :empty} ->
-        Logger.error("[PROXY] #{error}")
-        {:noreply, new_state}
-
-      {{:reply, new_state, msg}, :empty} ->
-        Logger.error("[PROXY] Got message with no caller: #{inspect(msg)}")
-        {:noreply, new_state}
-
-      {{:reply, new_state, msg}, caller} ->
-        GenServer.reply(caller, msg)
-        new_state = %__MODULE__{new_state | callers: new_queue}
-        {:noreply, new_state}
-
-      {:noreply, _caller} ->
-        {:noreply, state}
-    end
+    {:noreply, new_state}
   end
 
   def handle_info({_port, {:exit_status, 0}}, state) do
@@ -151,23 +134,46 @@ defmodule Proxy do
     Logger.warning("[PROXY] Unknown event: #{inspect(info)}")
   end
 
-  defp handle_response({msg, ""}, state) do
-    handle_response(msg, state)
+  defp handle_all_responses([], state) do
+    state
+  end
+
+  defp handle_all_responses([item | rest], state) do
+    new_state = handle_response(item, state)
+    handle_all_responses(rest, new_state)
   end
 
   defp handle_response({:push, info}, state) do
     send_event(info, state.mapping)
-    :noreply
+    state
   end
 
   defp handle_response(msg = ["Connected", info], state) do
     mapping = Proxy.ControllerMapping.default_mapping(info["name"])
     new_state = %__MODULE__{state | mapping: mapping}
 
-    {:reply, new_state, msg}
+    reply(msg, new_state)
   end
 
   defp handle_response(msg, state) do
-    {:reply, state, msg}
+    reply(msg, state)
+  end
+
+  defp reply(msg, state) do
+    {new_queue, caller} = Queue.pop_front(state.callers)
+
+    case {msg, caller} do
+      {{:error, error}, :empty} ->
+        Logger.error("[PROXY] #{error}")
+        state
+
+      {msg, :empty} ->
+        Logger.error("[PROXY] Got message with no caller: #{inspect(msg)}")
+        state
+
+      {msg, caller} ->
+        GenServer.reply(caller, msg)
+        %__MODULE__{state | callers: new_queue}
+    end
   end
 end
