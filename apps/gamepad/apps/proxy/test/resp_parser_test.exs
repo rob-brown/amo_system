@@ -16,7 +16,7 @@ defmodule RespParserTest do
   end
 
   test "parse bulk string" do
-    assert {"hello", ""} = RespParser.parse("$5\nhello\n") 
+    assert {"hello", ""} = RespParser.parse("$5\nhello\n")
   end
 
   test "parse list" do
@@ -27,6 +27,7 @@ defmodule RespParserTest do
     +is
     :42
     """
+
     assert {result, ""} = RespParser.parse(string)
     assert ["answer", "is", 42] = result
   end
@@ -38,7 +39,8 @@ defmodule RespParserTest do
     :42
     :1
     """
-    assert {result, ""} = RespParser.parse(string) 
+
+    assert {result, ""} = RespParser.parse(string)
     assert {:push, [0, 42, 1]} = result
   end
 
@@ -52,7 +54,8 @@ defmodule RespParserTest do
     $5
     world
     """
-    assert {result, ""} = RespParser.parse(string) 
+
+    assert {result, ""} = RespParser.parse(string)
     assert %{"answer" => 42, "hello" => "world"} = result
   end
 end

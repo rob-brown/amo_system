@@ -6,8 +6,8 @@ defmodule Proxy do
   alias Proxy.Queue
   alias Proxy.RespParser
 
-  @enforce_keys [:port, :callers]
-  defstruct [:port, :callers]
+  @enforce_keys [:port, :callers, :mapping]
+  defstruct [:port, :callers, :mapping]
 
   @name __MODULE__
 
@@ -23,6 +23,10 @@ defmodule Proxy do
     GenServer.cast(@name, :disconnect)
   end
 
+  def set_mapping(mapping) do
+    GenServer.cast(@name, {:set_mapping, mapping})
+  end
+
   ## GenServer
 
   def start_link(_ \\ :ok) do
@@ -30,7 +34,9 @@ defmodule Proxy do
   end
 
   def init(_) do
-    {:ok, %__MODULE__{port: open_port(), callers: Queue.new()}}
+    state = %__MODULE__{port: open_port(), callers: Queue.new(), mapping: %{}}
+
+    {:ok, state}
   end
 
   def child_spec(_) do
@@ -77,25 +83,22 @@ defmodule Proxy do
     msg = RespParser.parse(data)
     {new_queue, caller} = Queue.pop_front(state.callers)
 
-    case {msg, caller} do
-      {{{:push, info}, _rest}, _} ->
-        send_event(info)
-        {:noreply, state}
-        
-      {{:error, error}, :empty} ->
+    case {handle_response(msg, state), caller} do
+      {{:reply, new_state, {:error, error}}, :empty} ->
         Logger.error("[PROXY] #{error}")
-        {:noreply, state}
-        
-      {info, :empty} ->
-        Logger.error("[PROXY] Got message with no caller: #{inspect(info)}")
-        {:noreply, state}
-
-      {{info, _rest}, caller} ->
-        GenServer.reply(caller, info)
-
-        new_state = %__MODULE__{state | callers: new_queue}
-
         {:noreply, new_state}
+
+      {{:reply, new_state, msg}, :empty} ->
+        Logger.error("[PROXY] Got message with no caller: #{inspect(msg)}")
+        {:noreply, new_state}
+
+      {{:reply, new_state, msg}, caller} ->
+        GenServer.reply(caller, msg)
+        new_state = %__MODULE__{new_state | callers: new_queue}
+        {:noreply, new_state}
+
+      {:noreply, _caller} ->
+        {:noreply, state}
     end
   end
 
@@ -135,15 +138,36 @@ defmodule Proxy do
     Path.expand(path, :code.priv_dir(:proxy))
   end
 
-  defp send_event([type, code, value]) when is_integer(type) and is_integer(code) and is_integer(value) do
-    Proxy.EventProcessor.process(type, code, value)
+  defp send_event([type, code, value], mapping)
+       when is_integer(type) and is_integer(code) and is_integer(value) do
+    Proxy.EventProcessor.process(type, code, value, mapping)
   end
 
-  defp send_event(list) when is_list(list) do
-    Enum.each(list, &send_event/1)
+  defp send_event([event], state) do
+    send_event(event, state)
   end
 
-  defp send_event(info) do
+  defp send_event(info, _state) do
     Logger.warning("[PROXY] Unknown event: #{inspect(info)}")
+  end
+
+  defp handle_response({msg, ""}, state) do
+    handle_response(msg, state)
+  end
+
+  defp handle_response({:push, info}, state) do
+    send_event(info, state.mapping)
+    :noreply
+  end
+
+  defp handle_response(msg = ["Connected", info], state) do
+    mapping = Proxy.ControllerMapping.default_mapping(info["name"])
+    new_state = %__MODULE__{state | mapping: mapping}
+
+    {:reply, new_state, msg}
+  end
+
+  defp handle_response(msg, state) do
+    {:reply, state, msg}
   end
 end

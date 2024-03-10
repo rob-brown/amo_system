@@ -9,31 +9,6 @@ print_mailbox = Queue()
 input_thread = None
 connected = False
 
-pdp_buttons = {
-        "a": 306,
-        "b": 305,
-        "y": 304,
-        "x": 307,
-        "l1": 308,
-        "l2": 310,
-        "l3": 314,
-        "r1": 309,
-        "r2": 311,
-        "r3": 315,
-        "-": 312,
-        "+": 313,
-        "capture": 317,
-        "home": 316,
-        "dx": 16,
-        "dy": 17,
-        "lx": 0,
-        "ly": 1,
-        "rx": 2,
-        "ry": 5,
-        }
-
-# XBOX left trigger is 2. Right trigger is 5. rx is 3. ry is 4. 
-
 ###############
 ## Input Job ##
 ###############
@@ -82,7 +57,21 @@ def connect(args):
         device = all_devices()[index]
         input_thread = Thread(target=input_job, args=(device,), daemon=True)
         input_thread.start()
-        send_msg('+OK')
+        lines = [
+            '*2',
+            '+Connected',
+            '%3',
+            '+id',
+            ':{device.uniq}',
+            '+name',
+            '${len(device.name)}',
+            '{device.name}',
+            '+path',
+            '${len(device.path)}',
+            '{device.path}',
+        ]
+        msg = '\n'.join(lines)
+        send_msg(msg)
 
 def disconnect():
     global connected
