@@ -28,17 +28,18 @@ defmodule RespParserTest do
     :42
     """
     assert {result, ""} = RespParser.parse(string)
-    assert result = ["answer", "is", 42]
+    assert ["answer", "is", 42] = result
   end
 
   test "parse push" do
     string = """
-    *3
+    >3
     :0
     :42
     :1
     """
-    assert RespParser.parse(string) == {[0, 42, 1], ""}
+    assert {result, ""} = RespParser.parse(string) 
+    assert {:push, [0, 42, 1]} = result
   end
 
   test "parse map" do
@@ -52,6 +53,6 @@ defmodule RespParserTest do
     world
     """
     assert {result, ""} = RespParser.parse(string) 
-    assert result == %{"answer" => 42, "hello" => "world"}
+    assert %{"answer" => 42, "hello" => "world"} = result
   end
 end
