@@ -63,7 +63,7 @@ defmodule Proxy.EventProcessor do
     end
   end
 
-  defp process_action({:stick, "ly"}, value, mapping) do
+  defp process_action({:stick, axis}, value, mapping) when axis in ["ly", "ry"] do
     cond do
       value < mapping["up_threshold"] ->
         InputTracker.hold_buttons(["up"])
@@ -75,11 +75,10 @@ defmodule Proxy.EventProcessor do
 
       true ->
         InputTracker.release_buttons(["up", "down"])
-
     end
   end
 
-  defp process_action({:stick, "lx"}, value, mapping) do
+  defp process_action({:stick, axis}, value, mapping) when axis in ["lx", "rx"] do
     cond do
       value < mapping["left_threshold"] ->
         InputTracker.hold_buttons(["left"])
@@ -92,11 +91,6 @@ defmodule Proxy.EventProcessor do
       true ->
         InputTracker.release_buttons(["left", "right"])
     end
-  end
-
-  defp process_action(action, _value, _mapping) when action in [{:stick, "rx"}, {:stick, "ry"}] do
-    # Ignored
-    :ok
   end
 
   defp process_action(action, _value, _mapping) do
