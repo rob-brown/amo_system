@@ -17,7 +17,7 @@ defmodule Proxy.EventProcessor do
 
       action ->
         Logger.info("Mapped #{inspect({type, code, value})} to #{inspect(action)}")
-        process_action(action, value)
+        process_action(action, value, mapping)
     end
   end
 
@@ -25,7 +25,7 @@ defmodule Proxy.EventProcessor do
     Logger.warning("Unhandled event #{inspect({type, code, value})}")
   end
 
-  defp process_action({:button, button}, value) do
+  defp process_action({:button, button}, value, _mapping) do
     if value == 0 do
       InputTracker.release_buttons(button)
     else
@@ -33,11 +33,8 @@ defmodule Proxy.EventProcessor do
     end
   end
 
-  defp process_action({:pad, "dx"}, value) do
+  defp process_action({:pad, "dx"}, value, _mapping) do
     cond do
-      value == 0 ->
-        InputTracker.release_buttons(["left", "right"])
-
       value < 0 ->
         InputTracker.hold_buttons(["left"])
         InputTracker.release_buttons(["right"])
@@ -45,14 +42,14 @@ defmodule Proxy.EventProcessor do
       value > 0 ->
         InputTracker.hold_buttons(["right"])
         InputTracker.release_buttons(["left"])
+
+      true ->
+        InputTracker.release_buttons(["left", "right"])
     end
   end
 
-  defp process_action({:pad, "dy"}, value) do
+  defp process_action({:pad, "dy"}, value, _mapping) do
     cond do
-      value == 0 ->
-        InputTracker.release_buttons(["up", "down"])
-
       value < 0 ->
         InputTracker.hold_buttons(["up"])
         InputTracker.release_buttons(["down"])
@@ -60,45 +57,49 @@ defmodule Proxy.EventProcessor do
       value > 0 ->
         InputTracker.hold_buttons(["down"])
         InputTracker.release_buttons(["up"])
+
+      true ->
+        InputTracker.release_buttons(["up", "down"])
     end
   end
 
-  defp process_action({:stick, "ly"}, value) do
+  defp process_action({:stick, "ly"}, value, mapping) do
     cond do
-      value in 108..148 ->
-        InputTracker.release_buttons(["up", "down"])
-
-      value < 108 ->
+      value < mapping["up_threshold"] ->
         InputTracker.hold_buttons(["up"])
         InputTracker.release_buttons(["down"])
 
-      value > 148 ->
+      value > mapping["down_threshold"] ->
         InputTracker.hold_buttons(["down"])
         InputTracker.release_buttons(["up"])
+
+      true ->
+        InputTracker.release_buttons(["up", "down"])
+
     end
   end
 
-  defp process_action({:stick, "lx"}, value) do
+  defp process_action({:stick, "lx"}, value, mapping) do
     cond do
-      value in 108..148 ->
-        InputTracker.release_buttons(["left", "right"])
-
-      value < 108 ->
+      value < mapping["left_threshold"] ->
         InputTracker.hold_buttons(["left"])
         InputTracker.release_buttons(["right"])
 
-      value > 148 ->
+      value > mapping["right_threshold"] ->
         InputTracker.hold_buttons(["right"])
         InputTracker.release_buttons(["left"])
+
+      true ->
+        InputTracker.release_buttons(["left", "right"])
     end
   end
 
-  defp process_action(action, _value) when action in [{:stick, "rx"}, {:stick, "ry"}] do
+  defp process_action(action, _value, _mapping) when action in [{:stick, "rx"}, {:stick, "ry"}] do
     # Ignored
     :ok
   end
 
-  defp process_action(action, _value) do
+  defp process_action(action, _value, _mapping) do
     Logger.warning("Unhandled action #{action}")
   end
 end

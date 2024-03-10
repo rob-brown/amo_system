@@ -40,7 +40,11 @@ defmodule Proxy.ControllerMapping do
       314 => {:button, "l_stick"},
       315 => {:button, "r_stick"},
       316 => {:button, "home"},
-      317 => {:button, "capture"}
+      317 => {:button, "capture"},
+      "left_threshold" => 108,
+      "right_threshold" => 148,
+      "up_threshold" => 108,
+      "down_threshold" => 148,
     }
   end
 
@@ -52,6 +56,7 @@ defmodule Proxy.ControllerMapping do
   defp xbox_mapping() do
     # The ZL and ZR buttons are actually analog.
     # At least on the GuliKit controller.
+    # Checking for non-zero for pressed will work for both cases.
     %{
       0 => {:stick, "lx"},
       1 => {:stick, "ly"},
@@ -61,18 +66,21 @@ defmodule Proxy.ControllerMapping do
       5 => {:button, "zr"},
       16 => {:pad, "dx"},
       17 => {:pad, "dy"},
-      304 => {:button, "x"},
+      304 => {:button, "b"},
       305 => {:button, "a"},
-      306 => {:button, "b"},
       307 => {:button, "y"},
-      308 => {:button, "l"},
-      309 => {:button, "r"},
-      312 => {:button, "minus"},
-      313 => {:button, "plus"},
-      314 => {:button, "l_stick"},
-      315 => {:button, "r_stick"},
+      308 => {:button, "x"},
+      310 => {:button, "l"},
+      311 => {:button, "r"},
+      314 => {:button, "minus"},
+      315 => {:button, "plus"},
       316 => {:button, "home"},
-      317 => {:button, "capture"}
+      317 => {:button, "l_stick"},
+      318 => {:button, "r_stick"},
+      "left_threshold" => -5000,
+      "right_threshold" => 5000,
+      "up_threshold" => -5000,
+      "down_threshold" => 5000,
     }
   end
 

@@ -121,10 +121,9 @@ def all_devices():
     devices = []
 
     for path in list_devices():
-        device = InputDevice(path)
+        devices.append(InputDevice(path))
 
-        if device.uniq != '':
-            devices.append(device)
+    devices = sorted(devices, key=lambda x: x.path)
 
     return devices
 
@@ -137,8 +136,12 @@ def list():
     lines.append(f'*{count}')
 
     for index, device in enumerate(devices):
-        lines.append('%3')
+        id = device.uniq or 'null'
+        lines.append('%4')
         lines.append('+id')
+        lines.append(f'${len(id)}')
+        lines.append(f'{id}')
+        lines.append('+index')
         lines.append(f':{index}')
         lines.append('+name')
         lines.append(f'${len(device.name)}')
