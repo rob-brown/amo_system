@@ -16,7 +16,7 @@ config :ui, UiWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :info
 
-config :logger, backends: [RingLogger]
+config :logger, backends: [:console, RingLogger]
 
 # Set the number of messages to hold in the circular buffer
 config :logger, RingLogger, max_size: 256

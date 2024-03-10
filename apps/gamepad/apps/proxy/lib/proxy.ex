@@ -78,7 +78,7 @@ defmodule Proxy do
     {new_queue, caller} = Queue.pop_front(state.callers)
 
     case {msg, caller} do
-      {{:push, info}, _} ->
+      {{{:push, info}, _rest}, _} ->
         send_event(info)
         {:noreply, state}
         
@@ -90,7 +90,7 @@ defmodule Proxy do
         Logger.error("[PROXY] Got message with no caller: #{inspect(info)}")
         {:noreply, state}
 
-      {info, caller} ->
+      {{info, _rest}, caller} ->
         GenServer.reply(caller, info)
 
         new_state = %__MODULE__{state | callers: new_queue}
@@ -122,17 +122,13 @@ defmodule Proxy do
 
   defp port_args() do
     with script = priv_dir("gamepad.py"),
-         args = ["env", python3(), script] do
+         args = [script] do
       [:use_stdio, :exit_status, :binary, :hide, :stderr_to_stdout, args: args]
     end
   end
 
   defp executable() do
-    System.find_executable("sudo")
-  end
-
-  defp python3() do
-    System.find_executable("python3")
+    System.find_executable("python")
   end
 
   defp priv_dir(path) do
@@ -141,6 +137,10 @@ defmodule Proxy do
 
   defp send_event([type, code, value]) when is_integer(type) and is_integer(code) and is_integer(value) do
     Proxy.EventProcessor.process(type, code, value)
+  end
+
+  defp send_event(list) when is_list(list) do
+    Enum.each(list, &send_event/1)
   end
 
   defp send_event(info) do

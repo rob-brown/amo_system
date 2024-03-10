@@ -82,6 +82,7 @@ def connect(args):
         device = all_devices()[index]
         input_thread = Thread(target=input_job, args=(device,), daemon=True)
         input_thread.start()
+        send_msg('+OK')
 
 def disconnect():
     global connected

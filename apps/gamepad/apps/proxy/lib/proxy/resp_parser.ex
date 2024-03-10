@@ -1,4 +1,6 @@
 defmodule Proxy.RespParser do
+  require Logger
+
   def parse(data) when is_binary(data) do
     parse_next(data)
   end
@@ -60,6 +62,12 @@ defmodule Proxy.RespParser do
     {string, rest} = parse_simple_string(rest)
 
     {{:error, string}, rest}
+  end
+
+  # Catch all
+  defp parse_next(string) do
+    Logger.error("Unknown string: #{inspect(string)}")
+    {:error, :badarg}
   end
 
   defp parse_list(data) do
