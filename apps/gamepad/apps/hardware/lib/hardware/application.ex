@@ -29,7 +29,7 @@ defmodule Hardware.Application do
         :host
 
       platform ->
-        Logger.warn("Unknown platform '#{inspect(platform)}', defaulting to 'joybonnet'")
+        Logger.warning("Unknown platform '#{inspect(platform)}', defaulting to 'joybonnet'")
         :joybonnet
     end
   end

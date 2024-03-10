@@ -71,7 +71,7 @@ defmodule Joycontrol do
   end
 
   def terminate(reason, state) do
-    _ = Logger.warn("Joycontrol terminating because #{inspect(reason)}")
+    _ = Logger.warning("Joycontrol terminating because #{inspect(reason)}")
     Port.close(state.port)
   end
 

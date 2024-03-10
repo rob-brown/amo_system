@@ -66,7 +66,7 @@ defmodule UiWeb.BluetoothLive do
   end
 
   def handle_event(event, params, socket) do
-    Logger.warn("Unhandled event '#{event}' with params #{inspect(params)}")
+    Logger.warning("Unhandled event '#{event}' with params #{inspect(params)}")
     {:noreply, socket}
   end
 

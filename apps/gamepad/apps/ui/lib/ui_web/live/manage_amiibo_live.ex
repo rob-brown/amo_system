@@ -183,13 +183,13 @@ defmodule UiWeb.ManageAmiiboLive do
   end
 
   def handle_event(event, params, socket) do
-    Logger.warn("Unhandle event #{event} #{inspect(params)}")
+    Logger.warning("Unhandle event #{event} #{inspect(params)}")
     {:noreply, socket}
   end
 
   @impl true
   def handle_info(msg, socket) do
-    Logger.warn("Unhandle msg #{inspect(msg)}")
+    Logger.warning("Unhandle msg #{inspect(msg)}")
     {:noreply, socket}
   end
 

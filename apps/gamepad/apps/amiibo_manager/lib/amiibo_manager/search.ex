@@ -2,7 +2,6 @@ defmodule AmiiboManager.Search do
   alias AmiiboManager.Amiibo
   alias AmiiboManager.Collection
   alias AmiiboManager.Repo
-  alias AmiiboManager.Tag
 
   import Ecto.Query
 

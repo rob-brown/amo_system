@@ -1,19 +1,16 @@
 defmodule Ui.MixProject do
   use Mix.Project
 
-  @version "VERSION" |> File.read!() |> String.trim()
-
   def project do
     [
       app: :ui,
-      version: @version,
+      version: "1.0.0",
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps(),
-      releases: releases()
+      deps: deps()
     ]
   end
 
@@ -50,6 +47,7 @@ defmodule Ui.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:amiibo_mod, github: "rob-brown/amiibo_mod"},
       {:amiibo_manager, path: "../amiibo_manager"},
+      {:gamepad, path: "../gamepad"},
       {:observer_cli, "~> 1.7"},
       {:ring_logger, "~> 0.8.5"}
     ]

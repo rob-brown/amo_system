@@ -1,7 +1,7 @@
-defmodule Gamepad.Lighting do
+defmodule Hardware.Lighting do
   use GenServer
 
-  alias Gamepad.Lighting.Strategy
+  alias Hardware.Lighting.Strategy
 
   @name __MODULE__
 
@@ -40,7 +40,7 @@ defmodule Gamepad.Lighting do
   def init(_) do
     leds =
       for p <- [21, 20, 24, 23, 18] do
-        Gamepad.Lighting.LED.new(p)
+        Hardware.Lighting.LED.new(p)
       end
 
     state = %__MODULE__{leds: leds, strategy: nil, timer: nil}

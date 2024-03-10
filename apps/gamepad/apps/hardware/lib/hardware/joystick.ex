@@ -1,4 +1,4 @@
-defmodule Gamepad.Joystick do
+defmodule Hardware.Joystick do
   import Bitwise
 
   require Logger
@@ -81,7 +81,7 @@ defmodule Gamepad.Joystick do
   defp wait_until_ready(ref, retries \\ 10)
 
   defp wait_until_ready(_ref, 0) do
-    Logger.warn("Joystick timeout")
+    Logger.warning("Joystick timeout")
     :timeout
   end
 

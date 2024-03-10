@@ -3,7 +3,6 @@ defmodule Gamepad.Joycontrol do
 
   require Logger
 
-  alias Gamepad.Lighting
   alias Gamepad.Bluetooth.Notifier
 
   @enforce_keys [:port]
@@ -89,7 +88,7 @@ defmodule Gamepad.Joycontrol do
   end
 
   def terminate(reason, state) do
-    _ = Logger.warn("Joycontrol terminating because #{inspect(reason)}")
+    _ = Logger.warning("Joycontrol terminating because #{inspect(reason)}")
     Notifier.notify(:disconnected)
     Port.close(state.port)
   end

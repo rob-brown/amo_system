@@ -1,7 +1,7 @@
 defmodule Proxy.MixProject do
   use Mix.Project
 
-  @version "VERSION" |> File.read!() |> String.trim()
+  @version "VERSION" |> Path.expand(__DIR__) |> File.read!() |> String.trim()
 
   def project do
     [
@@ -23,7 +23,7 @@ defmodule Proxy.MixProject do
 
   defp deps do
     [
-      {:ui, path: "../ui"},
+      {:ui, path: "../ui"}
     ]
   end
 

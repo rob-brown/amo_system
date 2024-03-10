@@ -1,7 +1,7 @@
 defmodule Hardware.MixProject do
   use Mix.Project
 
-  @version "VERSION" |> File.read!() |> String.trim()
+  @version "VERSION" |> Path.expand(__DIR__) |> File.read!() |> String.trim()
 
   def project do
     [
@@ -25,6 +25,9 @@ defmodule Hardware.MixProject do
     [
       {:gamepad, path: "../gamepad"},
       {:ui, path: "../ui"},
+      {:circuits_gpio, "~> 1.0"},
+      {:circuits_i2c, "~> 1.1"},
+      {:pigpiox, "~> 0.1.2"}
     ]
   end
 

@@ -1,4 +1,4 @@
-defmodule Gamepad.Button do
+defmodule Hardware.Button do
   require Logger
 
   def start(platform) when platform in [:joybonnet, :ammobox] do
