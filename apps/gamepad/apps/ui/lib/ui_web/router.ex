@@ -23,6 +23,7 @@ defmodule UiWeb.Router do
 
     live("/collections/:id/manage_amiibo", ManageAmiiboLive, :show)
     live("/bluetooth", BluetoothLive, :show)
+    live("/proxy", ProxyLive, :show)
   end
 
   # Other scopes may use custom stacks.

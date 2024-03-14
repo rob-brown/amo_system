@@ -1,16 +1,13 @@
 defmodule Proxy.MixProject do
   use Mix.Project
 
-  @version "VERSION" |> Path.expand(__DIR__) |> File.read!() |> String.trim()
-
   def project do
     [
       app: :proxy,
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
-      deps: deps(),
-      releases: releases()
+      deps: deps()
     ]
   end
 
@@ -22,18 +19,6 @@ defmodule Proxy.MixProject do
   end
 
   defp deps do
-    [
-      {:ui, path: "../ui"}
-    ]
-  end
-
-  defp releases do
-    [
-      proxy: [
-        steps: [:assemble, :tar],
-        include_executables_for: [:unix],
-        version: @version
-      ]
-    ]
+    []
   end
 end

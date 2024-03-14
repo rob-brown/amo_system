@@ -4,3 +4,6 @@
 <br/>
 <a href="/bluetooth"><button class="button-warning">Manage Bluetooth</button></a>
 <br/>
+<%= if Enum.any?(Application.started_applications(), &match?({:proxy_gamepad, _, _}, &1)) do %>
+  <a href="/proxy"><button class="button-warning">Configure Gamepad Proxy</button></a>
+<% end %>

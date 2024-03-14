@@ -48,6 +48,7 @@ defmodule Ui.MixProject do
       {:amiibo_mod, github: "rob-brown/amiibo_mod"},
       {:amiibo_manager, path: "../amiibo_manager"},
       {:gamepad, path: "../gamepad"},
+      {:proxy, path: "../proxy"},
       {:observer_cli, "~> 1.7"},
       {:ring_logger, "~> 0.8.5"}
     ]
