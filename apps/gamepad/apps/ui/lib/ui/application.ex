@@ -11,7 +11,7 @@ defmodule Ui.Application do
       UiWeb.Telemetry,
       {Phoenix.PubSub, name: Ui.PubSub},
       UiWeb.Endpoint,
-      Joycontrol,
+      Joycontrol
       # joycontrol()
     ]
 

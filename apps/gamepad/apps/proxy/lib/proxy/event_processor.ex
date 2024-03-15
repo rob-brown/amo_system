@@ -16,7 +16,7 @@ defmodule Proxy.EventProcessor do
         :ok
 
       action ->
-        Logger.info("Mapped #{inspect({type, code, value})} to #{inspect(action)}")
+        # Logger.info("Mapped #{inspect({type, code, value})} to #{inspect(action)}")
         process_action(action, value, mapping)
     end
   end

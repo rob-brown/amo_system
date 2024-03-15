@@ -11,7 +11,7 @@ import Config
 # before starting your production server.
 config :ui, UiWeb.Endpoint,
   url: [host: "gamepadproxy.local", port: 4000],
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  cache_static_manifest: "../ui/priv/static/cache_manifest.json"
 
 # Do not print debug messages in production
 config :logger, level: :info

@@ -3,7 +3,7 @@
 import sys
 from queue import Queue
 from threading import Thread
-from evdev import InputDevice, categorize, ecodes, list_devices
+from evdev import InputDevice, categorize, ecodes, list_devices, util
 
 print_mailbox = Queue()
 input_thread = None
@@ -49,12 +49,11 @@ def connect(args):
     global input_thread
 
     if len(args) < 2:
-        send_msg('-Expected a device ID')
+        send_msg('-Expected a device path')
     elif input_thread != None and input_thread.is_alive():
         send_msg('-Another device already connected')
-    else:
-        index = int(args[1])
-        device = all_devices()[index]
+    elif util.is_device(args[1]):
+        device = InputDevice(args[1])
         input_thread = Thread(target=input_job, args=(device,), daemon=True)
         input_thread.start()
         lines = [
@@ -73,6 +72,8 @@ def connect(args):
         ]
         msg = '\n'.join(lines)
         send_msg(msg)
+    else:
+        send_msg('-No such device')
 
 def disconnect():
     global connected
@@ -112,6 +113,8 @@ def reader_job():
             connect(args)
         elif command == 'disconnect':
             disconnect()
+        elif command == 'capabilities':
+            capabilities(args)
         elif command == 'quit' or command == 'exit':
             break
         else:
@@ -127,6 +130,45 @@ def all_devices():
 
     return devices
 
+def capabilities(args):
+    if len(args) < 2:
+        send_msg('-Expected a device path')
+    elif util.is_device(args[1]):
+        path = args[1]
+        device = InputDevice(path)
+        capabilities = device.capabilities()
+        
+        lines = []
+        lines.append('%2')
+
+        buttons = capabilities.get(ecodes.EV_KEY, [])
+        axes = capabilities.get(ecodes.EV_ABS, [])
+
+        lines.append('+buttons')
+        lines.append(f'*{len(buttons)}')
+
+        for code in buttons:
+            lines.append(f':{code}')
+
+        lines.append('+axes')
+        lines.append(f'*{len(axes)}')
+
+        for code, info in axes:
+            lines.append('%4')
+            lines.append('+code')
+            lines.append(f':{code}')
+            lines.append('+min')
+            lines.append(f':{info.min}')
+            lines.append('+max')
+            lines.append(f':{info.max}')
+            lines.append('+deadzone')
+            lines.append(f':{info.flat}')
+
+        msg = '\n'.join(lines)
+        send_msg(msg)
+    else:
+        send_msg('-No such device')
+
 def list():
     devices = all_devices()
     count = len(devices)
@@ -135,14 +177,12 @@ def list():
     lines = []
     lines.append(f'*{count}')
 
-    for index, device in enumerate(devices):
+    for device in devices:
         id = device.uniq or 'null'
-        lines.append('%4')
+        lines.append('%3')
         lines.append('+id')
         lines.append(f'${len(id)}')
         lines.append(f'{id}')
-        lines.append('+index')
-        lines.append(f':{index}')
         lines.append('+name')
         lines.append(f'${len(device.name)}')
         lines.append(f'{device.name}')

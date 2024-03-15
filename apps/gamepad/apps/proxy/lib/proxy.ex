@@ -12,15 +12,22 @@ defmodule Proxy do
   @name __MODULE__
 
   def list_devices() do
-    GenServer.call(@name, :list)
+    command = "list\n"
+    GenServer.call(@name, {:command, command})
   end
 
-  def connect(id) do
-    GenServer.call(@name, {:connect, id})
+  def connect(path) do
+    command = "connect #{path}\n"
+    GenServer.call(@name, {:command, command})
   end
 
   def disconnect() do
     GenServer.cast(@name, :disconnect)
+  end
+
+  def capabilities(path) do
+    command = "capabilities #{path}\n"
+    GenServer.call(@name, {:command, command})
   end
 
   def set_mapping(mapping) do
@@ -46,9 +53,7 @@ defmodule Proxy do
     }
   end
 
-  def handle_call(:list, from, state) do
-    command = "list\n"
-
+  def handle_call({:command, command}, from, state) do
     if Port.command(state.port, command) do
       new_state = %__MODULE__{state | callers: Queue.push_back(state.callers, from)}
       {:noreply, new_state}
@@ -57,15 +62,9 @@ defmodule Proxy do
     end
   end
 
-  def handle_call({:connect, id}, from, state) do
-    command = "connect #{id}\n"
-
-    if Port.command(state.port, command) do
-      new_state = %__MODULE__{state | callers: Queue.push_back(state.callers, from)}
-      {:noreply, new_state}
-    else
-      {:reply, {:error, :failed}, state}
-    end
+  def handle_cast({:set_mapping, mapping}, state) do
+    new_state = %__MODULE__{state | mapping: mapping}
+    {:noreply, new_state}
   end
 
   def handle_cast(:disconnect, state) do
@@ -148,9 +147,11 @@ defmodule Proxy do
     state
   end
 
-  defp handle_response(msg = ["Connected", info], state) do
+  defp handle_response(["Connected", info], state) do
     mapping = Proxy.ControllerMapping.default_mapping(info["name"])
     new_state = %__MODULE__{state | mapping: mapping}
+
+    msg = {:connected, info, mapping}
 
     reply(msg, new_state)
   end

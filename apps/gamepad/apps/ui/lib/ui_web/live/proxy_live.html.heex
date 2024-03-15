@@ -1,8 +1,22 @@
-<div>
-  <select>
-    <!-- TODO: Select a device with a reset button. -->
-  </select>
-</div>
-<%= if input_path do %>
-  <!-- TODO: Show the button config. -->
-<% end %>
+<.form let={f} for={:form} phx_submit={@action}>
+  <div>
+    <%= case @action do %>
+      <% "connect" -> %>
+        <%= select(f, :path, device_options(@device_list), prompt: "Pick a Device") %>
+        <button type="button" phx-click="refresh">Refresh</button>
+        <button type="submit" class="button-success">Connect</button>
+        <p>If connecting fails, click "Disconnect" and press a button on the controller. Then try again. If that fails, reboot the Pi.</p>
+      
+      <% "configure" -> %>
+        <%= for info <- button_info(@button_mapping, @code_mapping, @capabilities) do %>
+          <%= label(f, info.key, info.label) %>
+          <%= select(f, info.key, info.options, value: info.value) %>
+        <% end %>
+
+        <br/>
+
+        <button type="submit" class="button-success">Configure</button>
+    <% end %>
+    <button type="button" phx-click="disconnect" class="button-danger">Disconnect</button>
+  </div>
+</.form>
