@@ -124,7 +124,10 @@
 }
 
 .loaded-amiibo-cell {
-  background-color: #66CCFF;
+  border: #66CCFF;
+  border-width: 2px;
+  border-radius: 8px;
+  border-style: solid;
 }
 
 .tab-bar {

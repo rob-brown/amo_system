@@ -72,6 +72,15 @@ defmodule UiWeb.ManageAmiiboLive do
     {:noreply, socket}
   end
 
+  def handle_event("shuffle-serial", _, socket) do
+    amiibo = Storage.get_amiibo(socket.assigns.loaded_amiibo_id)
+    a = AmiiboMod.Amiibo.new(amiibo.data)
+    shuffled = AmiiboMod.Amiibo.shuffle_serial(a)
+    data = AmiiboMod.Crypto.encrypt_binary!(shuffled.binary)
+    Joycontrol.load_amiibo(data)
+    {:noreply, socket}
+  end
+
   def handle_event("load-amiibo", %{"id" => id}, socket) do
     id = String.to_integer(id)
     amiibo = Storage.get_amiibo(id)

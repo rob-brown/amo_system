@@ -58,10 +58,11 @@ defmodule UiWeb.Queue do
         <div class="column column-20">
           <%= if @loaded do %>
             <button phx-click="unload-amiibo">Unload</button>
+            <button phx-click="shuffle-serial" class="button-warning">Shuffle</button>
           <% else %>
             <button phx-click="load-amiibo" phx-value-id={@amiibo.id}>Load</button>
           <% end %>
-          <button phx-click="queue-toggle" phx-value-id={@amiibo.id}>Remove</button>
+          <button phx-click="queue-toggle" phx-value-id={@amiibo.id} class="button-danger">Remove</button>
         </div>
       </div>
     </div>
