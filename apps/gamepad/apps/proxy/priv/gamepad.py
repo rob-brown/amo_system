@@ -26,8 +26,9 @@ def input_job(device):
                 send_msg('>1\n+Disconnected by request')
                 break
 
-            # ???: Should I send other types?
-            if event.type == ecodes.EV_KEY or event.type == ecodes.EV_ABS:
+            types = [ecodes.EV_SYN, ecodes.EV_KEY, ecodes.EV_ABS]
+
+            if event.type in types:
                 # Builds a message with the metadata.
                 # The caller will interpret the data.
                 # Sent as a list to make the data smaller.

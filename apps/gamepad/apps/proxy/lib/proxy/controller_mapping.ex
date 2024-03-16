@@ -21,12 +21,12 @@ defmodule Proxy.ControllerMapping do
 
   defp pdp_mapping() do
     %{
-      0 => {:stick, "lx"},
-      1 => {:stick, "ly"},
-      2 => {:stick, "rx"},
-      5 => {:stick, "ry"},
-      16 => {:pad, "dx"},
-      17 => {:pad, "dy"},
+      0 => {:stick, "lx", 0, 255, 15},
+      1 => {:stick, "ly", 0, 255, 15},
+      2 => {:stick, "rx", 0, 255, 15},
+      5 => {:stick, "ry", 0, 255, 15},
+      16 => {:pad, "dx", -1, 1, 0},
+      17 => {:pad, "dy", -1, 1, 0},
       304 => {:button, "y"},
       305 => {:button, "b"},
       306 => {:button, "a"},
@@ -41,10 +41,6 @@ defmodule Proxy.ControllerMapping do
       315 => {:button, "r_stick"},
       316 => {:button, "home"},
       317 => {:button, "capture"},
-      "left_threshold" => 108,
-      "right_threshold" => 148,
-      "up_threshold" => 108,
-      "down_threshold" => 148,
     }
   end
 

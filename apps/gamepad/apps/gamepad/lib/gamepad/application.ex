@@ -7,12 +7,11 @@ defmodule Gamepad.Application do
 
   @impl true
   def start(_type, _args) do
-    children =
-      [
-        Gamepad.Bluetooth.Notifier,
-        Gamepad.InputTracker,
-        {DynamicSupervisor, strategy: :one_for_one, name: Gamepad.DynamicSupervisor}
-      ]
+    children = [
+      Gamepad.Bluetooth.Notifier,
+      Gamepad.InputTracker,
+      {DynamicSupervisor, strategy: :one_for_one, name: Gamepad.DynamicSupervisor}
+    ]
 
     opts = [strategy: :one_for_one, name: Gamepad.Supervisor]
     Supervisor.start_link(children, opts)

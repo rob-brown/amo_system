@@ -3,10 +3,15 @@ defmodule Proxy.EventProcessor do
 
   alias Gamepad.InputTracker
 
+  @sync_event 0
   @key_event 1
-  @abs_event 3
+  @absolute_event 3
 
-  @events [@key_event, @abs_event]
+  @events [@sync_event, @key_event, @absolute_event]
+
+  def process(0, 0, 0, _mapping) do
+    InputTracker.report()
+  end
 
   def process(type, code, value, mapping)
       when type in @events and is_integer(code) and is_integer(value) do
@@ -33,64 +38,46 @@ defmodule Proxy.EventProcessor do
     end
   end
 
-  defp process_action({:pad, "dx"}, value, _mapping) do
+  defp process_action({:pad, "dx", _min, _max, _deadzone}, value, _mapping) do
     cond do
       value < 0 ->
-        InputTracker.hold_buttons(["left"])
-        InputTracker.release_buttons(["right"])
+        InputTracker.update_buttons(["left"], ["right"])
 
       value > 0 ->
-        InputTracker.hold_buttons(["right"])
-        InputTracker.release_buttons(["left"])
+        InputTracker.update_buttons(["right"], ["left"])
 
       true ->
         InputTracker.release_buttons(["left", "right"])
     end
   end
 
-  defp process_action({:pad, "dy"}, value, _mapping) do
+  defp process_action({:pad, "dy", _min, _max, _deadzone}, value, _mapping) do
     cond do
       value < 0 ->
-        InputTracker.hold_buttons(["up"])
-        InputTracker.release_buttons(["down"])
+        InputTracker.update_buttons(["up"], ["down"])
 
       value > 0 ->
-        InputTracker.hold_buttons(["down"])
-        InputTracker.release_buttons(["up"])
+        InputTracker.update_buttons(["down"], ["up"])
 
       true ->
         InputTracker.release_buttons(["up", "down"])
     end
   end
 
-  defp process_action({:stick, axis}, value, mapping) when axis in ["ly", "ry"] do
-    cond do
-      value < mapping["up_threshold"] ->
-        InputTracker.hold_buttons(["up"])
-        InputTracker.release_buttons(["down"])
-
-      value > mapping["down_threshold"] ->
-        InputTracker.hold_buttons(["down"])
-        InputTracker.release_buttons(["up"])
-
-      true ->
-        InputTracker.release_buttons(["up", "down"])
-    end
+  defp process_action({:stick, "ly", min, max, deadzone}, value, _mapping) do
+    InputTracker.move_stick(:left, {:v, value}, {min, max, deadzone}, report: false)
   end
 
-  defp process_action({:stick, axis}, value, mapping) when axis in ["lx", "rx"] do
-    cond do
-      value < mapping["left_threshold"] ->
-        InputTracker.hold_buttons(["left"])
-        InputTracker.release_buttons(["right"])
+  defp process_action({:stick, "lx", min, max, deadzone}, value, _mapping) do
+    InputTracker.move_stick(:left, {:h, value}, {min, max, deadzone}, report: false)
+  end
 
-      value > mapping["right_threshold"] ->
-        InputTracker.hold_buttons(["right"])
-        InputTracker.release_buttons(["left"])
+  defp process_action({:stick, "ry", min, max, deadzone}, value, _mapping) do
+    InputTracker.move_stick(:right, {:v, value}, {min, max, deadzone}, report: false)
+  end
 
-      true ->
-        InputTracker.release_buttons(["left", "right"])
-    end
+  defp process_action({:stick, "rx", min, max, deadzone}, value, _mapping) do
+    InputTracker.move_stick(:right, {:h, value}, {min, max, deadzone}, report: false)
   end
 
   defp process_action(action, _value, _mapping) do

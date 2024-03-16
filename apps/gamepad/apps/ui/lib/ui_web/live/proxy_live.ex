@@ -5,6 +5,8 @@ defmodule UiWeb.ProxyLive do
 
   @button_names ~w"a b y x l zl r zr l_stick r_stick plus minus home capture"
 
+  # TODO: Handle axes too.
+
   @impl true
   def mount(_params, _session, socket) do
     assigns = [

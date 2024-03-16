@@ -1,5 +1,4 @@
 defmodule Gamepad.Bluetooth.Notifier do
-
   @name __MODULE__
   @key :status
   @status_options [:connected, :disconnected, :connecting]
