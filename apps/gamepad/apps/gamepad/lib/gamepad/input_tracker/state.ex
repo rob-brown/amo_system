@@ -58,8 +58,9 @@ defmodule Gamepad.InputTracker.State do
   def move_stick(state = %__MODULE__{}, stick, {direction, magnitude}, {min, max, deadzone})
       when stick in [:left, :right] and direction in [:h, :v] do
     middle = div(max - min, 2)
+    old = get_in(state.sticks, [stick, direction])
 
-    value =
+    new =
       cond do
         magnitude > middle + deadzone ->
           translate(magnitude, min, max, direction == :v)
@@ -73,8 +74,8 @@ defmodule Gamepad.InputTracker.State do
 
     sticks =
       state.sticks
-      |> put_in([stick, direction], value)
-      |> put_in([stick, :changed], true)
+      |> put_in([stick, direction], new)
+      |> update_in([stick, :changed], fn changed -> changed or old != new end)
 
     %__MODULE__{state | sticks: sticks}
   end
@@ -118,31 +119,43 @@ defmodule Gamepad.InputTracker.State do
     {commands, new_state}
   end
 
-  @update_interval_ms 1
+  # Sending stick updates faster than this can cause Joycontrol to 
+  # get overwhelmed, especially with controllers that drift.
+  @update_interval_ms 20
 
   def stick_commands(state = %__MODULE__{}) do
     now = now()
+    update_all? = now - state.last_stick_report > @update_interval_ms
 
-    if now - state.last_stick_report > @update_interval_ms do
-      commands =
-        for {side, info} <- state.sticks,
-            info.changed == true,
-            {axis, value} <- info,
-            axis in [:h, :v] do
-          "stick #{side} #{axis} #{value}"
-        end
+    # If it's been long enough, send all stick updates.
+    # Otherwise, send stick updates, only if the stick is centered.
+    # This avoids weird drift from the center update getting dropped.
+    commands =
+      for {side, info} <- state.sticks,
+          info.changed == true,
+          {axis, value} <- info,
+          axis in [:h, :v],
+          update_all? or value == @stick_middle do
+        "stick #{side} #{axis} #{value}"
+      end
 
-      sticks =
-        state.sticks
-        |> put_in([:left, :changed], false)
-        |> put_in([:right, :changed], false)
+    sticks =
+      state.sticks
+      |> put_in([:left, :changed], false)
+      |> put_in([:right, :changed], false)
 
-      new_state = %__MODULE__{state | last_stick_report: now, sticks: sticks}
+    # Only update the report time if all sticks are updated.
+    # This avoids weird skips in movement.
+    report_time =
+      if update_all? do
+        now
+      else
+        state.last_stick_report
+      end
 
-      {commands, new_state}
-    else
-      {[], state}
-    end
+    new_state = %__MODULE__{state | last_stick_report: report_time, sticks: sticks}
+
+    {commands, new_state}
   end
 
   defp now() do

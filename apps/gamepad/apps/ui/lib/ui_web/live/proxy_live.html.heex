@@ -10,7 +10,7 @@
       <% "configure" -> %>
         <%= for info <- button_info(@button_mapping, @code_mapping, @capabilities) do %>
           <%= label(f, info.key, info.label) %>
-          <%= select(f, info.key, info.options, value: info.value) %>
+          <%= select(f, info.key, info.options, value: info.value, prompt: "Pick an event code") %>
         <% end %>
 
         <br/>
