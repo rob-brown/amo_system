@@ -14,7 +14,7 @@ defmodule UiWeb.ProxyLive do
       code_mapping: nil,
       button_mapping: nil,
       capabilities: nil,
-      device_list: Proxy.list_devices(),
+      device_list: fetch_devices(),
       action: "connect"
     ]
 
@@ -24,7 +24,7 @@ defmodule UiWeb.ProxyLive do
 
   @impl true
   def handle_event("refresh", _params, socket) do
-    device_list = Proxy.list_devices()
+    device_list = fetch_devices()
     socket = assign(socket, device_list: device_list)
 
     {:noreply, socket}
@@ -125,6 +125,11 @@ defmodule UiWeb.ProxyLive do
         options: options
       }
     end
+  end
+
+  defp fetch_devices() do
+    # I don't know what vc4 is but don't show it.
+    Enum.reject(Proxy.list_devices(), & &1["name"] == "vc4")
   end
 
   defp text_label("l"), do: text_label("l / l1 / lb")
