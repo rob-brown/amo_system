@@ -59,7 +59,7 @@ defmodule AmiiboManager do
   def create_amiibo(a = %AmiiboMod.Amiibo{}) do
     create_amiibo(%{
       name: AmiiboMod.Amiibo.nickname(a),
-      character: AmiiboMod.Amiibo.character(a),
+      character: AmiiboMod.Amiibo.character(a) || "unknown",
       data: a.binary,
       amiibo_id: AmiiboMod.Amiibo.amiibo_id(a)
     })
