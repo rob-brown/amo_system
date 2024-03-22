@@ -7,12 +7,15 @@ serves up a web interface on your local network to support loading amiibo.
 
 ## Assembly
 
-This repo includes two hardware options.
+This repo includes three hardware options.
 
 1. A simple option based on the [Adafruit Joy Bonnet](./docs/joybonnet.markdown).
 
 2. The [AmmoBox](./docs/ammobox.markdown), a built-from-scratch option including a
 custom circuit board.
+
+3. A bring-your-own-hardware option. You plug a USB gamepad into the Pi and the
+buttons and sticks are [proxied](apps/proxy_gamepad) to the Nintendo Switch via bluetooth.
 
 Alternatively, you can make your own hardware and adjust the code accordingly.
 
@@ -38,19 +41,25 @@ sudo apt update
 sudo apt install curl cron --yes
 ```
 
-You can install the app for ammobox like this:
+You can install the app for AmmoBox like this:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/ui/install.sh | bash -s -- ammobox
+curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/hardware/install.sh | bash -s -- ammobox
 ```
 
-Or for the Joy Bonnet:
+For the Joy Bonnet:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/ui/install.sh | bash -s -- joybonnet
+curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/hardware/install.sh | bash -s -- joybonnet
 ```
 
 The only difference is the platform name at the end.
+
+If you instead want the proxy gamepad, run this:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/proxy_gamepad/install.sh | bash
+```
 
 > **WARNING:** You shouldn't just trust someone to run an arbitrary script on your
 system, especially one that has root permissions like this one does. Take some

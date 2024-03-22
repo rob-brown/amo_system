@@ -1,21 +1,9 @@
 # Hardware
 
-**TODO: Add description**
+## Summary
 
-## Installation
+This app contains the code specific to the AmmoBox and Joy Bonnet hardware. It is kept separate since
+it runs `pigpio` which requires root permissions. The [`proxy`](../proxy_gamepad) option can be run
+without this requirement.
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `hardware` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:hardware, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/hardware>.
-
+Uses the same [web interface](../ui) as the [proxy gamepad](../proxy_gamepad).
