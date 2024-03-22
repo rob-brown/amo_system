@@ -1,6 +1,7 @@
 #!/bin/bash
 
-URL="https://github.com/rob-brown/amo_system/releases/latest/download/proxy.tar.gz"
+BIT_SIZE=$(getconf LONG_BIT)
+URL="https://github.com/rob-brown/amo_system/releases/latest/download/proxy-$BIT_SIZE-bit.tar.gz"
 DATABASE=/home/pi/amiibo.sqlite
 
 echo Downloading latest proxy release
