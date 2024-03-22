@@ -1,14 +1,32 @@
 defmodule Proxy.ControllerMapping do
   def default_mapping(name) do
     case name do
-      "Performance Designed Products" <> _ -> pdp_mapping()
-      "Nintendo Co., Ltd. Pro Controller" -> pro_controller_mapping()
-      "Microsoft X-Box" <> _ -> xbox_mapping()
-      "ZhiXu GuliKit Controller A" -> gulikit_android_mapping()
-      "ZhiXu GuliKit Controller D" -> gulikit_desktop_mapping()
-      "Sony Interactive Entertainment DualSense Wireless Controller" -> dualsense_mapping()
-      "Sony Interactive Entertainment DualSense Edge Wireless Controller" -> dualsense_edge_mapping()
-      _name -> %{}
+      "Performance Designed Products" <> _ ->
+        pdp_mapping()
+
+      "Nintendo Co., Ltd. Pro Controller" ->
+        pro_controller_mapping()
+
+      "Microsoft X-Box" <> _ ->
+        xbox_mapping()
+
+      "ZhiXu GuliKit Controller A" ->
+        gulikit_android_mapping()
+
+      "ZhiXu GuliKit Controller D" ->
+        gulikit_desktop_mapping()
+
+      "Sony Interactive Entertainment DualSense Wireless Controller" ->
+        dualsense_mapping()
+
+      "Sony Interactive Entertainment DualSense Wireless Controller Touchpad" ->
+        ps5_touchpad_mapping()
+
+      "Sony Interactive Entertainment DualSense Edge Wireless Controller" ->
+        dualsense_edge_mapping()
+
+      _name ->
+        %{}
     end
   end
 
@@ -33,7 +51,7 @@ defmodule Proxy.ControllerMapping do
       314 => {:button, "l_stick"},
       315 => {:button, "r_stick"},
       316 => {:button, "home"},
-      317 => {:button, "capture"},
+      317 => {:button, "capture"}
     }
   end
 
@@ -59,7 +77,7 @@ defmodule Proxy.ControllerMapping do
       298 => {:button, "l_stick"},
       299 => {:button, "r_stick"},
       300 => {:button, "home"},
-      301 => {:button, "capture"},
+      301 => {:button, "capture"}
     }
   end
 
@@ -85,7 +103,7 @@ defmodule Proxy.ControllerMapping do
       315 => {:button, "plus"},
       316 => {:button, "home"},
       317 => {:button, "l_stick"},
-      318 => {:button, "r_stick"},
+      318 => {:button, "r_stick"}
     }
   end
 
@@ -110,7 +128,7 @@ defmodule Proxy.ControllerMapping do
       314 => {:button, "minus"},
       315 => {:button, "plus"},
       317 => {:button, "l_stick"},
-      318 => {:button, "r_stick"},
+      318 => {:button, "r_stick"}
     }
   end
 
@@ -133,7 +151,7 @@ defmodule Proxy.ControllerMapping do
       296 => {:button, "minus"},
       297 => {:button, "plus"},
       298 => {:button, "l_stick"},
-      299 => {:button, "r_stick"},
+      299 => {:button, "r_stick"}
       # No home button.
     }
   end
@@ -161,7 +179,7 @@ defmodule Proxy.ControllerMapping do
       315 => {:button, "plus"},
       316 => {:button, "home"},
       317 => {:button, "l_stick"},
-      318 => {:button, "r_stick"},
+      318 => {:button, "r_stick"}
     }
   end
 
@@ -189,7 +207,32 @@ defmodule Proxy.ControllerMapping do
       315 => {:button, "r_stick"},
       316 => {:button, "home"},
       # This is the touch pad.
-      317 => {:button, "minus"},
+      317 => {:button, "minus"}
+    }
+  end
+
+  defp ps5_touchpad_mapping() do
+    # Maps the touchpad for fun.
+    %{
+      # 0/1 = Finger 1?
+      0 => {:stick, "lx", 0, 1919, 0},
+      1 => {:stick, "ly", 0, 1079, 0},
+      # 53/54 = Finger 2, if present, otherwise same as 0/1?
+      # 53 => {:stick, "rx", 0, 1919, 0},
+      # 54 => {:stick, "ry", 0, 1079, 0},
+      # 47 has to do with multitouch, only 0 or 1.
+      # Maybe it helps differentiate between which finger is 0 or 1?
+      # 57 is the number of times the touchpad is touched, -1 for released.
+      # Starts at 0 and is monotonically increasing.
+      # Max is 65,535, probably wraps around to 0.
+      # Press touchpad for "a"
+      272 => {:button, "a"},
+      # Tap with two fingers for "b"
+      333 => {:button, "b"}
+      # 330 is 1 when any finger down
+      # 325 is 1 when one finger down
+      # 333 is 1 when two fingers down
+      # Each is 0 when condition is false
     }
   end
 end

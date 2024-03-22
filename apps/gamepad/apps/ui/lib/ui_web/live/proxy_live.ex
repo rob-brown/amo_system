@@ -13,6 +13,7 @@ defmodule UiWeb.ProxyLive do
       device: nil,
       code_mapping: nil,
       button_mapping: nil,
+      axis_mapping: nil,
       capabilities: nil,
       device_list: fetch_devices(),
       action: "connect"
@@ -34,12 +35,14 @@ defmodule UiWeb.ProxyLive do
     case Proxy.connect(path) do
       {:connected, device, mapping} ->
         capabilities = Proxy.capabilities(path)
-        button_mapping = convert_mapping(mapping)
+        button_mapping = convert_button_mapping(mapping)
+        axis_mapping = convert_axis_mapping(mapping)
 
         socket =
           assign(socket,
             device: device,
             button_mapping: button_mapping,
+            axis_mapping: axis_mapping,
             code_mapping: mapping,
             capabilities: capabilities,
             action: "configure"
@@ -63,12 +66,37 @@ defmodule UiWeb.ProxyLive do
   def handle_event("configure", %{"form" => params}, socket) do
     button_params = Map.take(params, @button_names)
 
+    # Create the button mapping but skip any unset buttons.
     buttons =
-      Map.new(button_params, fn {name, event} ->
+      button_params
+      |> Enum.reject(&match?({_name, ""}, &1))
+      |> Map.new(fn {name, event} ->
         {String.to_integer(event), {:button, name}}
       end)
 
-    new_mapping = Map.merge(socket.assigns.code_mapping, buttons)
+    axes =
+      for {type, name} <- [{:stick, "left"}, {:stick, "right"}, {:pad, "dpad"}] do
+        x_code = params[name <> "_x"] |> to_int()
+        y_code = params[name <> "_y"] |> to_int()
+        min = params[name <> "_min"] |> to_int()
+        max = params[name <> "_max"] |> to_int()
+        deadzone = params[name <> "_deadzone"] |> to_int()
+        x = String.slice(name, 0..0) <> "x"
+        y = String.slice(name, 0..0) <> "y"
+
+        [
+          {x_code, {type, x, min, max, deadzone}},
+          {y_code, {type, y, min, max, deadzone}}
+        ]
+      end
+      |> List.flatten()
+      |> Map.new()
+
+    new_mapping =
+      socket.assigns.code_mapping
+      |> Map.merge(buttons)
+      |> Map.merge(axes)
+      |> IO.inspect(label: :config)
 
     Proxy.set_mapping(new_mapping)
 
@@ -88,8 +116,14 @@ defmodule UiWeb.ProxyLive do
     {:noreply, socket}
   end
 
-  defp convert_mapping(mapping) do
+  defp convert_button_mapping(mapping) do
     for {event, {_type, name}} <- mapping, into: %{} do
+      {name, event}
+    end
+  end
+
+  defp convert_axis_mapping(mapping) do
+    for {event, {_type, name, _min, _max, _deadzone}} <- mapping, into: %{} do
       {name, event}
     end
   end
@@ -97,6 +131,81 @@ defmodule UiWeb.ProxyLive do
   defp device_options(device_list) do
     for %{"name" => name, "path" => path} <- device_list do
       {name, path}
+    end
+  end
+
+  defp axis_options(code_mapping, capabilities) do
+    for {info, index} <- Enum.with_index(capabilities["axes"]) do
+      %{"code" => code} = info
+      string = to_string(code)
+
+      case code_mapping[code] do
+        {:stick, name, _min, _max, _deadzone} ->
+          {"#{text_label(name)} (#{string})", string}
+
+        {:pad, name, _min, _max, _deadzone} ->
+          {"#{text_label(name)} (#{string})", string}
+
+        _ ->
+          {"Axis #{index} (#{string})", string}
+      end
+    end
+  end
+
+  defp axis_info(:left, axis_mapping, code_mapping, capabilities) do
+    %{
+      name: "Left Stick",
+      key: "left",
+      x: axis_info("lx", axis_mapping, code_mapping, capabilities),
+      y: axis_info("ly", axis_mapping, code_mapping, capabilities)
+    }
+  end
+
+  defp axis_info(:right, axis_mapping, code_mapping, capabilities) do
+    %{
+      name: "Right Stick",
+      key: "right",
+      x: axis_info("rx", axis_mapping, code_mapping, capabilities),
+      y: axis_info("ry", axis_mapping, code_mapping, capabilities)
+    }
+  end
+
+  defp axis_info(:dpad, axis_mapping, code_mapping, capabilities) do
+    %{
+      name: "D-Pad",
+      key: "dpad",
+      x: axis_info("dx", axis_mapping, code_mapping, capabilities),
+      y: axis_info("dy", axis_mapping, code_mapping, capabilities)
+    }
+  end
+
+  defp axis_info(name, axis_mapping, code_mapping, capabilities) do
+    code = axis_mapping[name]
+
+    case code_mapping[code] do
+      {_type, _name, min, max, deadzone} ->
+        %{
+          label: text_label(name),
+          key: String.to_atom(name),
+          value: axis_mapping[name],
+          options: axis_options(code_mapping, capabilities),
+          code: code,
+          min: min,
+          max: max,
+          deadzone: deadzone
+        }
+
+      _ ->
+        %{
+          label: text_label(name),
+          key: String.to_atom(name),
+          value: nil,
+          options: axis_options(code_mapping, capabilities),
+          code: code,
+          min: 0,
+          max: 0,
+          deadzone: 0
+        }
     end
   end
 
@@ -129,7 +238,7 @@ defmodule UiWeb.ProxyLive do
 
   defp fetch_devices() do
     # I don't know what vc4 is but don't show it.
-    Enum.reject(Proxy.list_devices(), & &1["name"] == "vc4")
+    Enum.reject(Proxy.list_devices(), &(&1["name"] == "vc4"))
   end
 
   defp text_label("l"), do: text_label("l / l1 / lb")
@@ -141,5 +250,13 @@ defmodule UiWeb.ProxyLive do
 
   defp text_label(button) do
     String.upcase(button)
+  end
+
+  defp to_int(x) when x in ["", nil] do
+    nil
+  end
+
+  defp to_int(string) when is_binary(string) do
+    String.to_integer(string)
   end
 end

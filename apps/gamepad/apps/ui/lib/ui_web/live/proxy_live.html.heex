@@ -8,6 +8,28 @@
         <p>If connecting fails, click "Disconnect" and press a button on the controller. Then try again. If that fails, reboot the Pi.</p>
       
       <% "configure" -> %>
+        <%# TODO: Configure update intervale %>
+        <hr/>
+        <h2>Axes</h2>
+        <div>
+          <%= for name <- [:left, :right, :dpad], info = axis_info(name, @axis_mapping, @code_mapping, @capabilities) do %>
+            <h3><%= info.name %></h3>
+            
+            <%= label(f, "#{info.key}_x", "Horizontal") %>
+            <%= select(f, "#{info.key}_x", info.x.options, value: info.x.value, prompt: "Pick an event code") %>
+            <%= label(f, "#{info.key}_y", "Vertical") %>
+            <%= select(f, "#{info.key}_y", info.y.options, value: info.y.value, prompt: "Pick an event code") %>
+            <%= label(f, "#{info.key}_min", "Min") %>
+            <%= number_input(f, "#{info.key}_min", value: info.x.min) %>
+            <%= label(f, "#{info.key}_max", "Max") %>
+            <%= number_input(f, "#{info.key}_max", value: info.x.max) %>
+            <%= label(f, "#{info.key}_deadzone", "Deadzone") %>
+            <%= number_input(f, "#{info.key}_deadzone", value: info.x.deadzone) %>
+          <% end %>
+        </div>
+
+        <hr/>
+        <h2>Buttons</h2>
         <%= for info <- button_info(@button_mapping, @code_mapping, @capabilities) do %>
           <%= label(f, info.key, info.label) %>
           <%= select(f, info.key, info.options, value: info.value, prompt: "Pick an event code") %>

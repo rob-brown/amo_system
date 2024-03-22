@@ -1,5 +1,4 @@
 defmodule Proxy.Constant do
-
   # See https://www.kernel.org/doc/html/latest/input/event-codes.html
   @mappings %{
     # SYN = synchronization
@@ -28,6 +27,6 @@ defmodule Proxy.Constant do
     "EV_CNT" => 32,
     # UINPUT = userland input
     "EV_UINPUT" => 257,
-    "EV_VERSION" => 65537,
+    "EV_VERSION" => 65537
   }
 end

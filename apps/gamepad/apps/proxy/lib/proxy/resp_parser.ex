@@ -17,7 +17,7 @@ defmodule Proxy.RespParser do
   def parse("") do
     nil
   end
- 
+
   def parse(data) when is_binary(data) do
     try do
       parse_next(data)
