@@ -5,6 +5,40 @@
 The Gamepad code is able to emulate a Nintendo Switch Pro Controller. It
 serves up a web interface on your local network to support loading amiibo.
 
+## Demo
+
+With the gamepad, you can store all your amiibo in one place. Even with large
+collections of amiibo you can organize them with tags. You can pull up any of
+your trained amiibo and load them into Super Smash Bros. Ultimate. With the
+shuffle button, you can even load the same amiibo multiple times.
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/w329YQ2w-qM?si=7f_x8aJJeCNAK40e" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+You can also use it in other games such as Tears of the Kingdom. With the
+shuffle function, you can load the same amiibo repeatedly, making this the
+fastest way to farm items. Note, this only works with the proxy gamepad option
+since you need a joystick and L button.
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/g3VkRCFD8aM?si=vLaEjrEJ1dvcPHK-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+Item farming is also useful in other games such as Hyrule Warriors and Skyrim.
+However, Hyrule Warriors limits the number of scans per day (5). Skyrim limits
+one scan per day for each amiibo ID (not serial number). You will still need to
+wait or change the system clock to scan more amiibo. Other games may have similar
+restrictions.
+
+## Search
+
+Within an amiibo collection, you can search your amiibo based on name, character,
+id, and tags. Any SSBU amiibo can be search by character, ex. `character:zelda`.
+You can also create any tags you want and apply them to your amiibo. You can search
+tags like this: `tag:tears_of_the_kindgom`. Note that spaces in tag names must
+be replaced with underscores (`_`). IDs can be searched using base16 encoding.
+Partial IDs can be searched by the first bytes. For example, the full ID
+`id:01070000035a0902` is not necessary. Searching `id:01070000` or `id:0107` is
+often sufficient. Names can be searched without any prefix, ex. `billy`. All search
+terms are case insenstive.
+
 ## Assembly
 
 This repo includes three hardware options.
