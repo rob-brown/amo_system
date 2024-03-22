@@ -61,7 +61,7 @@ defmodule AmiiboManager do
       name: AmiiboMod.Amiibo.nickname(a),
       character: AmiiboMod.Amiibo.character(a) || "unknown",
       data: a.binary,
-      amiibo_id: AmiiboMod.Amiibo.amiibo_id(a)
+      amiibo_id: Base.encode64(AmiiboMod.Amiibo.amiibo_id(a))
     })
   end
 
