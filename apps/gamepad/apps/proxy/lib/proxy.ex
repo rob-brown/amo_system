@@ -137,6 +137,10 @@ defmodule Proxy do
     state
   end
 
+  defp handle_all_responses([{:error, _reason} | rest], state) do
+    handle_all_responses(rest, state)
+  end
+
   defp handle_all_responses([item | rest], state) do
     new_state = handle_response(item, state)
     handle_all_responses(rest, new_state)

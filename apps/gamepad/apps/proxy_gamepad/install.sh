@@ -12,7 +12,7 @@ echo Uncompressing release files
 tar -xzf ~/proxy/proxy.tar.gz -C ~/proxy
 
 echo Installing startup script
-echo "@reboot pi sudo /usr/bin/env PHX_SERVER=true PHX_HOST=ammobox.local PORT=4000 DB_PATH=$DATABASE SECRET_KEY_BASE=frgvEBs7NY74auQ8ziMVeEIB8XUOYKFs7PfNfpns+1CA3+e+DH5nUHGq1UExr3DH /home/pi/proxy/bin/proxy start" | sudo tee /etc/cron.d/proxy >> /dev/null
+echo "@reboot pi /usr/bin/env PHX_SERVER=true PHX_HOST=ammobox.local PORT=4000 DB_PATH=$DATABASE SECRET_KEY_BASE=frgvEBs7NY74auQ8ziMVeEIB8XUOYKFs7PfNfpns+1CA3+e+DH5nUHGq1UExr3DH /home/pi/proxy/bin/proxy start" | sudo tee /etc/cron.d/proxy >> /dev/null
 
 echo Setting up database
 env MIX_ENV=prod DB_PATH=$DATABASE SECRET_KEY_BASE=ignore /home/pi/proxy/bin/proxy eval "Ui.Release.migrate"

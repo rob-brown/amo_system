@@ -10,8 +10,13 @@ defmodule Proxy.RespParser do
   end
 
   defp parse_all(data, result) do
-    {item, rest} = parse(data)
-    parse_all(rest, [item | result])
+    case parse(data) do
+      {:error, reason} ->
+        [{:error, reason}]
+
+      {item, rest} ->
+        parse_all(rest, [item | result])
+    end
   end
 
   def parse("") do

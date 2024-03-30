@@ -95,6 +95,12 @@ If you instead want the proxy gamepad, run this:
 curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/proxy_gamepad/install.sh | bash
 ```
 
+For the proxy gamepad, you will also need to install `evdev`.
+
+```bash
+pip install evdev
+```
+
 > **WARNING:** You shouldn't just trust someone to run an arbitrary script on your
 system, especially one that has root permissions like this one does. Take some
 time and look over the script to ensure it's not doing anything nefarious. You
