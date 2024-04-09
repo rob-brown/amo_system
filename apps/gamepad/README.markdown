@@ -108,3 +108,9 @@ Nintendo Switch.
 
 See the [web interface doc](./docs/web-interface.markdown) for details on how to use
 the web interface to load and use amiibo.
+
+## Troubleshooting
+
+If you are having trouble with the web interface, make sure your cron file (ex. `/etc/cron.d/proxy`) is using the same
+host name as your Pi. You can find the host name by running `hostname` from the console. If your host name is `raspberrypi`,
+then make sure your cron file has `PHX_HOST=raspberrypi.local`.
