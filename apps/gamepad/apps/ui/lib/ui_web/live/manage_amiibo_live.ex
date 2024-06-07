@@ -5,7 +5,7 @@ defmodule UiWeb.ManageAmiiboLive do
 
   alias AmiiboManager.Amiibo, as: A
   alias Ui.Storage
-  alias AmiiboMod.Amiibo
+  alias AmiiboSerialization.Amiibo
 
   @impl true
   def mount(%{"id" => collection_id}, _session, socket) do
@@ -74,9 +74,9 @@ defmodule UiWeb.ManageAmiiboLive do
 
   def handle_event("shuffle-serial", _, socket) do
     amiibo = Storage.get_amiibo(socket.assigns.loaded_amiibo_id)
-    a = AmiiboMod.Amiibo.new(amiibo.data)
-    shuffled = AmiiboMod.Amiibo.shuffle_serial(a)
-    data = AmiiboMod.Crypto.encrypt_binary!(shuffled.binary)
+    a = AmiiboSerialization.Amiibo.new(amiibo.data)
+    shuffled = AmiiboSerialization.Amiibo.shuffle_serial(a)
+    data = AmiiboSerialization.encrypt_binary!(shuffled.binary)
     Joycontrol.load_amiibo(data)
     {:noreply, socket}
   end
@@ -84,7 +84,7 @@ defmodule UiWeb.ManageAmiiboLive do
   def handle_event("load-amiibo", %{"id" => id}, socket) do
     id = String.to_integer(id)
     amiibo = Storage.get_amiibo(id)
-    data = AmiiboMod.Crypto.encrypt_binary!(amiibo.data)
+    data = AmiiboSerialization.encrypt_binary!(amiibo.data)
     Joycontrol.load_amiibo(data)
     socket = assign(socket, loaded_amiibo_id: id)
     {:noreply, socket}
@@ -216,20 +216,20 @@ defmodule UiWeb.ManageAmiiboLive do
   end
 
   defp amiibo_image_url(amiibo) do
-    {head, tail} = Amiibo.character_info(amiibo)
+    {head, tail} = SSBU.character_info(amiibo)
     "https://raw.githubusercontent.com/N3evin/AmiiboAPI/master/images/icon_#{head}-#{tail}.png"
   end
 
   defp extract_stats(amiibo) do
-    if Amiibo.ssbu_registered?(amiibo) do
-      {attack, defense} = Amiibo.stats(amiibo)
+    if SSBU.ssbu_registered?(amiibo) do
+      {attack, defense} = SSBU.stats(amiibo)
 
       %{
         attack: attack,
         defense: defense,
-        level: Amiibo.level(amiibo),
-        type: Amiibo.type(amiibo),
-        learning?: Amiibo.learning?(amiibo)
+        level: SSBU.level(amiibo),
+        type: SSBU.type(amiibo),
+        learning?: SSBU.learning?(amiibo)
       }
     else
       nil
@@ -237,8 +237,8 @@ defmodule UiWeb.ManageAmiiboLive do
   end
 
   defp extract_abilities(amiibo) do
-    if Amiibo.ssbu_registered?(amiibo) do
-      abilities = amiibo |> Amiibo.abilities() |> Enum.map(& &1.name)
+    if SSBU.ssbu_registered?(amiibo) do
+      abilities = amiibo |> SSBU.abilities() |> Enum.map(& &1.name)
 
       if Enum.empty?(abilities) do
         ["None"]

@@ -4,7 +4,7 @@ defmodule Ui.MixProject do
   def project do
     [
       app: :ui,
-      version: "1.0.0",
+      version: "1.1.0",
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
@@ -45,7 +45,7 @@ defmodule Ui.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:amiibo_mod, github: "rob-brown/amiibo_mod"},
+      {:ssbu, github: "rob-brown/amo_system", subdir: "apps/ssbu"},
       {:amiibo_manager, path: "../amiibo_manager"},
       {:gamepad, path: "../gamepad"},
       {:proxy, path: "../proxy"},

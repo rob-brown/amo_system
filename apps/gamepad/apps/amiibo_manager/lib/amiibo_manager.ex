@@ -56,12 +56,14 @@ defmodule AmiiboManager do
     |> Repo.update()
   end
 
-  def create_amiibo(a = %AmiiboMod.Amiibo{}) do
+  def create_amiibo(a = %AmiiboSerialization.Amiibo{}) do
+    character = SSBU.character(a)
+
     create_amiibo(%{
-      name: AmiiboMod.Amiibo.nickname(a),
-      character: AmiiboMod.Amiibo.character(a) || "unknown",
+      name: AmiiboSerialization.Amiibo.nickname(a),
+      character: character.name || "unknown",
       data: a.binary,
-      amiibo_id: Base.encode16(AmiiboMod.Amiibo.amiibo_id(a))
+      amiibo_id: Base.encode16(AmiiboSerialization.Amiibo.amiibo_id(a))
     })
   end
 
