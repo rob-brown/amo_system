@@ -45,7 +45,7 @@ defmodule Ui.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:ssbu, github: "rob-brown/amo_system", subdir: "apps/ssbu"},
+      {:ssbu, path: "../../../ssbu"},
       {:amiibo_manager, path: "../amiibo_manager"},
       {:gamepad, path: "../gamepad"},
       {:proxy, path: "../proxy"},

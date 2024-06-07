@@ -22,7 +22,7 @@ defmodule AmiiboManager.MixProject do
   defp deps do
     [
       {:ecto_sqlite3, "~> 0.7.7"},
-      {:ssbu, github: "rob-brown/amo_system", subdir: "apps/ssbu"},
+      {:ssbu, path: "../../../ssbu"},
       {:slugify, "~> 1.3"}
     ]
   end

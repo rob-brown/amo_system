@@ -41,7 +41,7 @@ config :phoenix, :json_library, Jason
 
 key_retail = "../key_retail.bin" |> Path.expand(__DIR__) |> File.read!() |> Base.encode64()
 
-config :amiibo_mod,
+config :amiibo_serialization,
   key_retail: key_retail
 
 # Import environment specific config. This must remain at the bottom
