@@ -126,7 +126,8 @@ defmodule Joycontrol do
   defp restart_reasons() do
     [
       "OSError: [Errno 107] Transport endpoint is not connected",
-      "ConnectionRefusedError: [Errno 111] Connection refused"
+      "ConnectionRefusedError: [Errno 111] Connection refused",
+      "Writer exited..."
     ]
   end
 
