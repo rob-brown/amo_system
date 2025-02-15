@@ -1,21 +1,6 @@
 # TrueSkill
 
-**TODO: Add description**
+Basic implementation of the [TrueSkill ranking algorithm](https://trueskill.org) developed by [Microsoft Research](https://www.microsoft.com/en-us/research/project/trueskill-ranking-system/).
+Based on the [Python trueskill library](https://pypi.org/project/trueskill/).
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `true_skill` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:true_skill, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/true_skill>.
-
+Currently only supports 1v1 matches. Also, doesn't calculate draw probabilities.
