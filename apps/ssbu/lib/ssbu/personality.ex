@@ -1,5 +1,4 @@
 defmodule SSBU.Personality do
-
   alias AmiiboSerialization.Amiibo
   alias SSBU.Attributes
   alias SSBU.Personality.Branch

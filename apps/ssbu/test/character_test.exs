@@ -101,4 +101,3 @@ defmodule CharacterTest do
     assert Character.lookup("1d010000", "03750d02").name == nil
   end
 end
-

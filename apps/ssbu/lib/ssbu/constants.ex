@@ -49,5 +49,3 @@ defmodule SSBU.Constants do
     ]
   end
 end
-
-

@@ -1,5 +1,4 @@
 defmodule SSBU do
-
   import Bitwise
 
   alias AmiiboSerialization.Amiibo
@@ -186,7 +185,7 @@ defmodule SSBU do
   end
 
   ## Helpers
-  
+
   defp format_hex(string) do
     string
     |> Integer.to_string(16)

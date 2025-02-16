@@ -59,7 +59,7 @@ defmodule SSBU.Ability do
 
   def from_value(value) do
     abilities()
-    |> Stream.filter(& &1.value == value)
+    |> Stream.filter(&(&1.value == value))
     |> Enum.at(0)
   end
 
@@ -71,4 +71,3 @@ defmodule SSBU.Ability do
     %{name: "None", slots: 0, source: "none", category: "none", value: 0}
   end
 end
-

@@ -1,5 +1,4 @@
 defmodule SSBU.Attributes.Serializer do
-
   alias AmiiboSerialization.Amiibo
   alias SSBU.Attributes
 
@@ -287,4 +286,3 @@ defmodule SSBU.Attributes.Serializer do
     |> IO.puts()
   end
 end
-

@@ -95,4 +95,3 @@ defmodule SSBU.Attributes do
     |> then(&struct!(__MODULE__, &1))
   end
 end
-
