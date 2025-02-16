@@ -28,7 +28,7 @@ defmodule AmiiboSerialization.ByteBuffer do
     :array.get(index, buffer)
   end
 
-  def slice(buffer, lo..hi) do
+  def slice(buffer, lo..hi//_) do
     lo..hi
     |> Enum.map(&get(buffer, &1))
     |> :binary.list_to_bin()

@@ -91,8 +91,6 @@ defmodule SSBU.Character do
     "Zero Suit Samus"
   ]
 
-  @name_count length(@names)
-
   def names(), do: @names
 
   def lookup({head, tail}) do

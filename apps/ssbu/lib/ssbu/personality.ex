@@ -105,7 +105,7 @@ defmodule SSBU.Personality do
     end
   end
 
-  defp clamp(value, lo..hi) do
+  defp clamp(value, lo..hi//_) do
     max(lo, min(hi, value))
   end
 end

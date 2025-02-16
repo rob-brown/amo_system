@@ -38,7 +38,7 @@ defmodule AmiiboSerialization.Amiibo do
     end
   end
 
-  def bytes(%__MODULE__{binary: binary}, lo..hi) do
+  def bytes(%__MODULE__{binary: binary}, lo..hi//_) do
     length = hi - lo + 1
     <<_::binary-size(lo), value::binary-size(length), _::bits>> = binary
     value
