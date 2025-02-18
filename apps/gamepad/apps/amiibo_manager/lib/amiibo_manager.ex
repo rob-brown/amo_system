@@ -61,7 +61,7 @@ defmodule AmiiboManager do
 
     create_amiibo(%{
       name: AmiiboSerialization.Amiibo.nickname(a),
-      character: character.name || "unknown",
+      character: character || "unknown",
       data: a.binary,
       amiibo_id: Base.encode16(AmiiboSerialization.Amiibo.amiibo_id(a))
     })
