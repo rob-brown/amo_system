@@ -62,8 +62,10 @@ install an OS for the Raspberry Pi.
 
 First, you will need to install
 [Joycontrol and its dependencies](https://github.com/poohl/joycontrol).
-This involves editing some system files too. You may need to run the
+This involves editing some system files too. You will need to manually run the
 `run_controller_cli.py` script to pair your Nintendo Switch to your Raspberry Pi.
+
+**When running joycontrol, note the MAC address if connecting to a Nintendo Switch 2**
 
 ## Gamepad Installation
 
@@ -89,10 +91,17 @@ curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/game
 
 The only difference is the platform name at the end.
 
-If you instead want the proxy gamepad, run this:
+If you instead want the proxy gamepad, run this for a Nintendo Switch:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/proxy_gamepad/install.sh | bash
+```
+
+If using a Nintendo Switch 2, run the following, replacing `01:23:45:67:89:AB` with the
+MAC address you found when manually running Joycontrol earlier.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rob-brown/amo_system/main/apps/gamepad/apps/proxy_gamepad/install.sh | bash -s -- 01:23:45:67:89:AB
 ```
 
 > **WARNING:** You shouldn't just trust someone to run an arbitrary script on your

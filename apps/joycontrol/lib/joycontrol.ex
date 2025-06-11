@@ -91,7 +91,7 @@ defmodule Joycontrol do
            joycontrol_script,
            "PRO_CONTROLLER",
            "-r",
-           "auto"
+           find_mac()
          ] do
       [:use_stdio, :exit_status, :binary, :hide, :stderr_to_stdout, args: args]
     end
@@ -113,6 +113,18 @@ defmodule Joycontrol do
       ],
       &String.contains?(data, &1)
     )
+  end
+
+  defp find_mac() do
+    # The Switch 2 doesn't appear to actually pair with controllers.
+    # This breaks joycontrol's auto reconnect feature.
+    # So the MAC must be specified.
+    # Defaults to "auto" for backwards compatibility.
+    mac = System.get_env("SWITCH_MAC", "auto")
+
+    Logger.info(["Connecting to MAC: ", IO.ANSI.cyan(), mac, IO.ANSI.default_color()])
+
+    mac
   end
 
   defp needs_restart?(data) do
