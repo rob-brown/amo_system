@@ -6,7 +6,7 @@ Quick Smashes,1,unobtainable,cut
 Jump ↑,1,support spirit,mobility
 Additional Midair Jump,2,support spirit,mobility
 Lifesteal,2,primary spirit,recovery
-Defense ↑,1,skill tree,skill tree
+Defense ↑ (WoL),1,skill tree,skill tree
 Easier Dodging,1,support spirit,mobility
 Easier Perfect Shield,1,support spirit,defense
 Super Armor,3,support spirit,common ban
@@ -119,14 +119,14 @@ Extended Respawn Invincibility,1,unobtainable,cut
 Floaty Jumps,1,support spirit,mobility
 Skate Shoes,1,unobtainable,cut
 Irreversible Controls,2,support spirit,hazard
-Recovery Items ↑,1,skill tree,skill tree
+Recovery Items ↑ (WoL),1,skill tree,skill tree
 Transformation Duration ↑,1,support spirit,other
 Undamaged Attack ↑,1,support spirit,other
 Undamaged Speed ↑,1,support spirit,other
 Undamaged Attack & Speed ↑,1,support spirit,other
 Smash Aura Stats ↑,1,unobtainable,cut
 Smash Aura Autoheal,1,unobtainable,cut
-Edge Grab ↑,1,skill tree,skill tree
+Edge Grab ↑ (WoL),1,skill tree,skill tree
 Impact Run,1,support spirit,attack
 Smash Ball Crusher,1,unobtainable,cut
 Lava-Floor Resist,1,support spirit,hazard
@@ -188,40 +188,40 @@ Fire Bar Equipped,1,support spirit,item
 Screw Attack Equipped,2,support spirit,item
 Bomber Equipped,1,support spirit,item
 Cucco Equipped,1,unobtainable,item
-Neutral Attack ↑,1,skill tree,skill tree
-Neutral Attack ↑↑,1,skill tree,skill tree
-Tilt Attack ↑,1,skill tree,skill tree
-Tilt Attack ↑↑,1,skill tree,skill tree
-Air Attack ↑↑,1,skill tree,skill tree
-Mighty Throw,1,skill tree,skill tree
-Special-Move Power ↑↑,1,skill tree,skill tree
-Super Easy Dodging,1,skill tree,skill tree
+Neutral Attack ↑ (WoL),1,skill tree,skill tree
+Neutral Attack ↑↑ (WoL),1,skill tree,skill tree
+Tilt Attack ↑ (WoL),1,skill tree,skill tree
+Tilt Attack ↑↑ (WoL),1,skill tree,skill tree
+Air Attack ↑↑ (WoL),1,skill tree,skill tree
+Mighty Throw (WoL),1,skill tree,skill tree
+Special-Move Power ↑↑ (WoL),1,skill tree,skill tree
+Super Easy Dodging (WoL),1,skill tree,skill tree
 197,1,none,unused
-Landing Lag ↓↓,1,skill tree,skill tree
+Landing Lag ↓↓ (WoL),1,skill tree,skill tree
 Become Heavy,1,unknown,unknown
-Meteor Smashes ↑,1,skill tree,skill tree
-Poisoned Smash,1,skill tree,skill tree
-No Penalty for Continuous Dodging,1,skill tree,skill tree
-Airborne Endurance,1,skill tree,skill tree
-Sprinting Endurance,1,skill tree,skill tree
-Perfect-Shield Recovery,1,skill tree,skill tree
-Masterful Fall Break,1,skill tree,skill tree
-Healing-Item Attraction,1,skill tree,skill tree
-Attack ↑ When Healthy,1,skill tree,skill tree
-Defense ↑ When Healthy,1,skill tree,skill tree
-Endless Smash Holding,1,skill tree,skill tree
-Heal with Smash Attacks,1,skill tree,skill tree
-Activities ↑,1,skill tree,skill tree
+Meteor Smashes ↑ (WoL),1,skill tree,skill tree
+Poisoned Smash (WoL),1,skill tree,skill tree
+No Penalty for Continuous Dodging (WoL),1,skill tree,skill tree
+Airborne Endurance (WoL),1,skill tree,skill tree
+Sprinting Endurance (WoL),1,skill tree,skill tree
+Perfect-Shield Recovery (WoL),1,skill tree,skill tree
+Masterful Fall Break (WoL),1,skill tree,skill tree
+Healing-Item Attraction (WoL),1,skill tree,skill tree
+Attack ↑ When Healthy (WoL),1,skill tree,skill tree
+Defense ↑ When Healthy (WoL),1,skill tree,skill tree
+Endless Smash Holding (WoL),1,skill tree,skill tree
+Heal with Smash Attacks (WoL),1,skill tree,skill tree
+Activities ↑ (WoL),1,skill tree,skill tree
 Giant Killer,1,support spirit,attack
 Metal Killer,1,support spirit,attack
 Assist Killer,1,support spirit,attack
 Jam FS Charge,2,support spirit,other
 Weapon Resist ↑,2,support spirit,defense
-Hyper Smash Attacks,1,skill tree,skill tree
-Neutral Attack ↑,1,skill tree,skill tree
-Tilt Attack ↑,1,skill tree,skill tree
-Special-Move Power ↑,1,skill tree,skill tree
-Air Attack ↑,1,skill tree,skill tree
+Hyper Smash Attacks (WoL),1,skill tree,skill tree
+Neutral Attack ↑ (WoL),1,skill tree,skill tree
+Tilt Attack ↑ (WoL),1,skill tree,skill tree
+Special-Move Power ↑ (WoL),1,skill tree,skill tree
+Air Attack ↑ (WoL),1,skill tree,skill tree
 223,0,none,unused
 224,0,none,unused
 225,0,none,unused
