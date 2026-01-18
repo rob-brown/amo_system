@@ -26,6 +26,11 @@ defmodule Joycontrol do
     GenServer.cast(@name, {:command, command})
   end
 
+  def press(button, duration) do
+    command = "press #{button} #{duration}"
+    GenServer.cast(@name, {:command, command})
+  end
+
   ## GenServer
 
   def start_link(_ \\ :ok) do

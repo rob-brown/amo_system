@@ -34,6 +34,7 @@ defmodule RabbitDriver.MixProject do
   defp deps do
     [
       {:autopilot, path: "../autopilot"},
+      {:joycontrol, path: "../joycontrol"},
       {:amqp, "~> 3.0"},
       {:jason, "~> 1.3"}
     ]

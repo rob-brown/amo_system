@@ -1,0 +1,262 @@
+# Squad Strike
+
+```elixir
+alias SquadStrike.PicopadWrapper, as: Pico
+alias SquadStrike.Storage
+
+Application.put_env(:challonge, :challonge_api_key, System.get_env("LB_CHALLONGE_API_KEY"))
+
+Application.put_env(:amiibo_serialization, :key_retail, System.get_env("LB_KEY_RETAIL"))
+
+Application.put_env(:autopilot, :gamepad_module, Pico)
+
+require Logger
+
+Mix.install([
+  {:squad_strike, path: Path.join([__DIR__, "squad_strike"])},
+  {:jason, "~> 1.4"},
+  {:kino, "~> 0.11.0"}
+])
+```
+
+## Setup
+
+**Before Running This Livbook!**
+
+You first, need to open the Secrets tab in the sidebar to the left. In there you need to create
+three secrets, named `CHALLONGE_API_KEY`, and `KEY_RETAIL`. These will be explained below.
+
+### `CHALLONGE_API_KEY`
+
+From the Challonge website, you can [create a Challonge API key](https://challonge.com/settings/developer). Save it as a secret named `CHALLONGE_API_KEY`.
+
+### `KEY_RETAIL`
+
+This is the secret key used to decrypt amiibo. Dig around on the Internet long enough and you
+will find it. Use the single-file version. It must be base64-encoded and set to `KEY_RETAIL`
+in the secrets.
+
+<blockquote style="background-color:#F5FF7B; color:black">
+💡 This Livebook calls a helper project so you don't need to see all the code that's working in
+the background. If you want to see it, you will find it at 
+<code>notebooks/squad_strike</code>.
+</blockquote>
+
+Next, you need to select the device to connect to and press "Connect". The device should be named "Raspberry Pi [serial number]".
+
+```elixir
+uarts = Circuits.UART.enumerate()
+
+options =
+  uarts
+  |> Enum.sort_by(fn {_path, meta} -> meta[:manufacturer] == "Raspberry Pi" end, :desc)
+  |> Enum.map(fn
+    {path, meta = %{manufacturer: manufacturer}} ->
+      {path, "#{manufacturer} #{meta.serial_number}"}
+
+    {path, _meta} ->
+      {path, path}
+  end)
+
+frame = Kino.Frame.new()
+
+form =
+  Kino.Control.form(
+    [
+      port: Kino.Input.select("Port", options)
+    ],
+    submit: "Connect"
+  )
+
+disconnect = Kino.Control.button("Disconnect")
+
+Kino.listen(form, fn %{data: %{port: port}} ->
+  Pico.start_link(port)
+  layout = Kino.Layout.grid(["Connected to #{port}", disconnect])
+  Kino.Frame.render(frame, layout)
+end)
+
+Kino.listen(disconnect, fn _ ->
+  Pico.stop()
+  Kino.Frame.render(frame, form)
+end)
+
+Kino.Frame.render(frame, form)
+
+frame
+```
+
+Next, start up the screen tracking. If device 0 doesn't work, you can try device 1, etc.
+
+```elixir
+Vision.Native.start_link(0)
+```
+
+You may need to adjust your resolution in OBS or other streaming software if you are watching the same video stream.
+
+Grab a test image to make sure the video capture is working and determine the resolution.
+
+```elixir
+img =
+  case Vision.Native.capture_raw() do
+    {:ok, img} ->
+      img
+
+    {:error, reason} ->
+      Logger.error("Failed to capture image #{inspect(reason)}")
+      nil
+  end
+```
+
+```elixir
+{:ok, {w, h}} = Vision.Native.resolution()
+
+resolution = "#{w}x#{h}"
+
+supported_resolutions = ["640x480", "800x450"]
+
+if resolution not in supported_resolutions do
+  Logger.error(
+    "Resolution #{resolution} not supported, expected one of #{inspect(supported_resolutions)}"
+  )
+end
+
+resolution
+```
+
+Next, specify where the tournament info can be found. In the following cell, type in a 
+directory path that contains the entries spreadsheet downloaded from submissionapp.com. There should 
+also be a directory named `bins` that has all the bin files. All files must be named exactly as 
+downloaded.
+
+Ideally the directory you pick should have only these files. Other files will be written as the 
+automation runs.
+
+```elixir
+dir_input = Kino.Input.text("Squad Strike Directory")
+```
+
+```elixir
+dir = dir_input |> Kino.Input.read() |> Path.expand()
+
+storage = Storage.new(dir)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Challonge Setup
+
+This section will set up the tournament in Challonge.
+
+<blockquote style="background-color:#FC6666; color:black">
+⛔️ <strong>Only run this section once!</strong> Otherwise, a new tournament will be created, and you might not 
+be able to continue the old tournament. </blockquote>
+</blockquote>
+
+```elixir
+team1 = "/Users/robert/Sync/Code/amiibo_system/notebooks/squad_strike/priv/images/800x450/ss_team1_victory.png"
+team2 = "/Users/robert/Sync/Code/amiibo_system/notebooks/squad_strike/priv/images/800x450/ss_team2_victory.png"
+```
+
+```elixir
+
+Pico.press(:b)
+```
+
+```elixir
+Vision.Native.visible(team2, confidence: 0.8)
+```
+
+```elixir
+with {:ok, _tsv} <- Storage.entries_spreadsheet(storage),
+     {:ok, _bin_dir} <- Storage.bins_dir(storage) do
+  :ok
+else
+  {:error, reason} ->
+    IO.puts(inspect(reason))
+end
+
+storage
+```
+
+If everything looks good, you can proceed to create the tournament in Challonge.
+
+```elixir
+tournament_types = [
+  {"single elimination", "single elimination"},
+  {"double elimination", "double elimination"}
+]
+
+type_input = Kino.Input.select("Tournament Type", tournament_types)
+```
+
+```elixir
+type = Kino.Input.read(type_input)
+
+SquadStrike.create_tournament(storage, type: type)
+```
+
+```elixir
+SquadStrike.add_participants(storage)
+```
+
+<blockquote style="background-color:#F5FF7B; color:black">
+💡 <strong>Before running the next cell</strong>, open 
+<a href="https://challonge.com/">Challonge</a> and make sure your bracket looks right. You will 
+probably want to randomize the entries.</blockquote>
+</blockquote>
+
+```elixir
+SquadStrike.start_tournament(storage)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Squad Strike Automation
+
+Now the real fun starts. You are ready to start the tournament. Stopping this cell will stop 
+the automation. Though if a script is in progress, it will run to completion. The state is
+saved so you can resume an existing tournament.
+
+```elixir
+Application.put_env(:autopilot, :debug, false)
+```
+
+```elixir
+# Pico.press(:a)
+```
+
+```elixir
+# pointer_path =
+#   "images/#{resolution}/ss_p1_pointer.png"
+#   |> Path.expand(:code.priv_dir(:squad_strike))
+
+# pointer = pointer_path |> File.read!()
+```
+
+```elixir
+# Vision.Native.visible(pointer_path, confidence: 0.55)
+```
+
+```elixir
+# Autopilot.Pointer.move({150..200, 150..200}, pointer_path)
+```
+
+```elixir
+calculate_resolution = fn ->
+  case Vision.Native.capture_raw() do
+    {:ok, %Evision.Mat{shape: {h, w, _depth}}} ->
+      "#{w}x#{h}"
+
+    {:error, reason} ->
+      Logger.error("Failed to capture image #{inspect(reason)}")
+
+      # Fallback to initial resolution.
+      resolution
+  end
+end
+
+SquadStrike.resume(storage, calculate_resolution)
+```
+
+<!-- livebook:{"offset":6506,"stamp":{"token":"XCP.WaQWiFI33flAu5tqVRpcBKPEUF0LGFdl92AMPt8P9JUbmHlI_elSqlRc-2_gfSi4SWhfrOlVKp4P7MOZS3HtS67aOtFFVXwrYuMrZDnfFhVizVXnLwk9VF3Dl0jWKNjB5ugTSCOb05_1cIw","version":2}} -->

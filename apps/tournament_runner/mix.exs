@@ -24,6 +24,7 @@ defmodule TournamentRunner.MixProject do
   defp deps do
     [
       {:autopilot, path: "../autopilot"},
+      {:joycontrol, path: "../joycontrol"},
       {:challonge, path: "../challonge"},
       {:submission_info, path: "../submission_info"}
     ]

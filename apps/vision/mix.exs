@@ -19,7 +19,7 @@ defmodule Vision.MixProject do
 
   defp deps do
     [
-      {:evision, "~> 0.1.33"}
+      {:evision, "~> 0.2.0"}
     ]
   end
 end

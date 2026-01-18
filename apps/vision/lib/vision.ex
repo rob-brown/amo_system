@@ -112,7 +112,7 @@ defmodule Vision do
     {:noreply, state}
   end
 
-  def handle_call({:command, command, options}, from, state) do
+  def handle_call({:command, command, options}, from, state = %__MODULE__{}) do
     msg = "sending #{inspect(command)}"
 
     if Keyword.get(options, :should_log?, true) do

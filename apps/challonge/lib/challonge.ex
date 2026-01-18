@@ -14,11 +14,11 @@ defmodule Challonge do
         result
 
       {error = {:error, _}, _} ->
-        Logger.warn("Challonge failed #{inspect(error)}")
+        Logger.warning("Challonge failed #{inspect(error)}")
         retry(fun, retries - 1)
 
       {:error, _} ->
-        Logger.warn("Challonge failed")
+        Logger.warning("Challonge failed")
         retry(fun, retries - 1)
 
       {other, _} ->

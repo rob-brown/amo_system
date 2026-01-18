@@ -36,7 +36,6 @@ defmodule Autopilot.LuaScript do
     |> add_function("wait_until_gone", wait_until_gone(cwd))
     |> add_function("capture", capture(cwd))
     |> add_function("capture_crop", capture_crop(cwd))
-    |> add_function("joycontrol", &joycontrol/2)
     |> add_function("press", &press/2)
     |> add_function("is_visible", is_visible(cwd))
     |> add_function("count", count(cwd))
@@ -57,8 +56,6 @@ defmodule Autopilot.LuaScript do
             when is_bitstring(b) and
                    b in ~w(a b x y down left right up minus plus r zr l zl home capture r_stick l_stick)
 
-  defguardp is_amiibo_bin(b) when is_bitstring(b) and byte_size(b) in [532, 540, 572]
-
   defp add_bindings(state, []) do
     state
   end
@@ -67,20 +64,39 @@ defmodule Autopilot.LuaScript do
     key
     |> to_string()
     |> List.wrap()
-    |> :luerl.set_table(value, state)
-    |> add_bindings(rest)
+    |> :luerl.set_table_keys(value, state)
+    |> case do
+      {:ok, new_state} ->
+        add_bindings(new_state, rest)
+
+      error ->
+        Logger.error("Failed to add binding '#{key}' #{inspect(error)}")
+        state
+    end
   end
 
   defp add_function(state, path, function) when is_binary(path) and is_function(function, 2) do
-    :luerl.set_table([path], function, state)
+    {encoded_func, state} = :luerl.encode(function, state)
+
+    case :luerl.set_table_keys([path], encoded_func, state) do
+      {:ok, new_state} ->
+        new_state
+
+      error ->
+        Logger.error("Failed to add function '#{path}' #{inspect(error)}")
+        state
+    end
   end
 
   # Automation scripts can take long so the script is given
   # Unlimited time and reductions.
   defp run(state, code) do
-    case :luerl_sandbox.run(code, state, 0, [], :infinity) do
+    opts = [max_time: :infinity, max_reductions: :none, spawn_opts: []]
+
+    case :luerl_sandbox.run(code, opts, state) do
+      {:ok, _result, new_state} -> {:ok, new_state}
       {:error, e} -> {:error, e}
-      {_result, new_state} -> {:ok, new_state}
+      other -> {:error, other}
     end
   end
 
@@ -92,16 +108,17 @@ defmodule Autopilot.LuaScript do
       debug_log("Loading amiibo from #{path}")
 
       binary = File.read!(path)
-      Joycontrol.load_amiibo(binary)
+      gamepad_module().load_amiibo(binary)
       {[], lua_state}
     end
   end
 
   # Expects a raw amiibo bin data. Must be 532, 540, or 572 bytes.
-  defp load_amiibo_binary([binary | _], lua_state) when is_amiibo_bin(binary) do
+  defp load_amiibo_binary([binary | _], lua_state) do
     debug_log("Loading amiibo #{byte_size(binary)} bytes")
 
-    Joycontrol.load_amiibo(binary)
+    gamepad_module().load_amiibo(binary)
+
     {[], lua_state}
   end
 
@@ -109,7 +126,7 @@ defmodule Autopilot.LuaScript do
   defp clear_amiibo(_, lua_state) do
     debug_log("Unloading amiibo")
 
-    Joycontrol.clear_amiibo()
+    gamepad_module().clear_amiibo()
     {[], lua_state}
   end
 
@@ -119,11 +136,20 @@ defmodule Autopilot.LuaScript do
   # Lua example:
   #   move_pointer("targets/pointer.png", {100, 200}, {150, 2050})
   defp move_pointer(cwd) do
-    fn [target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state ->
-      debug_log("Moving pointer to (#{x1}, #{y1}) (#{x2}, #{y2})")
+    fn args, lua_state ->
+      case :luerl.decode_list(args, lua_state) do
+        [target, coord1, coord2 | _] ->
+          {x1, y1} = table_to_tuple(coord1)
+          {x2, y2} = table_to_tuple(coord2)
+          debug_log("Moving pointer to (#{x1}, #{y1}) (#{x2}, #{y2})")
 
-      target = Path.expand(target, cwd)
-      Autopilot.Pointer.move({x1..x2, y1..y2}, target)
+          target = Path.expand(target, cwd)
+          Autopilot.Pointer.move({x1..x2, y1..y2}, target)
+
+        decoded_args ->
+          Logger.error("move_pointer: unexpected args #{inspect(decoded_args)}")
+      end
+
       {[], lua_state}
     end
   end
@@ -203,24 +229,19 @@ defmodule Autopilot.LuaScript do
   # Takes two {x, y} coordinates for the crop. The first is the
   # top-left corner. The other is the bottom-left corner.
   defp capture_crop(cwd) do
-    fn [save_path, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state
-       when is_binary(save_path) and is_number(x1) and is_number(x2) and is_number(y1) and
-              is_number(y2) ->
-      save_path = Path.expand(save_path, cwd)
+    fn args, lua_state ->
+      case :luerl.decode_list(args, lua_state) do
+        [save_path, coord1, coord2 | _] ->
+          {x1, y1} = table_to_tuple(coord1)
+          {x2, y2} = table_to_tuple(coord2)
+          save_path = Path.expand(save_path, cwd)
 
-      debug_log("Capturing crop to #{save_path}")
+          debug_log("Capturing crop to #{save_path}")
 
-      Vision.Native.capture_crop(save_path, {y1, x1}, {y2, x2})
-      {[], lua_state}
+          Vision.Native.capture_crop(save_path, {y1, x1}, {y2, x2})
+          {[], lua_state}
+      end
     end
-  end
-
-  # Sends an arbitrary command to Joycontrol with the given string.
-  defp joycontrol([command | _], lua_state) when is_binary(command) do
-    debug_log("Raw command #{command}")
-
-    Joycontrol.command(command)
-    {[], lua_state}
   end
 
   # Presses a single button for the given duration in milliseconds.
@@ -232,7 +253,7 @@ defmodule Autopilot.LuaScript do
 
     debug_log("Pressing #{button} #{duration}")
 
-    Joycontrol.command("press #{button} #{duration}")
+    gamepad_module().press(button, duration)
     Process.sleep(duration)
     {[], lua_state}
   end
@@ -282,20 +303,24 @@ defmodule Autopilot.LuaScript do
   # The crop is given as two {x, y} coordinates. The first is the
   # top-left corner. The other is the bottom left corner.
   defp count_crop(cwd) do
-    fn [target, [{1, x1}, {2, y1}], [{1, x2}, {2, y2}] | _], lua_state
-       when is_binary(target) and is_number(x1) and is_number(x2) and is_number(y1) and
-              is_number(y2) ->
-      target = Path.expand(target, cwd)
+    fn args, lua_state ->
+      case :luerl.decode_list(args, lua_state) do
+        [target, coord1, coord2 | _] ->
+          {x1, y1} = table_to_tuple(coord1)
+          {x2, y2} = table_to_tuple(coord2)
 
-      debug_fun("Counting cropped #{target}", fn ->
-        case Vision.Native.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
-          {:ok, n} ->
-            {[n], lua_state}
+          target = Path.expand(target, cwd)
 
-          _ ->
-            {[0], lua_state}
-        end
-      end)
+          debug_fun("Counting cropped #{target}", fn ->
+            case Vision.Native.count_crop(target, %{top: y1, left: x1, bottom: y2, right: x2}) do
+              {:ok, n} ->
+                {[n], lua_state}
+
+              _ ->
+                {[0], lua_state}
+            end
+          end)
+      end
     end
   end
 
@@ -359,5 +384,13 @@ defmodule Autopilot.LuaScript do
     end
 
     result
+  end
+
+  defp gamepad_module() do
+    Application.get_env(:autopilot, :gamepad_module, Joycontrol)
+  end
+
+  defp table_to_tuple([{1, a}, {2, b}]) do
+    {a, b}
   end
 end

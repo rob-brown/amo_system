@@ -28,6 +28,14 @@ defmodule Vision.Native do
     GenServer.cast(@name, {:capture, path})
   end
 
+  def capture_raw() do
+    GenServer.call(@name, :capture_raw)
+  end
+
+  def resolution() do
+    GenServer.call(@name, :resolution)
+  end
+
   def capture_crop(save_file, {left, top}, {right, bottom})
       when is_binary(save_file) do
     path = Path.expand(save_file)
@@ -49,6 +57,15 @@ defmodule Vision.Native do
     confidence = Keyword.get(options, :confidence, 0.89)
     debug = Keyword.get(options, :debug, false)
     GenServer.call(@name, {:count, path, confidence, debug}, timeout)
+  end
+
+  def count_distinct(image_file, options \\ []) do
+    timeout = Keyword.get(options, :timeout, 5000)
+    path = Path.expand(image_file)
+    confidence = Keyword.get(options, :confidence, 0.89)
+    iou_threshold = Keyword.get(options, :iou_threshold, 0.3)
+    debug = Keyword.get(options, :debug, false)
+    GenServer.call(@name, {:count_distinct, path, confidence, iou_threshold, debug}, timeout)
   end
 
   def count_crop(image_file, crop, options \\ []) when is_binary(image_file) and is_map(crop) do
@@ -130,6 +147,27 @@ defmodule Vision.Native do
     {:noreply, state}
   end
 
+  def handle_call(:capture_raw, _from, state = %__MODULE__{capture: c}) do
+    case capture_frame(c) do
+      {:ok, img} ->
+        {:reply, {:ok, img}, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  def handle_call(:resolution, _from, state = %__MODULE__{capture: c}) do
+    case capture_frame(c) do
+      {:ok, img} ->
+        %Evision.Mat{shape: {h, w, _depth}} = img
+        {:reply, {:ok, {w, h}}, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
   def handle_call({:visible, path, confidence, debug}, _from, state = %__MODULE__{capture: c}) do
     with {:ok, template} <- read_image(path),
          {:ok, img} <- capture_frame(c),
@@ -146,6 +184,22 @@ defmodule Vision.Native do
     with {:ok, template} <- read_image(path),
          {:ok, img} <- capture_frame(c),
          {:ok, count} <- count(img, template, confidence) do
+      debug(img, debug)
+      {:reply, {:ok, count}, state}
+    else
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  def handle_call(
+        {:count_distinct, path, confidence, iou_threshold, debug},
+        _from,
+        state = %__MODULE__{capture: c}
+      ) do
+    with {:ok, template} <- read_image(path),
+         {:ok, img} <- capture_frame(c),
+         {:ok, count} <- count_distinct(img, template, confidence, iou_threshold) do
       debug(img, debug)
       {:reply, {:ok, count}, state}
     else
@@ -370,5 +424,81 @@ defmodule Vision.Native do
 
   defp tmp_filename() do
     Path.join(System.tmp_dir(), "#{:erlang.monotonic_time()}.png")
+  end
+
+  defp count_distinct(img, template, confidence, iou_threshold) do
+    case Evision.matchTemplate(img, template, @cv_tm_ccoeff_normed) do
+      match = %Mat{} ->
+        {h, w, _chan} = template.shape
+
+        # Get all detections above confidence threshold
+        detections =
+          match
+          |> Evision.Mat.to_nx()
+          |> Nx.to_list()
+          |> Enum.with_index()
+          |> Enum.flat_map(fn {row, y} ->
+            row
+            |> Enum.with_index()
+            |> Enum.filter(fn {conf, _x} -> conf > confidence end)
+            |> Enum.map(fn {conf, x} ->
+              %{x: x, y: y, width: w, height: h, confidence: conf}
+            end)
+          end)
+
+        # Apply non-maximum suppression
+        suppressed = non_maximum_suppression(detections, iou_threshold)
+        {:ok, length(suppressed)}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp non_maximum_suppression(detections, iou_threshold) do
+    # Sort by confidence (highest first)
+    sorted = Enum.sort_by(detections, & &1.confidence, :desc)
+
+    do_nms(sorted, [], iou_threshold)
+  end
+
+  defp do_nms([], kept, _iou_threshold), do: Enum.reverse(kept)
+
+  defp do_nms([detection | rest], kept, iou_threshold) do
+    # Check if this detection overlaps significantly with any kept detection
+    overlaps =
+      Enum.any?(kept, fn kept_det ->
+        iou(detection, kept_det) > iou_threshold
+      end)
+
+    if overlaps do
+      # Skip this detection
+      do_nms(rest, kept, iou_threshold)
+    else
+      # Keep this detection
+      do_nms(rest, [detection | kept], iou_threshold)
+    end
+  end
+
+  defp iou(box1, box2) do
+    # Calculate Intersection over Union
+    x1 = max(box1.x, box2.x)
+    y1 = max(box1.y, box2.y)
+    x2 = min(box1.x + box1.width, box2.x + box2.width)
+    y2 = min(box1.y + box1.height, box2.y + box2.height)
+
+    intersection_width = max(0, x2 - x1)
+    intersection_height = max(0, y2 - y1)
+    intersection_area = intersection_width * intersection_height
+
+    box1_area = box1.width * box1.height
+    box2_area = box2.width * box2.height
+    union_area = box1_area + box2_area - intersection_area
+
+    if union_area > 0 do
+      intersection_area / union_area
+    else
+      0.0
+    end
   end
 end

@@ -1,13 +1,13 @@
 # Autopilot
 
-This package is designed to make some automation tasks easier that involve both
-`Joycontrol` and `Vision`.
+This package is designed to make some automation tasks easier that involve the
+`Vision` app and either `Joycontrol` or `Picopad`.
 
-Including this package will **not** automatically start `Joycontrol` and `Vision`.
-Depending on your use case you many not want to start these process when your
-application launches. When starting `Joycontrol` and `Vision`, you should start them
-in a supervision tree. If you start it with your application, then it will look like
-this:
+Including this package will **not** automatically start `Joycontrol`, `Picopad`, or
+`Vision`.  Depending on your use case you many not want to start these process when
+your application launches. When starting `Joycontrol` and `Vision`, you should start
+them in a supervision tree. If you start it with your application, then it will look
+like this:
 
 ```elixir
 defmodule MyApp.Application do

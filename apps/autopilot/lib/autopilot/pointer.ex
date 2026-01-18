@@ -1,5 +1,4 @@
 defmodule Autopilot.Pointer do
-
   # This confidence level was measured based on moving the 
   # pointer around with 0.3 confidence without ever moving
   # the pointer off the screen. Then taking the minimum 
@@ -12,7 +11,7 @@ defmodule Autopilot.Pointer do
     {:error, :missed}
   end
 
-  def move(box = {x1..x2, y1..y2}, pointer, corrections) when is_binary(pointer) do
+  def move(box = {x1..x2//_, y1..y2//_}, pointer, corrections) when is_binary(pointer) do
     case current_position(pointer) do
       {:ok, {x, y}} when x >= x1 and x <= x2 and y >= y1 and y <= y2 ->
         :ok
@@ -21,7 +20,7 @@ defmodule Autopilot.Pointer do
         {direction, pixels} = vector(position, box)
         duration = move_time(direction, pixels)
 
-        Joycontrol.command("press #{direction} #{duration}")
+        gamepad_module().press(direction, duration)
 
         # Sleep while the movement is happening.
         Process.sleep(duration)
@@ -54,19 +53,19 @@ defmodule Autopilot.Pointer do
     end
   end
 
-  defp vector({x, _y}, {_x1..x2, _y1.._y2}) when x > x2 do
+  defp vector({x, _y}, {_x1..x2//_, _y1.._y2//_}) when x > x2 do
     {"left", x - x2}
   end
 
-  defp vector({x, _y}, {x1.._x2, _y1.._y2}) when x < x1 do
+  defp vector({x, _y}, {x1.._x2//_, _y1.._y2//_}) when x < x1 do
     {"right", x1 - x}
   end
 
-  defp vector({_x, y}, {_x1.._x2, _y1..y2}) when y > y2 do
+  defp vector({_x, y}, {_x1.._x2//_, _y1..y2//_}) when y > y2 do
     {"up", y - 2}
   end
 
-  defp vector({_x, y}, {_x1.._x2, y1.._y2}) when y < y1 do
+  defp vector({_x, y}, {_x1.._x2//_, y1.._y2//_}) when y < y1 do
     {"down", y1 - y}
   end
 
@@ -89,9 +88,13 @@ defmodule Autopilot.Pointer do
     |> clamp(50..400)
   end
 
-  defp clamp(value, lo..hi) when lo <= hi do
+  defp clamp(value, lo..hi//_) when lo <= hi do
     value
     |> max(lo)
     |> min(hi)
+  end
+
+  defp gamepad_module() do
+    Application.get_env(:autopilot, :gamepad_module, Joycontrol)
   end
 end
