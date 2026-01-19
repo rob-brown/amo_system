@@ -131,11 +131,14 @@ defmodule SquadStrike do
     catch
       "" <> error ->
         Logger.error(error)
-        # resolution = fetch_resolution.()
+        resolution = fetch_resolution.()
 
+        # Maybe reboot the picopad here.
+        # Though how do I reconnect?
+        
         Script.eval("ss_unload_amiibo")
-        # Script.eval("ss_close_game", timeout: :timer.seconds(8))
-        # Script.eval("ss_launch_ssbu", timeout: :timer.seconds(60), cwd: image_dir(resolution))
+        Script.eval("ss_close_game", timeout: :timer.seconds(8))
+        Script.eval("ss_launch_ssbu", timeout: :timer.seconds(60), cwd: image_dir(resolution))
         run([fp1, fp2, fp3], [fp4, fp5, fp6], fetch_resolution, retry_count - 1)
     end
   end
@@ -245,7 +248,7 @@ defmodule SquadStrike do
   end
 
   defp visible(name, resolution) do
-    image = image(name, resolution) |> IO.inspect(label: :vis_target)
+    image = image(name, resolution)
     opts = [timeout: :timer.seconds(5), confidence: 0.8]
 
     case Vision.Native.visible(image, opts) do
@@ -258,7 +261,6 @@ defmodule SquadStrike do
       {:error, reason} ->
         {:error, reason}
     end
-    |> IO.inspect(label: :result)
   end
 
   defp count_image(name, resolution) do
