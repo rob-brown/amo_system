@@ -249,6 +249,18 @@ defmodule Picopad.Protocol do
     :error
   end
 
+  def parse_connection_changed_payload(<<conn, addr::binary-size(6)>>) do
+    %{
+      connection: connection_state_to_atom(conn),
+      switch_address: addr
+    }
+  end
+
+  def parse_connection_changed_payload(payload) do
+    Logger.warning("Unknown connection_changed payload format: #{inspect(payload)}")
+    :error
+  end
+
   def parse_input_state_payload(
         <<buttons::binary-size(3), lh::little-16, lv::little-16, rh::little-16, rv::little-16>>
       ) do

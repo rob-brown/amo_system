@@ -12,6 +12,19 @@ defmodule PicopadProxyWeb.PicopadLive do
     available_ports = enumerate_ports()
     status = ConnectionManager.status()
 
+    # Auto-connect to Picopad if not already connected or connecting
+    if status.status == :disconnected and is_nil(status.port) do
+      case find_picopad_port() do
+        nil ->
+          :ok
+
+        port ->
+          require Logger
+          Logger.info("LiveView mount: Auto-connecting to Picopad at #{port}")
+          ConnectionManager.connect(port)
+      end
+    end
+
     socket =
       socket
       |> assign(:available_ports, available_ports)
@@ -263,12 +276,31 @@ defmodule PicopadProxyWeb.PicopadLive do
     case Circuits.UART.enumerate() do
       ports when is_map(ports) ->
         ports
+        |> Enum.reject(fn {port, _info} -> String.contains?(port, "Bluetooth") end)
         |> Enum.map(fn {port, _info} -> port end)
-        |> Enum.reject(&String.contains?(&1, "Bluetooth"))
         |> Enum.sort()
 
       _ ->
         []
+    end
+  end
+
+  # Find Picopad device by USB vendor ID (Raspberry Pi)
+  defp find_picopad_port do
+    case Circuits.UART.enumerate() do
+      ports when is_map(ports) ->
+        ports
+        |> Enum.find(fn {_port, info} ->
+          # Match Raspberry Pi vendor ID (0x2E8A = 11914)
+          Map.get(info, :vendor_id) == 11914
+        end)
+        |> case do
+          {port, _info} -> port
+          nil -> nil
+        end
+
+      _ ->
+        nil
     end
   end
 

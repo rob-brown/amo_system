@@ -57,11 +57,17 @@ defmodule PicopadProxy.ConnectionManager do
 
   @impl true
   def init(_opts) do
+    # Trap exits so we don't crash when the linked Picopad process dies
+    Process.flag(:trap_exit, true)
+
     state = %State{
       picopad_pid: nil,
       port: nil,
       status: :disconnected
     }
+
+    # Try to auto-connect on startup
+    send(self(), :auto_connect)
 
     {:ok, state}
   end
@@ -70,6 +76,8 @@ defmodule PicopadProxy.ConnectionManager do
   def handle_call({:connect, port}, _from, state) do
     case Picopad.connect(port) do
       {:ok, pid} ->
+        # Monitor the Picopad process for auto-reconnect
+        Process.monitor(pid)
         setup_event_handlers(pid)
 
         new_state =
@@ -235,7 +243,7 @@ defmodule PicopadProxy.ConnectionManager do
 
   @impl true
   def handle_info({:picopad_event, :connection_changed, payload}, state) do
-    case Picopad.Protocol.parse_status_payload(payload) do
+    case Picopad.Protocol.parse_connection_changed_payload(payload) do
       :error ->
         # Unknown payload format - keep current state
         {:noreply, state}
@@ -250,7 +258,7 @@ defmodule PicopadProxy.ConnectionManager do
             _ -> :connected
           end
 
-        new_state = %State{state | status: status, player_number: info.player}
+        new_state = %State{state | status: status}
         broadcast_connection_changed(new_state)
         {:noreply, new_state}
     end
@@ -277,6 +285,174 @@ defmodule PicopadProxy.ConnectionManager do
   @impl true
   def handle_info({:picopad_event, _event, _payload}, state) do
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) when pid == state.picopad_pid do
+    handle_picopad_down(state)
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:EXIT, pid, _reason}, state) when pid == state.picopad_pid do
+    handle_picopad_down(state)
+  end
+
+  @impl true
+  def handle_info({:EXIT, _pid, _reason}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:auto_connect, state) do
+    case find_picopad_port() do
+      nil ->
+        {:noreply, state}
+
+      port ->
+        case Picopad.connect(port) do
+          {:ok, pid} ->
+            Process.monitor(pid)
+            setup_event_handlers(pid)
+
+            new_state =
+              case Picopad.status(pid) do
+                {:ok, info} ->
+                  status =
+                    case info.connection do
+                      :disconnected -> :connected
+                      :advertising -> :advertising
+                      :pairing -> :pairing
+                      :ready -> :paired
+                      _ -> :connected
+                    end
+
+                  %State{
+                    state
+                    | picopad_pid: pid,
+                      port: port,
+                      status: status,
+                      player_number: info.player,
+                      last_error: nil
+                  }
+
+                {:error, _reason} ->
+                  %State{
+                    state
+                    | picopad_pid: pid,
+                      port: port,
+                      status: :connected,
+                      last_error: nil
+                  }
+              end
+
+            broadcast_connection_changed(new_state)
+            {:noreply, new_state}
+
+          {:error, _reason} ->
+            {:noreply, state}
+        end
+    end
+  end
+
+  @impl true
+  def handle_info(:attempt_reconnect, state) do
+    # Don't attempt if already connected
+    if state.picopad_pid do
+      {:noreply, state}
+    else
+      case find_picopad_port() do
+        nil ->
+          Process.send_after(self(), :attempt_reconnect, 5000)
+          {:noreply, state}
+
+        port ->
+          case Picopad.connect(port) do
+            {:ok, pid} ->
+              Process.monitor(pid)
+              setup_event_handlers(pid)
+
+              # Give Pico a moment to stabilize before querying status
+              Process.sleep(100)
+
+              new_state =
+                case Picopad.status(pid) do
+                  {:ok, info} ->
+                    status =
+                      case info.connection do
+                        :disconnected -> :connected
+                        :advertising -> :advertising
+                        :pairing -> :pairing
+                        :ready -> :paired
+                        _ -> :connected
+                      end
+
+                    %State{
+                      state
+                      | picopad_pid: pid,
+                        port: port,
+                        status: status,
+                        player_number: info.player,
+                        last_error: nil
+                    }
+
+                  {:error, _reason} ->
+                    %State{
+                      state
+                      | picopad_pid: pid,
+                        port: port,
+                        status: :connected,
+                        last_error: nil
+                    }
+                end
+
+              broadcast_connection_changed(new_state)
+              {:noreply, new_state}
+
+            {:error, _reason} ->
+              Process.send_after(self(), :attempt_reconnect, 5000)
+              {:noreply, state}
+          end
+      end
+    end
+  end
+
+  defp handle_picopad_down(state) do
+    Logger.notice("Picopad connection lost, attempting to reconnect...")
+
+    new_state = %State{
+      state
+      | picopad_pid: nil,
+        port: nil,
+        status: :disconnected,
+        player_number: nil
+    }
+
+    broadcast_connection_changed(new_state)
+    Process.send_after(self(), :attempt_reconnect, 2000)
+
+    {:noreply, new_state}
+  end
+
+  defp find_picopad_port do
+    case Circuits.UART.enumerate() do
+      ports when is_map(ports) ->
+        ports
+        |> Enum.find(fn {_port, info} ->
+          Map.get(info, :vendor_id) == 11914
+        end)
+        |> case do
+          {port, _info} -> port
+          nil -> nil
+        end
+
+      _ ->
+        nil
+    end
   end
 
   defp setup_event_handlers(pid) do
