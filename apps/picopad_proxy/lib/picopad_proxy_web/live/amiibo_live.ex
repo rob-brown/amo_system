@@ -33,6 +33,7 @@ defmodule PicopadProxyWeb.AmiiboLive do
           )
         )
         |> Enum.map(&enrich_amiibo/1)
+        |> Enum.sort_by(& &1.name)
       else
         []
       end
@@ -67,6 +68,7 @@ defmodule PicopadProxyWeb.AmiiboLive do
         )
       )
       |> Enum.map(&enrich_amiibo/1)
+      |> Enum.sort_by(& &1.name)
 
     {:noreply, assign(socket, selected_collection: collection, amiibos: amiibos)}
   end
@@ -135,6 +137,8 @@ defmodule PicopadProxyWeb.AmiiboLive do
                         where: a.collection_id == ^new_coll.id
                       )
                     )
+                    |> Enum.map(&enrich_amiibo/1)
+                    |> Enum.sort_by(& &1.name)
 
                   {new_coll, amiibos}
               end
@@ -182,6 +186,26 @@ defmodule PicopadProxyWeb.AmiiboLive do
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to load amiibo: #{inspect(reason)}")}
+    end
+  end
+
+  @impl true
+  def handle_event("shuffle_serial", _params, socket) do
+    if socket.assigns.selected_amiibo do
+      amiibo = socket.assigns.selected_amiibo
+      a = AmiiboSerialization.Amiibo.new(amiibo.data)
+      shuffled = AmiiboSerialization.Amiibo.shuffle_serial(a)
+      encrypted_data = AmiiboSerialization.encrypt_binary!(shuffled.binary)
+
+      case ConnectionManager.load_amiibo(encrypted_data) do
+        :ok ->
+          {:noreply, put_flash(socket, :info, "Shuffled ID and reloaded amiibo")}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, "Failed to shuffle ID: #{inspect(reason)}")}
+      end
+    else
+      {:noreply, socket}
     end
   end
 
@@ -277,6 +301,7 @@ defmodule PicopadProxyWeb.AmiiboLive do
           )
         )
         |> Enum.map(&enrich_amiibo/1)
+        |> Enum.sort_by(& &1.name)
 
       count = length(uploaded_files)
 
@@ -306,6 +331,7 @@ defmodule PicopadProxyWeb.AmiiboLive do
         )
       )
       |> Enum.map(&enrich_amiibo/1)
+      |> Enum.sort_by(& &1.name)
 
     socket =
       socket
@@ -465,18 +491,70 @@ defmodule PicopadProxyWeb.AmiiboLive do
           <h2 class="text-2xl font-semibold mb-4">Current Amiibo</h2>
 
           <%= if @selected_amiibo do %>
-            <div class="p-4 bg-blue-50 rounded mb-4">
-              <div class="font-medium">{@selected_amiibo.name}</div>
-              <div class="text-sm text-gray-600">{@selected_amiibo.character}</div>
-              <div class="text-xs text-gray-500 mt-1">Loaded on Picopad</div>
+            <div class="border-2 border-blue-400 rounded-lg p-4 mb-4 bg-blue-50">
+              <div class="mb-3">
+                <div class="font-bold text-lg">{@selected_amiibo.name}</div>
+                <div class="text-xs text-green-700 font-semibold">✓ Loaded on Picopad</div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-4">
+                <!-- Image -->
+                <div class="flex justify-center items-start">
+                  <img
+                    src={@selected_amiibo.image}
+                    alt={@selected_amiibo.name}
+                    class="h-40 object-contain"
+                  />
+                </div>
+                
+    <!-- Stats -->
+                <%= if @selected_amiibo.stats do %>
+                  <div>
+                    <h4 class="font-semibold text-sm mb-2">Stats</h4>
+                    <div class="text-sm space-y-1">
+                      <div>Level: {@selected_amiibo.stats.level}</div>
+                      <div>Attack: {@selected_amiibo.stats.attack}</div>
+                      <div>Defense: {@selected_amiibo.stats.defense}</div>
+                      <div>Type: {@selected_amiibo.stats.type}</div>
+                      <div>
+                        Learning: {if @selected_amiibo.stats.learning?, do: "On", else: "Off"}
+                      </div>
+                    </div>
+                  </div>
+                  
+    <!-- Abilities -->
+                  <div>
+                    <h4 class="font-semibold text-sm mb-2">Abilities</h4>
+                    <div class="text-sm space-y-1">
+                      <%= for ability <- @selected_amiibo.abilities do %>
+                        <div>{ability}</div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% else %>
+                  <div class="col-span-2">
+                    <p class="text-gray-600 text-sm">
+                      Not registered for SSBU
+                    </p>
+                  </div>
+                <% end %>
+              </div>
             </div>
 
-            <button
-              phx-click="clear_amiibo"
-              class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-            >
-              Clear Amiibo
-            </button>
+            <div class="space-y-2">
+              <button
+                phx-click="shuffle_serial"
+                class="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Shuffle ID
+              </button>
+              <button
+                phx-click="clear_amiibo"
+                class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Clear Amiibo
+              </button>
+            </div>
           <% else %>
             <p class="text-gray-500 mb-2">No amiibo currently loaded</p>
             <p class="text-sm text-gray-400">Select an amiibo below to load it.</p>
