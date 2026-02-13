@@ -1,5 +1,4 @@
 defmodule Picopad do
-
   alias Picopad.Connection
   alias Picopad.Protocol
 

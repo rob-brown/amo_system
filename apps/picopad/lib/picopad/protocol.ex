@@ -1,6 +1,8 @@
 defmodule Picopad.Protocol do
   import Bitwise
 
+  require Logger
+
   alias Picopad.COBS
   alias Picopad.CRC8
 
@@ -240,6 +242,11 @@ defmodule Picopad.Protocol do
       amiibo_loaded: amiibo == 0x01,
       switch_address: addr
     }
+  end
+
+  def parse_status_payload(payload) do
+    Logger.warning("Unknown status payload format: #{inspect(payload)}")
+    :error
   end
 
   def parse_input_state_payload(

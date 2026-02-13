@@ -235,20 +235,25 @@ defmodule PicopadProxy.ConnectionManager do
 
   @impl true
   def handle_info({:picopad_event, :connection_changed, payload}, state) do
-    info = Picopad.Protocol.parse_status_payload(payload)
+    case Picopad.Protocol.parse_status_payload(payload) do
+      :error ->
+        # Unknown payload format - keep current state
+        {:noreply, state}
 
-    status =
-      case info.connection do
-        :disconnected -> :connected
-        :advertising -> :advertising
-        :pairing -> :pairing
-        :ready -> :paired
-        _ -> :connected
-      end
+      info ->
+        status =
+          case info.connection do
+            :disconnected -> :connected
+            :advertising -> :advertising
+            :pairing -> :pairing
+            :ready -> :paired
+            _ -> :connected
+          end
 
-    new_state = %State{state | status: status, player_number: info.player}
-    broadcast_connection_changed(new_state)
-    {:noreply, new_state}
+        new_state = %State{state | status: status, player_number: info.player}
+        broadcast_connection_changed(new_state)
+        {:noreply, new_state}
+    end
   end
 
   @impl true
