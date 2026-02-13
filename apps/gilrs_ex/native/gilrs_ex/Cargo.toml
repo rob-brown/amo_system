@@ -1,0 +1,12 @@
+[package]
+name = "gilrs_ex"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "gilrs_ex"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.35"
+gilrs = "0.11"

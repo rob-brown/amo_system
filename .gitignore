@@ -22,3 +22,6 @@ tags
 # End of https://www.toptal.com/developers/gitignore/api/vim
 .DS_Store
 /apps/gamepad/kicad/gamepad/gamepad-backups
+
+# Amiibo encryption keys - NEVER commit these
+**/key_retail.bin
