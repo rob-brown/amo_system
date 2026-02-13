@@ -13,7 +13,7 @@ defmodule PicopadProxy.UsbGamepad.ControllerMappings do
 
   Confirmed does **not** work with the following:
 
-  * Pro Controller
+  * Nintendo Switch Pro Controller
   * NSO GameCube Controller
   """
 
@@ -40,7 +40,6 @@ defmodule PicopadProxy.UsbGamepad.ControllerMappings do
     "unknown" => %{}
   }
 
-  # Faceoff Deluxe+ mapping (non-standard layout)
   @faceoff_mapping %{
     @default_mapping
     | "south" => :y,
@@ -98,8 +97,6 @@ defmodule PicopadProxy.UsbGamepad.ControllerMappings do
   def invert_y_axis?(controller_name) when is_binary(controller_name) do
     cond do
       controller_name =~ ~r/Xbox 360/i -> true
-      controller_name =~ ~r/TGZ/i -> false
-      controller_name =~ ~r/Faceoff/i -> false
       true -> false
     end
   end
