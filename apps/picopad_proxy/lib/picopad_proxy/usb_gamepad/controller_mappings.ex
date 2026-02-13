@@ -2,6 +2,19 @@ defmodule PicopadProxy.UsbGamepad.ControllerMappings do
   @moduledoc """
   Button mappings for different controller types.
   Maps controller buttons to Nintendo Switch button names.
+
+  Confirmed to work with the follwing controllers:
+
+  * Xbox 360
+  * PS5 DualSense
+  * PS5 DualSense Edge
+  * Gulikit King Kong Pro 2 (not Pro Controller mode)
+  * PDP Faceoff Deluxe+ Audio Wired Controller for Nintendo Switch
+
+  Confirmed does **not** work with the following:
+
+  * Pro Controller
+  * NSO GameCube Controller
   """
 
   # Default mapping: straight position-based conversion from GilRs to Switch
@@ -26,10 +39,10 @@ defmodule PicopadProxy.UsbGamepad.ControllerMappings do
     "c" => :capture,
     "unknown" => %{}
   }
-  
+
   # Faceoff Deluxe+ mapping (non-standard layout)
   @faceoff_mapping %{
-    @default_mapping 
+    @default_mapping
     | "south" => :y,
       "east" => :b,
       "north" => :l,
@@ -47,7 +60,6 @@ defmodule PicopadProxy.UsbGamepad.ControllerMappings do
         589_830 => :r
       }
   }
-
 
   @gulikit_mapping %{
     @default_mapping

@@ -20,7 +20,7 @@ defmodule PicopadProxy.UsbGamepad.EventProcessor do
         button_mapping
         |> Map.get("unknown", %{})
         |> Map.get(code, nil)
-      else 
+      else
         Map.get(button_mapping, button)
       end
 
@@ -41,7 +41,7 @@ defmodule PicopadProxy.UsbGamepad.EventProcessor do
         button_mapping
         |> Map.get("unknown", %{})
         |> Map.get(code, nil)
-      else 
+      else
         Map.get(button_mapping, button)
       end
 
