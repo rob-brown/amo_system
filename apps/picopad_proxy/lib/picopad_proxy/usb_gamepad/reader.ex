@@ -50,7 +50,8 @@ defmodule PicopadProxy.UsbGamepad.Reader do
   def handle_info(:poll_events, state) do
     case GilrsEx.next_event(state.gilrs) do
       {:ok, event} ->
-        EventProcessor.process_event(event)
+        controller_name = Map.get(state.connected_gamepads, event.gamepad_id)
+        EventProcessor.process_event(event, controller_name)
         send(self(), :poll_events)
         {:noreply, handle_gamepad_event(event, state)}
 

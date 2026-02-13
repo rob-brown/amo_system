@@ -10,16 +10,16 @@ defmodule PicopadProxy.InputTracker do
     GenServer.start_link(__MODULE__, [arg], name: @name)
   end
 
-  def hold_buttons(buttons, opts \\ []) when is_binary(buttons) or is_list(buttons) do
+  def hold_buttons(buttons, opts \\ []) when is_atom(buttons) or is_list(buttons) do
     GenServer.cast(@name, {:update_buttons, List.wrap(buttons), [], opts})
   end
 
-  def release_buttons(buttons, opts \\ []) when is_binary(buttons) or is_list(buttons) do
+  def release_buttons(buttons, opts \\ []) when is_atom(buttons) or is_list(buttons) do
     GenServer.cast(@name, {:update_buttons, [], List.wrap(buttons), opts})
   end
 
   def update_buttons(pressed, released, opts \\ [])
-      when is_binary(pressed) or (is_list(pressed) and is_binary(released)) or is_list(released) do
+      when is_atom(pressed) or (is_list(pressed) and is_atom(released)) or is_list(released) do
     GenServer.cast(@name, {:update_buttons, List.wrap(pressed), List.wrap(released), opts})
   end
 
@@ -84,12 +84,11 @@ defmodule PicopadProxy.InputTracker do
   defp send_button_inputs(pid, state) do
     if state.buttons_changed do
       buttons = MapSet.to_list(state.held_buttons)
-      button_atoms = Enum.map(buttons, &String.to_atom/1)
 
-      if Enum.empty?(button_atoms) do
+      if Enum.empty?(buttons) do
         Picopad.release_all(pid)
       else
-        Picopad.hold(pid, button_atoms)
+        Picopad.hold(pid, buttons)
       end
 
       %State{state | buttons_changed: false}

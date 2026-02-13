@@ -1,5 +1,5 @@
 defmodule PicopadProxy.InputTracker.State do
-  @all_buttons ~w"a b x y up down left right home capture minus plus r zr l zl l_stick r_stick"
+  @all_buttons ~w"a b x y up down left right home capture minus plus r zr l zl l_stick r_stick"a
 
   # @stick_min 0
   @stick_middle 2048
