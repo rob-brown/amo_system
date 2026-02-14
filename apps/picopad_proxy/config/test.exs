@@ -7,12 +7,6 @@ config :picopad_proxy, PicopadProxyWeb.Endpoint,
   secret_key_base: "5MQOWVUVvyJbyJ5Iq2kj7wRF6Qxd2Z+fm+JshspfHFAFiIcwJef6v/WLkkEnI1Go",
   server: false
 
-# In test we don't send emails
-config :picopad_proxy, PicopadProxy.Mailer, adapter: Swoosh.Adapters.Test
-
-# Disable swoosh api client as it is only required for production adapters
-config :swoosh, :api_client, false
-
 # Print only warnings and errors during test
 config :logger, level: :warning
 

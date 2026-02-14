@@ -38,15 +38,6 @@ config :picopad_proxy, PicopadProxyWeb.Endpoint,
   pubsub_server: PicopadProxy.PubSub,
   live_view: [signing_salt: "QX35Y0dj"]
 
-# Configure the mailer
-#
-# By default it uses the "Local" adapter which stores the emails
-# locally. You can see the emails in your browser, at "/dev/mailbox".
-#
-# For production it's recommended to configure a different adapter
-# at the `config/runtime.exs`.
-config :picopad_proxy, PicopadProxy.Mailer, adapter: Swoosh.Adapters.Local
-
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
