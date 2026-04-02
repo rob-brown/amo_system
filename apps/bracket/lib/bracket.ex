@@ -71,6 +71,15 @@ defmodule Bracket do
     Tournament.complete?(tournament)
   end
 
+  @spec next_round(Tournament.t()) :: {:ok, Tournament.t()} | {:error, term()}
+  def next_round(%Tournament{format: :swiss} = tournament) do
+    Format.Swiss.generate_next_round(tournament)
+  end
+
+  def next_round(%Tournament{format: format}) do
+    {:error, {:not_applicable, format}}
+  end
+
   @spec to_ascii(Tournament.t()) :: binary()
   def to_ascii(%Tournament{} = tournament) do
     Render.ASCII.render(tournament)
