@@ -85,6 +85,16 @@ defmodule Bracket do
     Render.ASCII.render(tournament)
   end
 
+  @spec to_svg(Tournament.t(), keyword()) :: binary()
+  def to_svg(%Tournament{} = tournament, opts \\ []) do
+    Render.SVG.render(tournament, opts)
+  end
+
+  @spec to_png(Tournament.t(), keyword()) :: {:ok, binary()} | {:error, term()}
+  def to_png(%Tournament{} = tournament, opts \\ []) do
+    Render.PNG.render(tournament, opts)
+  end
+
   @spec to_toml(Tournament.t()) :: binary()
   def to_toml(%Tournament{} = tournament) do
     Serialization.TOML.encode(tournament)
