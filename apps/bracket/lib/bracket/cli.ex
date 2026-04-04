@@ -2,36 +2,39 @@ defmodule Bracket.CLI do
   @moduledoc false
 
   @usage """
-  Usage: bracket <command> [options]
+  Usage: bracket <command> <file.toml> [options]
 
   Commands:
-    new <name> --format <format> [--best-of <n>] [--dir <path>]
+    new <file.toml> <name> --format <format> [--best-of <n>]
         Create a new tournament. Formats: single_elimination, double_elimination,
-        round_robin, swiss. Saves to <name>.toml.
+        round_robin, swiss. Saves to <file.toml>.
 
-    add <name> <participant> [<participant> ...] [--dir <path>]
+    add <file.toml> <participant> [<participant> ...]
         Add one or more participants to a pending tournament.
 
-    start <name> [--seeding random|standard] [--dir <path>]
+    start <file.toml> [--seeding random|standard]
         Seed and start the tournament, generating the first round of matches.
 
-    report <name> --match <id> --score <p1>-<p2> [--dir <path>]
+    report <file.toml> --match <id> --score <p1>-<p2>
         Report a single-set score for a match.
 
-    next-round <name> [--dir <path>]
+    next-round <file.toml>
         Generate the next Swiss round (Swiss format only).
 
-    show <name> [--dir <path>]
+    show <file.toml>
         Display the current bracket state as ASCII art.
 
-    standings <name> [--dir <path>]
+    standings <file.toml>
         Display the current standings.
 
-    matches <name> [--dir <path>]
+    matches <file.toml>
         List all ready matches.
 
-  Options:
-    --dir <path>   Directory for .toml files (default: current directory)
+    reset <file.toml>
+        Clear all matches and return the tournament to its starting state.
+
+    image <file.toml> [--type svg|png] [--output <path>]
+        Export bracket as an image (default: svg, saved alongside the .toml file).
   """
 
   def main(args) do
@@ -42,31 +45,32 @@ defmodule Bracket.CLI do
   end
 
   defp run(:new, opts) do
+    path = opts[:path]
     name = opts[:name]
     format = parse_format(opts[:format])
     best_of = String.to_integer(opts[:best_of] || "1")
 
     tournament = Bracket.new(name, format, config: [best_of: best_of])
-    save(tournament, opts[:dir])
-    IO.puts("Created tournament '#{name}' (#{format}).")
+    save!(tournament, path)
+    IO.puts("Created tournament '#{name}' (#{format}). Saved to #{path}.")
   end
 
   defp run(:add, opts) do
-    tournament = load!(opts[:name], opts[:dir])
+    tournament = load!(opts[:path])
     participants = opts[:participants]
 
     tournament = Bracket.add_participants(tournament, participants)
-    save(tournament, opts[:dir])
+    save!(tournament, opts[:path])
     IO.puts("Added #{length(participants)} participant(s) to '#{tournament.name}'.")
   end
 
   defp run(:start, opts) do
-    tournament = load!(opts[:name], opts[:dir])
+    tournament = load!(opts[:path])
     seeding = parse_seeding(opts[:seeding] || "standard")
 
     case Bracket.start(tournament, seeding) do
       {:ok, tournament} ->
-        save(tournament, opts[:dir])
+        save!(tournament, opts[:path])
 
         IO.puts(
           "Started '#{tournament.name}'. #{length(Bracket.next_matches(tournament))} match(es) ready."
@@ -78,13 +82,13 @@ defmodule Bracket.CLI do
   end
 
   defp run(:report, opts) do
-    tournament = load!(opts[:name], opts[:dir])
+    tournament = load!(opts[:path])
     match_id = opts[:match]
     {p1, p2} = parse_score(opts[:score])
 
     case Bracket.report_score(tournament, match_id, p1, p2) do
       {:ok, tournament} ->
-        save(tournament, opts[:dir])
+        save!(tournament, opts[:path])
         match = tournament.matches[match_id]
         winner = winner_name(tournament, match)
         IO.puts("Reported #{p1}-#{p2} for match #{match_id}. Winner: #{winner}.")
@@ -100,11 +104,11 @@ defmodule Bracket.CLI do
   end
 
   defp run(:"next-round", opts) do
-    tournament = load!(opts[:name], opts[:dir])
+    tournament = load!(opts[:path])
 
     case Bracket.next_round(tournament) do
       {:ok, tournament} ->
-        save(tournament, opts[:dir])
+        save!(tournament, opts[:path])
         round = length(tournament.rounds)
 
         IO.puts(
@@ -120,27 +124,72 @@ defmodule Bracket.CLI do
   end
 
   defp run(:show, opts) do
-    tournament = load!(opts[:name], opts[:dir])
+    tournament = load!(opts[:path])
     IO.puts(Bracket.to_ascii(tournament))
   end
 
   defp run(:standings, opts) do
-    tournament = load!(opts[:name], opts[:dir])
+    tournament = load!(opts[:path])
     print_standings(tournament)
   end
 
   defp run(:matches, opts) do
-    tournament = load!(opts[:name], opts[:dir])
-    ready = Bracket.next_matches(tournament)
+    tournament = load!(opts[:path])
 
-    if ready == [] do
-      IO.puts("No matches ready.")
+    if Bracket.complete?(tournament) do
+      IO.puts("Tournament is complete.")
+      print_standings(tournament)
     else
-      Enum.each(ready, fn m ->
-        p1 = participant_name(tournament, m.p1_id)
-        p2 = participant_name(tournament, m.p2_id)
-        IO.puts("  #{m.id}: #{p1} vs #{p2}")
-      end)
+      ready = Bracket.next_matches(tournament)
+
+      if ready == [] do
+        IO.puts("No matches ready.")
+      else
+        Enum.each(ready, fn m ->
+          p1 = participant_name(tournament, m.p1_id)
+          p2 = participant_name(tournament, m.p2_id)
+          IO.puts("  #{m.id}: #{p1} vs #{p2}")
+        end)
+      end
+    end
+  end
+
+  defp run(:reset, opts) do
+    tournament = load!(opts[:path])
+    tournament = Bracket.reset(tournament)
+    save!(tournament, opts[:path])
+
+    IO.puts(
+      "Reset '#{tournament.name}'. #{length(tournament.participants)} participant(s) remain."
+    )
+  end
+
+  defp run(:image, opts) do
+    tournament = load!(opts[:path])
+    type = opts[:type] || "svg"
+    output = opts[:output] || default_image_path(opts[:path], type)
+
+    case type do
+      "svg" ->
+        svg = Bracket.to_svg(tournament)
+        write_file!(output, svg)
+        IO.puts("Saved SVG to #{output}.")
+
+      "png" ->
+        case Bracket.to_png(tournament) do
+          {:ok, png} ->
+            write_file!(output, png)
+            IO.puts("Saved PNG to #{output}.")
+
+          {:error, :vix_not_available} ->
+            die("PNG export requires the vix dependency. Install it and recompile.")
+
+          {:error, reason} ->
+            die("PNG export failed: #{inspect(reason)}")
+        end
+
+      other ->
+        die("Unknown image type: #{other}. Use svg or png.")
     end
   end
 
@@ -148,21 +197,44 @@ defmodule Bracket.CLI do
     IO.puts(@usage)
   end
 
+  defp default_image_path(toml_path, type) do
+    base = Path.rootname(toml_path)
+    "#{base}.#{type}"
+  end
+
   defp print_standings(tournament) do
     standings = Bracket.standings(tournament)
     participants = Map.new(tournament.participants, &{&1.id, &1})
 
+    name_width =
+      standings
+      |> Enum.map(fn s ->
+        p = Map.get(participants, s.participant_id)
+        name = if p, do: p.name, else: s.participant_id
+        String.length(name)
+      end)
+      |> Enum.max(fn -> 10 end)
+      |> max(10)
+
     IO.puts("\nStandings:")
-    IO.puts("  #  Name                W   L   D")
-    IO.puts("  " <> String.duplicate("-", 36))
+
+    IO.puts(
+      "  #{String.pad_trailing("#.", 4)} #{String.pad_trailing("Name", name_width)}  W    L    D"
+    )
+
+    IO.puts("  " <> String.duplicate("─", name_width + 20))
 
     Enum.each(standings, fn s ->
       p = Map.get(participants, s.participant_id)
       name = if p, do: p.name, else: s.participant_id
 
-      IO.puts(
-        "  #{String.pad_leading("#{s.rank}", 2)}. #{String.pad_trailing(name, 18)} #{String.pad_leading("#{s.wins}", 2)}  #{String.pad_leading("#{s.losses}", 2)}  #{String.pad_leading("#{s.draws}", 2)}"
-      )
+      rank = String.pad_trailing("#{s.rank}.", 4)
+      name_col = String.pad_trailing(name, name_width)
+      wins = String.pad_leading("#{s.wins}", 2)
+      losses = String.pad_leading("#{s.losses}", 2)
+      draws = String.pad_leading("#{s.draws}", 2)
+
+      IO.puts("  #{rank} #{name_col}  #{wins}   #{losses}   #{draws}")
     end)
   end
 
@@ -181,9 +253,7 @@ defmodule Bracket.CLI do
 
   defp participant_name(_tournament, nil), do: "TBD"
 
-  defp load!(name, dir) do
-    path = toml_path(name, dir)
-
+  defp load!(path) do
     case File.read(path) do
       {:ok, content} ->
         case Bracket.from_toml(content) do
@@ -199,60 +269,69 @@ defmodule Bracket.CLI do
     end
   end
 
-  defp save(tournament, dir) do
-    path = toml_path(tournament.name, dir)
-
+  defp save!(tournament, path) do
     case File.write(path, Bracket.to_toml(tournament)) do
       :ok -> :ok
       {:error, reason} -> die("Failed to save #{path}: #{inspect(reason)}")
     end
   end
 
-  defp toml_path(name, dir) do
-    filename = name |> String.downcase() |> String.replace(~r/[^\w-]/, "_") |> Kernel.<>(".toml")
-    base = dir || "."
-    Path.join(base, filename)
+  defp write_file!(path, content) do
+    case File.write(path, content) do
+      :ok -> :ok
+      {:error, reason} -> die("Failed to write #{path}: #{inspect(reason)}")
+    end
   end
 
-  defp parse_args(["new", name | rest]) do
+  defp parse_args(["new", path, name | rest]) do
     opts = parse_opts(rest)
-    {:ok, :new, Map.put(opts, :name, name)}
+    {:ok, :new, opts |> Map.put(:path, path) |> Map.put(:name, name)}
   end
 
-  defp parse_args(["add", name | rest]) do
-    {flags, participants} = Enum.split_with(rest, fn arg -> String.starts_with?(arg, "--") end)
+  defp parse_args(["add", path | rest]) do
+    {flags, participants} = Enum.split_with(rest, &String.starts_with?(&1, "--"))
     opts = parse_opts(flags)
-    {:ok, :add, opts |> Map.put(:name, name) |> Map.put(:participants, participants)}
+    {:ok, :add, opts |> Map.put(:path, path) |> Map.put(:participants, participants)}
   end
 
-  defp parse_args(["start", name | rest]) do
+  defp parse_args(["start", path | rest]) do
     opts = parse_opts(rest)
-    {:ok, :start, Map.put(opts, :name, name)}
+    {:ok, :start, Map.put(opts, :path, path)}
   end
 
-  defp parse_args(["report", name | rest]) do
+  defp parse_args(["report", path | rest]) do
     opts = parse_opts(rest)
-    {:ok, :report, Map.put(opts, :name, name)}
+    {:ok, :report, Map.put(opts, :path, path)}
   end
 
-  defp parse_args(["next-round", name | rest]) do
+  defp parse_args(["next-round", path | rest]) do
     opts = parse_opts(rest)
-    {:ok, :"next-round", Map.put(opts, :name, name)}
+    {:ok, :"next-round", Map.put(opts, :path, path)}
   end
 
-  defp parse_args(["show", name | rest]) do
+  defp parse_args(["show", path | rest]) do
     opts = parse_opts(rest)
-    {:ok, :show, Map.put(opts, :name, name)}
+    {:ok, :show, Map.put(opts, :path, path)}
   end
 
-  defp parse_args(["standings", name | rest]) do
+  defp parse_args(["standings", path | rest]) do
     opts = parse_opts(rest)
-    {:ok, :standings, Map.put(opts, :name, name)}
+    {:ok, :standings, Map.put(opts, :path, path)}
   end
 
-  defp parse_args(["matches", name | rest]) do
+  defp parse_args(["matches", path | rest]) do
     opts = parse_opts(rest)
-    {:ok, :matches, Map.put(opts, :name, name)}
+    {:ok, :matches, Map.put(opts, :path, path)}
+  end
+
+  defp parse_args(["reset", path | rest]) do
+    opts = parse_opts(rest)
+    {:ok, :reset, Map.put(opts, :path, path)}
+  end
+
+  defp parse_args(["image", path | rest]) do
+    opts = parse_opts(rest)
+    {:ok, :image, Map.put(opts, :path, path)}
   end
 
   defp parse_args(["help" | _]), do: {:ok, :help, %{}}
@@ -278,11 +357,11 @@ defmodule Bracket.CLI do
     end)
   end
 
-  defp parse_format(nil),
-    do:
-      die(
-        "--format is required. Options: single_elimination, double_elimination, round_robin, swiss"
-      )
+  defp parse_format(nil) do
+    die(
+      "--format is required. Options: single_elimination, double_elimination, round_robin, swiss"
+    )
+  end
 
   defp parse_format("single_elimination"), do: :single_elimination
   defp parse_format("double_elimination"), do: :double_elimination

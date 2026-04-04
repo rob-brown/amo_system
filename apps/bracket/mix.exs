@@ -24,7 +24,8 @@ defmodule Bracket.MixProject do
 
   defp deps do
     [
-      {:toml, "~> 0.7"}
+      {:toml, "~> 0.7"},
+      {:vix, "~> 0.26", optional: true}
     ]
   end
 end

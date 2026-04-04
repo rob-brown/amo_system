@@ -347,7 +347,7 @@ defmodule Bracket.Render.SVG do
   defp participant_label(id, participants) do
     case Map.get(participants, id) do
       nil -> "TBD"
-      p -> if p.seed, do: "(#{p.seed}) #{p.name}", else: p.name
+      p -> p.name
     end
   end
 

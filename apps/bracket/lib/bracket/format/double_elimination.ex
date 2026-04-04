@@ -38,6 +38,8 @@ defmodule Bracket.Format.DoubleElimination do
     {_wb_matches, wb_rounds_list} =
       build_winners_bracket(positions, participant_by_seed, wb_rounds)
 
+    wb_rounds_list = link_wb_loser_feeds(wb_rounds_list)
+
     {_lb_matches, lb_rounds_list} = build_losers_bracket(wb_rounds, wb_rounds_list)
 
     {gf_matches, wb_rounds_linked, lb_rounds_linked} =
@@ -47,6 +49,32 @@ defmodule Bracket.Format.DoubleElimination do
     all_matches = List.flatten(all_rounds)
 
     {all_matches, all_rounds}
+  end
+
+  # Sets loser_feeds on all WB matches so losers flow into the correct LB slot.
+  #
+  # WB round r losers drop into LB round (2r-1):
+  #   - r=1: adjacent pairs share one LB match (even pos → :p1, odd pos → :p2)
+  #   - r>1: each loser goes into the corresponding LB match as :p2
+  defp link_wb_loser_feeds(wb_rounds_list) do
+    wb_rounds_list
+    |> Enum.with_index(1)
+    |> Enum.map(fn {round, r} ->
+      round
+      |> Enum.with_index()
+      |> Enum.map(fn {match, pos} ->
+        lb_round = 2 * r - 1
+
+        {lb_pos, slot} =
+          if r == 1 do
+            {div(pos, 2), if(rem(pos, 2) == 0, do: :p1, else: :p2)}
+          else
+            {pos, :p2}
+          end
+
+        %{match | loser_feeds: {lb_id(lb_round, lb_pos), slot}}
+      end)
+    end)
   end
 
   defp build_winners_bracket(positions, participant_by_seed, wb_rounds) do
@@ -109,7 +137,7 @@ defmodule Bracket.Format.DoubleElimination do
   end
 
   defp build_losers_bracket(wb_rounds, wb_rounds_list) do
-    lb_round_count = (wb_rounds - 1) * 2
+    lb_round_count = wb_rounds * 2 - 1
     build_lb_rounds([], wb_rounds_list, lb_round_count, 1)
   end
 
@@ -156,13 +184,18 @@ defmodule Bracket.Format.DoubleElimination do
 
   defp build_lb_drop_round(wb_losers, nil, lb_round, _size) do
     wb_losers
+    |> Enum.chunk_every(2)
     |> Enum.with_index()
-    |> Enum.map(fn {wb_match, pos} ->
+    |> Enum.map(fn {pair, pos} ->
+      [m1 | rest] = pair
+      m2 = List.first(rest)
+
       Match.new(
         id: lb_id(lb_round, pos),
         round: -lb_round,
         position: pos,
-        p1_prereq_match: wb_match.id,
+        p1_prereq_match: m1.id,
+        p2_prereq_match: if(m2, do: m2.id),
         status: :pending
       )
     end)
@@ -263,8 +296,7 @@ defmodule Bracket.Format.DoubleElimination do
 
     wb_rounds_linked =
       if wb_final do
-        loser_target = if lb_final == nil, do: {"gf", :p2}, else: nil
-        updated = %{wb_final | winner_feeds: {"gf", :p1}, loser_feeds: loser_target}
+        updated = %{wb_final | winner_feeds: {"gf", :p1}}
         List.replace_at(wb_rounds_list, -1, [updated])
       else
         wb_rounds_list

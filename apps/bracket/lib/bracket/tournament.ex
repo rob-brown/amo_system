@@ -150,13 +150,30 @@ defmodule Bracket.Tournament do
     case get_match(tournament, target_id) do
       {:ok, target} ->
         updated = place_participant(target, slot, participant_id)
-        updated = if Match.ready?(updated), do: %{updated | status: :ready}, else: updated
-        put_match(tournament, updated)
+
+        cond do
+          Match.ready?(updated) ->
+            put_match(tournament, %{updated | status: :ready})
+
+          bye_winner_id = bye_winner(updated) ->
+            bye = %{updated | status: :bye, winner_id: bye_winner_id}
+
+            tournament
+            |> put_match(bye)
+            |> advance_match(bye)
+
+          true ->
+            put_match(tournament, updated)
+        end
 
       {:error, :not_found} ->
         tournament
     end
   end
+
+  defp bye_winner(%Match{p1_id: p1, p2_id: nil, p2_prereq_match: nil}) when p1 != nil, do: p1
+  defp bye_winner(%Match{p1_id: nil, p2_id: p2, p1_prereq_match: nil}) when p2 != nil, do: p2
+  defp bye_winner(_), do: nil
 
   defp place_participant(match, :p1, id), do: %{match | p1_id: id}
   defp place_participant(match, :p2, id), do: %{match | p2_id: id}

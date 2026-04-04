@@ -71,6 +71,18 @@ defmodule Bracket do
     Tournament.complete?(tournament)
   end
 
+  @spec reset(Tournament.t()) :: Tournament.t()
+  def reset(%Tournament{} = tournament) do
+    %{
+      tournament
+      | status: :pending,
+        matches: %{},
+        rounds: [],
+        seeding: [],
+        updated_at: DateTime.utc_now()
+    }
+  end
+
   @spec next_round(Tournament.t()) :: {:ok, Tournament.t()} | {:error, term()}
   def next_round(%Tournament{format: :swiss} = tournament) do
     Format.Swiss.generate_next_round(tournament)
