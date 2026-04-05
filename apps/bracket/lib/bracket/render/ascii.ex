@@ -18,6 +18,7 @@ defmodule Bracket.Render.ASCII do
 
   defp render_elimination(%Tournament{format: :double_elimination} = t) do
     matches = t.matches
+    participants = Map.new(t.participants, &{&1.id, &1})
 
     {wb_rounds, lb_gf_rounds} =
       Enum.split_while(t.rounds, fn ids ->
@@ -25,8 +26,14 @@ defmodule Bracket.Render.ASCII do
         m != nil and m.round > 0
       end)
 
-    wb_section = render_bracket_section(%{t | rounds: wb_rounds}, "Winners Bracket")
-    lb_section = render_lb_gf_section(lb_gf_rounds, matches, t.participants)
+    {lb_rounds, gf_rounds} =
+      Enum.split_while(lb_gf_rounds, fn ids ->
+        m = matches[List.first(ids)]
+        m != nil and m.round < 0
+      end)
+
+    wb_section = render_wb_with_gf(wb_rounds, gf_rounds, matches, participants)
+    lb_section = render_lb_bracket(lb_rounds, matches, participants)
 
     [wb_section, "", lb_section] |> Enum.join("\n")
   end
@@ -43,7 +50,6 @@ defmodule Bracket.Render.ASCII do
     first_round_count = length(List.first(rounds))
     total_rows = first_round_count * 4 - 1
 
-    # Phase 1: structural elements — p1/p2 name rows, connector chars, bridge dashes
     grid =
       rounds
       |> Enum.with_index()
@@ -56,9 +62,6 @@ defmodule Bracket.Render.ASCII do
         end)
       end)
 
-    # Phase 2: winner names on top of bridge dashes.
-    # Bridge rows (p1_j, p2_j) get the feeder match winner names.
-    # Junction rows get the match winner name.
     grid =
       rounds
       |> Enum.with_index()
@@ -102,30 +105,469 @@ defmodule Bracket.Render.ASCII do
     end
   end
 
-  defp render_lb_gf_section(lb_gf_rounds, matches, participants_list) do
-    {lb_rounds, gf_rounds} =
-      Enum.split_while(lb_gf_rounds, fn ids ->
-        m = matches[List.first(ids)]
-        m != nil and m.round < 0
+  # =========================================================
+  # WB + GF rendering (double elimination)
+  # =========================================================
+
+  defp render_wb_with_gf(wb_rounds, gf_rounds, matches, participants) do
+    # GF and GF Reset share one round entry — split each match into its own column.
+    gf_columns = gf_rounds |> List.first([]) |> Enum.map(&[&1])
+
+    num_wb_rounds = length(wb_rounds)
+    num_gf_columns = length(gf_columns)
+    num_all_rounds = num_wb_rounds + num_gf_columns
+    first_round_count = wb_rounds |> List.first([]) |> length() |> max(1)
+    wb_final_j = j_row(num_wb_rounds - 1, 0)
+
+    wb_rows = first_round_count * 4 - 1
+    gf_rows = if num_gf_columns > 0, do: wb_final_j + num_gf_columns * 2 + 1, else: 0
+    total_rows = max(wb_rows, gf_rows)
+
+    grid =
+      wb_rounds
+      |> Enum.with_index()
+      |> Enum.reduce(%{}, fn {round_ids, col_idx}, g ->
+        Enum.with_index(round_ids)
+        |> Enum.reduce(g, fn {match_id, match_idx}, g2 ->
+          match = matches[match_id]
+          if match, do: draw_structure(g2, match, col_idx, match_idx, participants), else: g2
+        end)
       end)
 
-    lb_sections = Enum.chunk_every(lb_rounds, 2)
-    bar = String.duplicate("─", 60)
+    grid =
+      wb_rounds
+      |> Enum.with_index()
+      |> Enum.reduce(grid, fn {round_ids, col_idx}, g ->
+        Enum.with_index(round_ids)
+        |> Enum.reduce(g, fn {match_id, match_idx}, g2 ->
+          match = matches[match_id]
 
-    make_t = fn rounds ->
-      %Tournament{rounds: rounds, matches: matches, participants: participants_list}
-    end
+          if match do
+            draw_winner_name(
+              g2,
+              wb_rounds,
+              matches,
+              match,
+              col_idx,
+              match_idx,
+              num_wb_rounds,
+              participants
+            )
+          else
+            g2
+          end
+        end)
+      end)
 
-    lb_texts = Enum.map(lb_sections, &render_bracket_section(make_t.(&1), nil))
-    gf_texts = Enum.map(gf_rounds, &render_bracket_section(make_t.([&1]), nil))
+    grid = draw_gf_columns(grid, gf_columns, matches, participants, num_wb_rounds, wb_final_j)
 
-    all_texts = lb_texts ++ gf_texts
+    total_width = corner_x(num_all_rounds - 1) + @name_width + 6
+    header = build_header(wb_rounds ++ gf_columns, matches, num_wb_rounds)
 
-    (["Losers Bracket", bar] ++ Enum.intersperse(all_texts, bar))
-    |> Enum.join("\n")
+    rows =
+      Enum.map(0..(total_rows - 1), fn r ->
+        Enum.map(0..(total_width - 1), fn c -> Map.get(grid, {r, c}, ?\s) end)
+        |> List.to_string()
+        |> String.trim_trailing()
+      end)
+
+    ["Winners Bracket", header, "" | rows] |> Enum.join("\n")
   end
 
-  # corner_x(c) is the x position of the ┐/├/┘/│ connecting column c to column c+1
+  defp draw_gf_columns(grid, [], _matches, _participants, _num_wb_rounds, _wb_final_j), do: grid
+
+  defp draw_gf_columns(grid, gf_rounds, matches, participants, num_wb_rounds, wb_final_j) do
+    gf_id = gf_rounds |> List.first() |> List.first()
+    gf_match = matches[gf_id]
+
+    gf_col = num_wb_rounds
+    gf_cx = corner_x(gf_col)
+    prev_cx = corner_x(gf_col - 1)
+
+    p1_j = wb_final_j
+    p2_j = wb_final_j + 2
+    gf_j = wb_final_j + 1
+
+    grid =
+      Enum.reduce((prev_cx + 1)..(gf_cx - 1), grid, fn x, g ->
+        put_char(g, p1_j, x, ?─)
+      end)
+
+    grid =
+      Enum.reduce(p1_j..p2_j, grid, fn row, g ->
+        char =
+          cond do
+            row == p1_j -> ?┐
+            row == gf_j -> ?├
+            row == p2_j -> ?┘
+            true -> ?│
+          end
+
+        put_char(g, row, gf_cx, char)
+      end)
+
+    lb_winner = lb_final_winner(gf_match, matches, participants)
+    grid = put_str(grid, p2_j, prev_cx + 1, wide_entry_str(lb_winner, :bottom))
+
+    wb_final = gf_match && matches[gf_match.p1_prereq_match]
+    wb_winner = winner_label(wb_final, participants)
+    grid = put_str(grid, p1_j, prev_cx + 1, connector_str(wb_winner, :top))
+
+    has_reset = length(gf_rounds) > 1
+    gf_winner = winner_label(gf_match, participants)
+
+    grid =
+      if has_reset do
+        put_str(grid, gf_j, gf_cx + 1, connector_str(gf_winner, :top))
+      else
+        put_str(grid, gf_j, gf_cx + 1, "── " <> truncate(gf_winner))
+      end
+
+    if has_reset do
+      draw_gf_reset_column(grid, gf_rounds, matches, participants, num_wb_rounds, gf_j, gf_match)
+    else
+      grid
+    end
+  end
+
+  defp draw_gf_reset_column(grid, gf_rounds, matches, participants, num_wb_rounds, gf_j, gf_match) do
+    gf_reset_id = gf_rounds |> Enum.at(1) |> List.first()
+    gf_reset = matches[gf_reset_id]
+
+    reset_col = num_wb_rounds + 1
+    reset_cx = corner_x(reset_col)
+    gf_cx = corner_x(num_wb_rounds)
+
+    p1_j = gf_j
+    p2_j = gf_j + 2
+    reset_j = gf_j + 1
+
+    grid =
+      Enum.reduce((gf_cx + 1)..(reset_cx - 1), grid, fn x, g ->
+        g |> put_char(p1_j, x, ?─) |> put_char(p2_j, x, ?─)
+      end)
+
+    grid =
+      Enum.reduce(p1_j..p2_j, grid, fn row, g ->
+        char =
+          cond do
+            row == p1_j -> ?┐
+            row == reset_j -> ?├
+            row == p2_j -> ?┘
+            true -> ?│
+          end
+
+        put_char(g, row, reset_cx, char)
+      end)
+
+    gf_winner = winner_label(gf_match, participants)
+    gf_loser = loser_label(gf_match, participants)
+    grid = put_str(grid, p1_j, gf_cx + 1, connector_str(gf_winner, :top))
+    grid = put_str(grid, p2_j, gf_cx + 1, connector_str(gf_loser, :bottom))
+
+    reset_winner = winner_label(gf_reset, participants)
+    put_str(grid, reset_j, reset_cx + 1, "── " <> truncate(reset_winner))
+  end
+
+  # =========================================================
+  # LB single connected bracket rendering
+  # =========================================================
+
+  defp render_lb_bracket([], _matches, _participants), do: "Losers Bracket\n(no matches)"
+
+  defp render_lb_bracket(lb_rounds, matches, participants) do
+    lb_col_map = build_lb_col_map(lb_rounds)
+    num_cols = length(lb_rounds)
+
+    lb_final_id = lb_rounds |> List.last() |> List.first()
+    {positions, total_height} = compute_lb_tree(lb_final_id, matches, lb_col_map, 0)
+
+    grid =
+      Enum.reduce(positions, %{}, fn {match_id, {j, p1_row, p2_row}}, g ->
+        match = matches[match_id]
+        col_idx = lb_col_map[match_id]
+        draw_lb_structure(g, match, col_idx, j, p1_row, p2_row, lb_col_map, participants)
+      end)
+
+    grid =
+      Enum.reduce(positions, grid, fn {match_id, {j, p1_row, p2_row}}, g ->
+        match = matches[match_id]
+        col_idx = lb_col_map[match_id]
+
+        draw_lb_winner_names(
+          g,
+          match,
+          col_idx,
+          j,
+          p1_row,
+          p2_row,
+          lb_col_map,
+          matches,
+          participants,
+          num_cols
+        )
+      end)
+
+    total_width = corner_x(num_cols - 1) + @name_width + 6
+    header = build_header(lb_rounds, matches, num_cols)
+
+    rows =
+      Enum.map(0..(total_height - 1), fn r ->
+        Enum.map(0..(total_width - 1), fn c -> Map.get(grid, {r, c}, ?\s) end)
+        |> List.to_string()
+        |> String.trim_trailing()
+      end)
+
+    ["Losers Bracket", header, "" | rows] |> Enum.join("\n")
+  end
+
+  defp build_lb_col_map(lb_rounds) do
+    lb_rounds
+    |> Enum.with_index()
+    |> Enum.flat_map(fn {ids, col_idx} -> Enum.map(ids, &{&1, col_idx}) end)
+    |> Map.new()
+  end
+
+  # Recursively computes row positions for each LB match from the LB final backward.
+  # Returns {positions_map, total_height} where positions_map is %{match_id => {j, p1_row, p2_row}}.
+  defp compute_lb_tree(match_id, matches, lb_col_map, row_offset) do
+    match = matches[match_id]
+
+    p1_in_lb =
+      !!(match && match.p1_prereq_match && Map.has_key?(lb_col_map, match.p1_prereq_match))
+
+    p2_in_lb =
+      !!(match && match.p2_prereq_match && Map.has_key?(lb_col_map, match.p2_prereq_match))
+
+    case {p1_in_lb, p2_in_lb} do
+      {false, false} ->
+        j = row_offset + 1
+        {%{match_id => {j, row_offset, row_offset + 2}}, 3}
+
+      {true, false} ->
+        {p1_pos, p1_height} =
+          compute_lb_tree(match.p1_prereq_match, matches, lb_col_map, row_offset)
+
+        {p1_j, _, _} = p1_pos[match.p1_prereq_match]
+        p2_row = row_offset + p1_height + 1
+        j = div(p1_j + p2_row, 2)
+        pos = Map.put(p1_pos, match_id, {j, p1_j, p2_row})
+        {pos, p1_height + 2}
+
+      {false, true} ->
+        {p2_pos, p2_height} =
+          compute_lb_tree(match.p2_prereq_match, matches, lb_col_map, row_offset + 2)
+
+        {p2_j, _, _} = p2_pos[match.p2_prereq_match]
+        p1_row = row_offset
+        j = div(p1_row + p2_j, 2)
+        pos = Map.put(p2_pos, match_id, {j, p1_row, p2_j})
+        {pos, p2_height + 2}
+
+      {true, true} ->
+        {p1_pos, p1_height} =
+          compute_lb_tree(match.p1_prereq_match, matches, lb_col_map, row_offset)
+
+        {p1_j, _, _} = p1_pos[match.p1_prereq_match]
+
+        {p2_pos, p2_height} =
+          compute_lb_tree(match.p2_prereq_match, matches, lb_col_map, row_offset + p1_height + 1)
+
+        {p2_j, _, _} = p2_pos[match.p2_prereq_match]
+        j = div(p1_j + p2_j, 2)
+        pos = Map.merge(p1_pos, p2_pos) |> Map.put(match_id, {j, p1_j, p2_j})
+        {pos, p1_height + 1 + p2_height}
+    end
+  end
+
+  defp draw_lb_structure(grid, match, col_idx, j, p1_row, p2_row, lb_col_map, participants) do
+    p1_in_lb = !!(match.p1_prereq_match && Map.has_key?(lb_col_map, match.p1_prereq_match))
+    p2_in_lb = !!(match.p2_prereq_match && Map.has_key?(lb_col_map, match.p2_prereq_match))
+    cx = corner_x(col_idx)
+
+    case {p1_in_lb, p2_in_lb} do
+      {false, false} ->
+        if col_idx == 0 do
+          grid
+          |> put_str(p1_row, 0, pad(name_label(match.p1_id, participants)) <> " ──┐")
+          |> put_char(j, cx, ?├)
+          |> put_str(p2_row, 0, pad(name_label(match.p2_id, participants)) <> " ──┘")
+        else
+          prev_cx = corner_x(col_idx - 1)
+
+          grid
+          |> put_str(
+            p1_row,
+            prev_cx + 1,
+            wide_entry_str(name_label(match.p1_id, participants), :top)
+          )
+          |> put_char(j, cx, ?├)
+          |> put_str(
+            p2_row,
+            prev_cx + 1,
+            wide_entry_str(name_label(match.p2_id, participants), :bottom)
+          )
+        end
+
+      {true, false} ->
+        prev_cx = corner_x(col_idx - 1)
+
+        grid =
+          Enum.reduce((prev_cx + 1)..(cx - 1), grid, fn x, g ->
+            put_char(g, p1_row, x, ?─)
+          end)
+
+        grid =
+          put_str(
+            grid,
+            p2_row,
+            prev_cx + 1,
+            wide_entry_str(name_label(match.p2_id, participants), :bottom)
+          )
+
+        Enum.reduce(p1_row..p2_row, grid, fn row, g ->
+          char =
+            cond do
+              row == p1_row -> ?┐
+              row == j -> ?├
+              row == p2_row -> ?┘
+              true -> ?│
+            end
+
+          put_char(g, row, cx, char)
+        end)
+
+      {false, true} ->
+        prev_cx = corner_x(col_idx - 1)
+
+        grid =
+          Enum.reduce((prev_cx + 1)..(cx - 1), grid, fn x, g ->
+            put_char(g, p2_row, x, ?─)
+          end)
+
+        grid =
+          put_str(
+            grid,
+            p1_row,
+            prev_cx + 1,
+            wide_entry_str(name_label(match.p1_id, participants), :top)
+          )
+
+        Enum.reduce(p1_row..p2_row, grid, fn row, g ->
+          char =
+            cond do
+              row == p1_row -> ?┐
+              row == j -> ?├
+              row == p2_row -> ?┘
+              true -> ?│
+            end
+
+          put_char(g, row, cx, char)
+        end)
+
+      {true, true} ->
+        prev_cx = corner_x(col_idx - 1)
+
+        grid =
+          Enum.reduce((prev_cx + 1)..(cx - 1), grid, fn x, g ->
+            g |> put_char(p1_row, x, ?─) |> put_char(p2_row, x, ?─)
+          end)
+
+        Enum.reduce(p1_row..p2_row, grid, fn row, g ->
+          char =
+            cond do
+              row == p1_row -> ?┐
+              row == j -> ?├
+              row == p2_row -> ?┘
+              true -> ?│
+            end
+
+          put_char(g, row, cx, char)
+        end)
+    end
+  end
+
+  defp draw_lb_winner_names(
+         grid,
+         match,
+         col_idx,
+         j,
+         p1_row,
+         p2_row,
+         lb_col_map,
+         matches,
+         participants,
+         num_cols
+       ) do
+    p1_in_lb = !!(match.p1_prereq_match && Map.has_key?(lb_col_map, match.p1_prereq_match))
+    p2_in_lb = !!(match.p2_prereq_match && Map.has_key?(lb_col_map, match.p2_prereq_match))
+    is_last = col_idx == num_cols - 1
+    cx = corner_x(col_idx)
+    winner = winner_label(match, participants)
+    corner = winner_corner(match)
+
+    case {p1_in_lb, p2_in_lb} do
+      {false, false} ->
+        write_winner_or_connector(grid, winner, corner, is_last, j, cx)
+
+      {true, false} ->
+        prev_cx = corner_x(col_idx - 1)
+        p1_feeder = matches[match.p1_prereq_match]
+        w1 = winner_label(p1_feeder, participants)
+        grid = put_str(grid, p1_row, prev_cx + 1, connector_str(w1, :top))
+        write_winner_or_connector(grid, winner, corner, is_last, j, cx)
+
+      {false, true} ->
+        prev_cx = corner_x(col_idx - 1)
+        p2_feeder = matches[match.p2_prereq_match]
+        w2 = winner_label(p2_feeder, participants)
+        grid = put_str(grid, p2_row, prev_cx + 1, connector_str(w2, :bottom))
+        write_winner_or_connector(grid, winner, corner, is_last, j, cx)
+
+      {true, true} ->
+        prev_cx = corner_x(col_idx - 1)
+        p1_feeder = matches[match.p1_prereq_match]
+        p2_feeder = matches[match.p2_prereq_match]
+        w1 = winner_label(p1_feeder, participants)
+        w2 = winner_label(p2_feeder, participants)
+        grid = put_str(grid, p1_row, prev_cx + 1, connector_str(w1, :top))
+        grid = put_str(grid, p2_row, prev_cx + 1, connector_str(w2, :bottom))
+        write_winner_or_connector(grid, winner, corner, is_last, j, cx)
+    end
+  end
+
+  defp write_winner_or_connector(grid, winner, _corner, true, j, cx) do
+    put_str(grid, j, cx + 1, "── " <> truncate(winner))
+  end
+
+  defp write_winner_or_connector(grid, winner, corner, false, j, cx) do
+    put_str(grid, j, cx + 1, connector_str(winner, corner))
+  end
+
+  defp winner_corner(%Match{winner_feeds: {_, :p1}}), do: :top
+  defp winner_corner(%Match{winner_feeds: {_, :p2}}), do: :bottom
+  defp winner_corner(_), do: :top
+
+  # wide_entry_str builds a 19-char standalone name entry for LB drop-in slots (col_idx > 0).
+  # Format: pad(name) <> " " <> "─────" <> corner = 12 + 1 + 5 + 1 = 19 chars.
+  defp wide_entry_str(name, corner_type) do
+    corner = if corner_type == :top, do: "┐", else: "┘"
+    pad(name) <> " " <> String.duplicate("─", 5) <> corner
+  end
+
+  defp lb_final_winner(gf_match, matches, participants) do
+    lb_final = gf_match && matches[gf_match.p2_prereq_match]
+    winner_label(lb_final, participants)
+  end
+
+  defp loser_label(nil, _participants), do: "?"
+  defp loser_label(%Match{loser_id: nil}, _participants), do: "?"
+  defp loser_label(%Match{loser_id: id}, participants), do: name_label(id, participants)
+
+  # =========================================================
+  # Shared bracket drawing helpers
+  # =========================================================
+
   defp corner_x(col_idx) do
     @name_width + 3 + col_idx * (@name_width + 7)
   end
@@ -134,7 +576,6 @@ defmodule Bracket.Render.ASCII do
     trunc((4 * match_idx + 2) * :math.pow(2, col_idx)) - 1
   end
 
-  # Phase 1: draw structural characters (names in col 0, connectors, bridge dashes)
   defp draw_structure(grid, match, 0, match_idx, participants) do
     j = j_row(0, match_idx)
     cx = corner_x(0)
@@ -174,10 +615,6 @@ defmodule Bracket.Render.ASCII do
     end)
   end
 
-  # Phase 2: draw winner names.
-  # For col 0 when it's the final column, show the winner at the junction.
-  # For col >= 1, also fill bridge rows with the feeder match winners so every
-  # horizontal line carries a name.
   defp draw_winner_name(grid, _rounds, _matches, match, 0, _match_idx, num_rounds, participants) do
     if num_rounds == 1 do
       j = j_row(0, 0)
@@ -213,12 +650,9 @@ defmodule Bracket.Render.ASCII do
     w2 = winner_label(feeder2, participants)
     w = winner_label(match, participants)
 
-    # Bridge row at p1_j: feeder 1 winner advancing right, corner ┐
     grid = put_str(grid, p1_j, prev_cx + 1, connector_str(w1, :top))
-    # Bridge row at p2_j: feeder 2 winner advancing right, corner ┘
     grid = put_str(grid, p2_j, prev_cx + 1, connector_str(w2, :bottom))
 
-    # Junction row: this match's winner advancing right
     if is_last do
       put_str(grid, j, cx + 1, "── " <> truncate(w))
     else
@@ -227,11 +661,6 @@ defmodule Bracket.Render.ASCII do
     end
   end
 
-  # Builds "── Name ────────────┐" or "──┘" variant.
-  # Total length = @name_width + 7, which spans from corner_x(c)+1 to corner_x(c+1).
-  # Builds a string of exactly (@name_width + 7) chars:
-  # "── Name ──────────┐" or "──┘" variant.
-  # Starts at the position right after a ├ and fills to the next corner exactly.
   defp connector_str(name, corner_type) do
     name = truncate(name)
     len = String.length(name)
@@ -302,6 +731,10 @@ defmodule Bracket.Render.ASCII do
       true -> "Round #{col_idx + 1}"
     end
   end
+
+  # =========================================================
+  # Standings table rendering
+  # =========================================================
 
   defp render_standings_table(%Tournament{} = tournament) do
     standings = Bracket.standings(tournament)
