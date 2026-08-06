@@ -19,21 +19,22 @@ defmodule AutomationMCP.Application do
 
   defp children(_env) do
     [
-      {AutomationMCP.CaptureDevice, capture_device_names()},
+      {AutomationMCP.CaptureDevice, {capture_device_names(), capture_resolution()}},
       AutomationMCP.Connector
     ] ++ server_children(transport())
   end
 
-  # Default: one process per client, spawned by whatever launched it (e.g. a
+  # One process per client, spawned by whatever launched it (e.g. a
   # stdio-based Claude Desktop/Code config). Simple, but two clients means
-  # two processes fighting over the same Picopad/capture card.
+  # two processes fighting over the same Picopad/capture card. Opt in with
+  # AUTOMATION_MCP_TRANSPORT=stdio.
   defp server_children(:stdio) do
     [{AutomationMCP.Server, transport: :stdio}]
   end
 
-  # Run once as a long-lived daemon; every client connects to this same
-  # process over HTTP, so the hardware only ever has one owner regardless of
-  # how many agent sessions are attached.
+  # Default: run once as a long-lived daemon; every client connects to this
+  # same process over HTTP, so the hardware only ever has one owner
+  # regardless of how many agent sessions are attached.
   defp server_children({:http, port, ip}) do
     [
       {AutomationMCP.Server, transport: {:streamable_http, [start: true]}},
@@ -42,13 +43,13 @@ defmodule AutomationMCP.Application do
   end
 
   defp transport do
-    case System.get_env("AUTOMATION_MCP_TRANSPORT", "stdio") do
-      "http" ->
-        port = System.get_env("AUTOMATION_MCP_HTTP_PORT", "4000") |> String.to_integer()
-        {:http, port, http_bind_ip()}
+    case System.get_env("AUTOMATION_MCP_TRANSPORT", "http") do
+      "stdio" ->
+        :stdio
 
       _ ->
-        :stdio
+        port = System.get_env("AUTOMATION_MCP_HTTP_PORT", "4111") |> String.to_integer()
+        {:http, port, http_bind_ip()}
     end
   end
 
@@ -63,5 +64,9 @@ defmodule AutomationMCP.Application do
 
   defp capture_device_names do
     Application.get_env(:automation_mcp, :capture_device_names, ["ShadowCast"])
+  end
+
+  defp capture_resolution do
+    Application.get_env(:automation_mcp, :capture_resolution, {800, 450})
   end
 end
