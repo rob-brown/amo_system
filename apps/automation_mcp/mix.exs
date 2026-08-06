@@ -31,7 +31,9 @@ defmodule AutomationMCP.MixProject do
     [
       {:anubis_mcp, "~> 1.14"},
       {:autopilot, path: "../autopilot"},
+      {:bandit, "~> 1.5"},
       {:picopad, path: "../picopad"},
+      {:plug, "~> 1.16"},
       {:vision, path: "../vision"}
     ]
   end
