@@ -15,6 +15,11 @@ config :automation_mcp, :capture_device_names, ["ShadowCast"]
 # unsupported request, keeping whatever resolution was already active.
 # AutomationMCP.CaptureDevice logs a warning at startup if the actual
 # resolution (checked via Vision.Native.resolution/0) doesn't match this.
-# 800x450 (16:9) matches the Switch/Switch 2 UI aspect ratio; use 640x480
-# (4:3) for setups built around the original Genki Shadowcast default.
-config :automation_mcp, :capture_resolution, {800, 450}
+#
+# 1280x720 (16:9) is a confirmed exact mode on the ShadowCast 2 Pro with a
+# Switch 2 connected — 800x450 and 640x480 are not real modes on this
+# device and silently snap to 800x600 or 1280x720 instead (probed live via
+# the set_resolution/get_resolution tools). Adjust here if you switch
+# capture hardware; use the get_resolution/set_resolution tools to
+# rediscover the real supported modes rather than guessing.
+config :automation_mcp, :capture_resolution, {1280, 720}
