@@ -7,6 +7,7 @@ defmodule AutomationMCP.MixProject do
       version: "0.1.0",
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
+      releases: releases(),
       deps: deps()
     ]
   end
@@ -15,6 +16,14 @@ defmodule AutomationMCP.MixProject do
     [
       extra_applications: [:logger],
       mod: {AutomationMCP.Application, []}
+    ]
+  end
+
+  defp releases do
+    [
+      automation_mcp: [
+        include_executables_for: [:unix]
+      ]
     ]
   end
 
