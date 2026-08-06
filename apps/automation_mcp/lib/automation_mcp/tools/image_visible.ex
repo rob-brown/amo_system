@@ -4,6 +4,7 @@ defmodule AutomationMCP.Tools.ImageVisible do
   use Anubis.Server.Component, type: :tool
 
   alias Anubis.Server.Response
+  alias AutomationMCP.CaptureDevice
   alias AutomationMCP.Store
 
   schema do
@@ -22,7 +23,7 @@ defmodule AutomationMCP.Tools.ImageVisible do
     with {:ok, path} <- Store.lookup_image(name) do
       opts = [timeout: timeout_ms, confidence: confidence]
 
-      case Vision.Native.visible(path, opts) do
+      case CaptureDevice.safe_call(fn -> Vision.Native.visible(path, opts) end) do
         {:ok, info} ->
           {:reply, Response.json(Response.tool(), %{visible: true, info: info}), frame}
 

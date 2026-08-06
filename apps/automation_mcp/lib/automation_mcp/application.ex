@@ -19,8 +19,13 @@ defmodule AutomationMCP.Application do
 
   defp children(_env) do
     [
+      {AutomationMCP.CaptureDevice, capture_device_names()},
       AutomationMCP.Connector,
       {AutomationMCP.Server, transport: :stdio}
     ]
+  end
+
+  defp capture_device_names do
+    Application.get_env(:automation_mcp, :capture_device_names, ["ShadowCast"])
   end
 end

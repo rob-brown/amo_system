@@ -4,6 +4,7 @@ defmodule AutomationMCP.Tools.CountImage do
   use Anubis.Server.Component, type: :tool
 
   alias Anubis.Server.Response
+  alias AutomationMCP.CaptureDevice
   alias AutomationMCP.Store
 
   schema do
@@ -14,7 +15,8 @@ defmodule AutomationMCP.Tools.CountImage do
   @impl true
   def execute(%{name: name, confidence: confidence}, frame) do
     with {:ok, path} <- Store.lookup_image(name),
-         {:ok, count} <- Vision.Native.count(path, confidence: confidence) do
+         {:ok, count} <-
+           CaptureDevice.safe_call(fn -> Vision.Native.count(path, confidence: confidence) end) do
       {:reply, Response.json(Response.tool(), %{count: count}), frame}
     else
       {:error, reason} -> {:reply, Response.error(Response.tool(), inspect(reason)), frame}

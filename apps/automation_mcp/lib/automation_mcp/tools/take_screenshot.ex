@@ -4,6 +4,7 @@ defmodule AutomationMCP.Tools.TakeScreenshot do
   use Anubis.Server.Component, type: :tool
 
   alias Anubis.Server.Response
+  alias AutomationMCP.CaptureDevice
   alias AutomationMCP.Store
 
   schema do
@@ -15,6 +16,14 @@ defmodule AutomationMCP.Tools.TakeScreenshot do
 
   @impl true
   def execute(%{timeout_ms: timeout_ms}, frame) do
+    if CaptureDevice.available?() do
+      capture(timeout_ms, frame)
+    else
+      {:reply, Response.error(Response.tool(), "Capture device is not available"), frame}
+    end
+  end
+
+  defp capture(timeout_ms, frame) do
     path = Store.screenshot_path()
     Vision.Native.capture(path)
 
