@@ -44,6 +44,26 @@ defmodule AutomationMCP.Store do
     end)
   end
 
+  @doc """
+  Polls for `path` to exist as a regular file, up to `timeout` milliseconds.
+  Used after an async capture request (`Vision.Native.capture/1` is a cast)
+  to know when the file is actually ready to read.
+  """
+  def wait_for_file(path, timeout, sleep_time \\ 100)
+
+  def wait_for_file(_path, timeout, _sleep_time) when timeout < 0 do
+    :timeout
+  end
+
+  def wait_for_file(path, timeout, sleep_time) do
+    if File.regular?(path) do
+      :ok
+    else
+      Process.sleep(sleep_time)
+      wait_for_file(path, timeout - sleep_time, sleep_time)
+    end
+  end
+
   defp safe_path(_dir, <<c::utf8, _rest::binary>>, _ext) when c in [?~, ?., ?/] do
     raise ArgumentError, "Unsafe file name"
   end

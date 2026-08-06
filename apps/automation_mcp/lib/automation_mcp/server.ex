@@ -25,6 +25,7 @@ defmodule AutomationMCP.Server do
   component(Tools.Reconnect)
 
   component(Tools.TakeScreenshot)
+  component(Tools.SaveScreenshot)
   component(Tools.GetResolution)
   component(Tools.SetResolution)
   component(Tools.ListImages)

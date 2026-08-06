@@ -28,9 +28,10 @@ defmodule AutomationMCP.Tools.TakeScreenshot do
     Vision.Native.capture(path)
 
     result =
-      case wait_for_file(path, timeout_ms) do
-        {:ok, bytes} ->
-          {:reply, Response.image(Response.tool(), Base.encode64(bytes), "image/png"), frame}
+      case Store.wait_for_file(path, timeout_ms) do
+        :ok ->
+          {:reply, Response.image(Response.tool(), Base.encode64(File.read!(path)), "image/png"),
+           frame}
 
         :timeout ->
           {:reply, Response.error(Response.tool(), "Timed out waiting for capture"), frame}
@@ -38,20 +39,5 @@ defmodule AutomationMCP.Tools.TakeScreenshot do
 
     Store.cleanup_later(path)
     result
-  end
-
-  defp wait_for_file(path, timeout, sleep_time \\ 100)
-
-  defp wait_for_file(_path, timeout, _sleep_time) when timeout < 0 do
-    :timeout
-  end
-
-  defp wait_for_file(path, timeout, sleep_time) do
-    if File.regular?(path) do
-      {:ok, File.read!(path)}
-    else
-      Process.sleep(sleep_time)
-      wait_for_file(path, timeout - sleep_time, sleep_time)
-    end
   end
 end
