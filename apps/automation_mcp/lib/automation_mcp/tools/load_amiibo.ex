@@ -1,5 +1,5 @@
 defmodule AutomationMCP.Tools.LoadAmiibo do
-  @moduledoc "Load a base64-encoded amiibo dump (532, 540, or 572 bytes) into the Picopad's emulated tag."
+  @moduledoc "Load a base64-encoded amiibo dump (532, 540, 572, or 2048 bytes) into the Picopad's emulated tag."
 
   use Anubis.Server.Component, type: :tool
 
@@ -22,11 +22,11 @@ defmodule AutomationMCP.Tools.LoadAmiibo do
     end
   end
 
-  defp validate_binary_size(binary) when byte_size(binary) in [532, 540, 572] do
+  defp validate_binary_size(binary) when byte_size(binary) in [532, 540, 572, 2048] do
     :ok
   end
 
   defp validate_binary_size(_) do
-    {:error, "Amiibo data must be 532, 540, or 572 bytes"}
+    {:error, "Amiibo data must be 532, 540, 572, or 2048 bytes"}
   end
 end
