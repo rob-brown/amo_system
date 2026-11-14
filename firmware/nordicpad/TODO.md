@@ -7,7 +7,7 @@ State on 2026-11-14: the nRF52840 dongle runs BTstack plus the open-source Zephy
 - [ ] **Writes.** The console writes when an amiibo is registered or changed (System Settings > amiibo > Enter Owner and Nickname > OK, and in games). The `nfc:` log lines already show the commands (`01.14` write is acked but ignored today). Work out the Switch 2 write sequence and ack, apply the data to the stored dump, and mirror the Switch 1 write ACK findings (sequential block ids, WriteDone).
 - [ ] **Hand the modified dump back to the host.** Needs the amiibo read commands (0x35, 0x36) in the host-channel section below.
 - [x] **Amiibo loaded while the console is already scanning** is now picked up (verified on the dongle 2026-11-14, system menu scan screen). The store has a generation counter, and `nfc_session_tick` signals the console like a scan start when the generation changes with an amiibo present and the console has an NFC session open. Before, a scan screen opened first never noticed a later load.
-- [ ] **Re-verify v2 and the other v3 dumps on the dongle** (Meta Knight, King Dedede, a v2 dump). Only Kirby was scanned on the dongle; the others were verified on the Mac build.
+- [x] **Re-verified on the dongle (2026-11-14), loaded through the proxy's Amiibo page while the console waited on System Settings > amiibo > Enter Owner and Nickname:** Kirby (v3), Meta Knight (v3), King Dedede (v3) and a v2 dump (SSBU) all scan and show their nicknames. Not tried: scanning in a game (Kirby Air Riders, SSBU) rather than the system menu, and writing a registration back.
 - [ ] **The 32-byte per-amiibo header block** is a constant taken from a Kirby capture, not derived. Find where the console's value comes from.
 
 ## Host channel
