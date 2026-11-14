@@ -12,6 +12,8 @@ defmodule PicopadProxy.Errors do
 
   def message(:not_found), do: "No Picopad or nordicpad found"
   def message(:not_connected), do: "Not connected"
+  def message(:amiibo_error), do: "The firmware rejected the amiibo"
+  def message(:busy), do: "The firmware is busy, try again"
   def message(:no_response), do: "The port did not answer the Picopad protocol"
   def message({:open_failed, reason}), do: "Could not open the port (#{inspect(reason)})"
   def message(reason), do: inspect(reason)
