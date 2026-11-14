@@ -9,7 +9,7 @@ Both speak the same host protocol (COBS packets, `[len16][cmd][payload][crc8]`).
 
 ## Done
 
-- [x] **Connection-changed events.** `Protocol.parse_connection_changed_payload/1` parses the 7-byte event (`<<state, addr::6>>`); `parse_status_payload/1` stays for the 10-byte `get_status` reply. Both are tested with the exact layouts and reject each other's layout. `PicopadProxy.ConnectionManager` already uses the new parser; `AutomationMCP.Connector` still calls `parse_status_payload/1` on the event (see the automation_mcp phase).
+- [x] **Connection-changed events.** `Protocol.parse_connection_changed_payload/1` parses the 7-byte event (`<<state, addr::6>>`); `parse_status_payload/1` stays for the 10-byte `get_status` reply. Both are tested with the exact layouts and reject each other's layout. `PicopadProxy.ConnectionManager` and `AutomationMCP.Connector` both use the new parser (the connector was still crashing on every connection change and is fixed and tested).
 - [x] **`set_colors/2`** (0x43), `Picopad.set_colors(pid, body: ..., buttons: ..., highlight: ..., grip: ...)`. The Pico answers `{:error, :unknown_command}`.
 - [x] **Buttons `:c`, `:gl`, `:gr`, `:sl`, `:sr`** for `hold`/`release` (bitfield) and `press` (ids 0x12 to 0x16). The Pico firmware has none of them: its answer is whatever the firmware gives (not yet checked on hardware). The button map now lives only in `Protocol`; `Picopad` used to carry a second copy.
 - [x] **`read_amiibo/1`** was already ported (named `read_amiibo`, not `amiibo_read`). Tested at 540 and 2048 bytes against a fake firmware. A zero-size dump no longer asks for chunk -1.

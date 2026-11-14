@@ -135,15 +135,13 @@ defmodule AutomationMCP.Connector do
 
   @impl true
   def handle_info({:picopad_event, :connection_changed, payload}, %State{} = state) do
-    info = Picopad.Protocol.parse_status_payload(payload)
+    case Picopad.Protocol.parse_connection_changed_payload(payload) do
+      :error ->
+        {:noreply, state}
 
-    new_state = %State{
-      state
-      | status: connection_status(info.connection),
-        player_number: info.player
-    }
-
-    {:noreply, new_state}
+      info ->
+        {:noreply, %State{state | status: connection_status(info.connection)}}
+    end
   end
 
   def handle_info({:picopad_event, :log, payload}, state) do
