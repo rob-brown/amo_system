@@ -36,7 +36,7 @@ defmodule KAR.MachineTest do
 
       # Assert
       assert machine.name == :tank_star
-      assert machine.code == "PC6U55"
+      assert machine.code == "PC6V28"
     end
 
     test "refuses a v2 amiibo" do
@@ -144,7 +144,15 @@ defmodule KAR.MachineTest do
       names = KAR.machines()
 
       # Assert
-      assert names == [:shadow_star, :tank_star, :warp_star]
+      assert names == [
+               :dragoon,
+               :hop_star,
+               :hydra,
+               :shadow_star,
+               :tank_star,
+               :warp_star,
+               :wing_star
+             ]
     end
   end
 end

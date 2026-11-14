@@ -22,6 +22,15 @@ defmodule KAR.Fixtures do
     "AMIIBO_V3_DUMP_DIR" |> System.fetch_env!() |> Path.join(name <> ".bin") |> File.read!()
   end
 
+  def scan(name) do
+    "KAR_SCANS_DIR" |> System.fetch_env!() |> Path.join(name <> ".bin") |> File.read!()
+  end
+
+  def decrypted_scan(name) do
+    {:ok, binary} = AmiiboSerialization.decrypt_binary(scan(name), key_path())
+    Amiibo.new(binary)
+  end
+
   def decrypted(name) do
     {:ok, binary} = AmiiboSerialization.decrypt_binary(dump(name), key_path())
     Amiibo.new(binary)
