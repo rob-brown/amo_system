@@ -47,6 +47,7 @@ bool amiibo_store_finish(amiibo_store_t *store) {
         return false;
     }
     store->state = AMIIBO_STORE_LOADED;
+    store->generation++;
     return true;
 }
 
@@ -60,8 +61,11 @@ bool amiibo_store_load(amiibo_store_t *store, const uint8_t *data, size_t length
 }
 
 void amiibo_store_clear(amiibo_store_t *store) {
+    uint32_t generation = store->generation + 1;
+
     memset(store, 0, sizeof(*store));
     store->state = AMIIBO_STORE_EMPTY;
+    store->generation = generation;
 }
 
 bool amiibo_store_is_loaded(const amiibo_store_t *store) {

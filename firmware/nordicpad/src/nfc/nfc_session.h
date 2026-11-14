@@ -33,6 +33,8 @@ typedef struct {
     const amiibo_store_t *amiibo;
     nfc_session_listener_t listener;
     nfc_state_t state;
+    bool configured;
+    uint32_t seen_generation;
     uint8_t buffer[NFC_BUFFER_CAPACITY];
     size_t buffer_length;
     uint8_t event_counter;

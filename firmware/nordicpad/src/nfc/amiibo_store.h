@@ -22,6 +22,7 @@ typedef struct {
     size_t received;
     uint8_t next_chunk;
     amiibo_store_state_t state;
+    uint32_t generation;
 } amiibo_store_t;
 
 void amiibo_store_init(amiibo_store_t *store);
