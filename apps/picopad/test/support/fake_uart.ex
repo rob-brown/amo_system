@@ -53,6 +53,9 @@ defmodule Picopad.Test.FakeUart do
       nil ->
         {:reply, {:error, :enoent}, state}
 
+      %{kind: :busy} ->
+        {:reply, {:error, :eagain}, state}
+
       firmware ->
         :persistent_term.put({__MODULE__, :uart, port}, self())
         {:reply, :ok, %{state | port: port, owner: owner, firmware: firmware}}

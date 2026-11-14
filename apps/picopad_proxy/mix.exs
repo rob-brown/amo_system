@@ -28,7 +28,10 @@ defmodule PicopadProxy.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test) do
+    ["lib", "test/support", Path.expand("../picopad/test/support", __DIR__)]
+  end
+
   defp elixirc_paths(_), do: ["lib"]
 
   defp deps do

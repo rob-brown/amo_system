@@ -6,9 +6,8 @@ defmodule Picopad.Test.FakeFirmware do
 
   @pico_only [0x04, 0x05, 0x35, 0x36, 0x38, 0x39, 0x3A, 0x42, 0xF3, 0xF4]
   @nordicpad_only [0x43]
+  @radio_commands [0x02, 0x03, 0x40, 0x41]
   @accepted_with_empty_reply [
-    0x02,
-    0x03,
     0x04,
     0x05,
     0x10,
@@ -25,9 +24,10 @@ defmodule Picopad.Test.FakeFirmware do
     0xF4
   ]
 
-  def new(kind, opts \\ []) when kind in [:picopad, :nordicpad, :silent] do
+  def new(kind, opts \\ []) when kind in [:picopad, :nordicpad, :silent, :busy] do
     %{
       kind: kind,
+      radio: Keyword.get(opts, :radio, true),
       connection: Keyword.get(opts, :connection, 3),
       controller: Keyword.get(opts, :controller, 3),
       amiibo: Keyword.get(opts, :amiibo, <<>>),
@@ -45,20 +45,29 @@ defmodule Picopad.Test.FakeFirmware do
   end
 
   def handle(state, cmd, payload) do
-    if supported?(state.kind, cmd) do
+    if supported?(state, cmd) do
       respond(state, cmd, payload)
     else
       {{:status, @status_unknown_command}, state}
     end
   end
 
-  defp supported?(:picopad, cmd), do: cmd not in @nordicpad_only
-  defp supported?(:nordicpad, cmd), do: cmd not in @pico_only
+  defp supported?(%{radio: false}, cmd) when cmd in @radio_commands, do: false
+  defp supported?(%{kind: :picopad}, cmd), do: cmd not in @nordicpad_only
+  defp supported?(%{kind: :nordicpad}, cmd), do: cmd not in @pico_only
 
   defp respond(state, 0x01, _payload) do
     amiibo_flag = if state.amiibo == <<>>, do: 0, else: 1
     reply = <<state.connection, state.controller, 0xFF, amiibo_flag, 0, 0, 0, 0, 0, 0>>
     {{:ok, reply}, state}
+  end
+
+  defp respond(state, 0x02, _payload) do
+    {{:ok, <<>>}, %{state | connection: start_advertising(state.connection)}}
+  end
+
+  defp respond(state, 0x03, _payload) do
+    {{:ok, <<>>}, %{state | connection: stop_advertising(state.connection)}}
   end
 
   defp respond(state, cmd, _payload) when cmd in @accepted_with_empty_reply do
@@ -145,6 +154,12 @@ defmodule Picopad.Test.FakeFirmware do
   defp respond(state, _cmd, _payload) do
     {{:status, @status_unknown_command}, state}
   end
+
+  defp start_advertising(0), do: 1
+  defp start_advertising(connection), do: connection
+
+  defp stop_advertising(1), do: 0
+  defp stop_advertising(connection), do: connection
 
   defp amiibo_status(<<>>), do: <<0, 0::size(56), 0::little-16>>
 

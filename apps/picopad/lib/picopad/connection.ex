@@ -32,7 +32,7 @@ defmodule Picopad.Connection do
     end
   end
 
-  def send_command(pid, packet, timeout \\ @response_timeout) do
+  def send_command(pid, packet, timeout \\ response_timeout()) do
     GenServer.call(pid, {:send_command, packet}, timeout)
   end
 
@@ -46,6 +46,10 @@ defmodule Picopad.Connection do
 
   def close(pid) do
     GenServer.stop(pid, :normal)
+  end
+
+  defp response_timeout do
+    Application.get_env(:picopad, :response_timeout, @response_timeout)
   end
 
   @impl true
@@ -82,7 +86,7 @@ defmodule Picopad.Connection do
         if state.timeout_timer, do: Process.cancel_timer(state.timeout_timer)
 
         state.uart_module.write(state.uart, packet)
-        timer = Process.send_after(self(), :command_timeout, @response_timeout + 100)
+        timer = Process.send_after(self(), :command_timeout, response_timeout() + 100)
 
         new_state = %{state | pending_request: from, timeout_timer: timer}
         {:noreply, new_state}
