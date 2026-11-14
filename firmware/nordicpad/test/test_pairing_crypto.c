@@ -1,0 +1,111 @@
+#include "test_framework.h"
+
+#include "protocol/pairing_crypto.h"
+
+typedef struct {
+    uint8_t host_key[PAIRING_KEY_SIZE];
+    uint8_t challenge[PAIRING_KEY_SIZE];
+    uint8_t link_key[PAIRING_KEY_SIZE];
+    uint8_t response[PAIRING_KEY_SIZE];
+} pairing_vector_t;
+
+static const pairing_vector_t FIRST_CAPTURED_PAIRING = {
+    .host_key = {0x03, 0xCA, 0xB0, 0xE8, 0x4C, 0x6F, 0x2C, 0x65,
+                 0x81, 0xF5, 0x7F, 0x40, 0x01, 0x3D, 0xCC, 0xDE},
+    .challenge = {0x8D, 0x06, 0x04, 0x2C, 0x18, 0xEC, 0xCD, 0x0E,
+                  0x62, 0x8D, 0xDC, 0xFC, 0xC0, 0xFD, 0x24, 0xAB},
+    .link_key = {0x5F, 0x3C, 0x5E, 0x91, 0x60, 0xB0, 0x29, 0x84,
+                 0x3B, 0xDE, 0x1C, 0x65, 0xC5, 0x27, 0x93, 0xCE},
+    .response = {0x3E, 0x59, 0xF1, 0xF1, 0xC8, 0xD1, 0xEB, 0x83,
+                 0x9F, 0xDF, 0x4A, 0x25, 0x25, 0x83, 0x73, 0x26},
+};
+
+static const pairing_vector_t SECOND_CAPTURED_PAIRING = {
+    .host_key = {0xE6, 0x20, 0x9A, 0x9A, 0x5D, 0xD3, 0x27, 0xF7,
+                 0xD4, 0x0A, 0xB8, 0x04, 0xB9, 0x2A, 0x74, 0x0F},
+    .challenge = {0xAB, 0x85, 0xBB, 0x0C, 0x8F, 0xF8, 0x97, 0xF6,
+                  0x9E, 0xEA, 0xEB, 0x0A, 0x95, 0x78, 0x21, 0xAD},
+    .link_key = {0xBA, 0xD6, 0x74, 0xE3, 0x71, 0x0C, 0x22, 0x16,
+                 0x6E, 0x21, 0xDB, 0x21, 0x7D, 0x30, 0x2B, 0x1F},
+    .response = {0x11, 0xF7, 0x01, 0x94, 0xC2, 0x16, 0x0E, 0xA5,
+                 0x19, 0x0C, 0xF4, 0xD5, 0x34, 0x8A, 0x58, 0xBF},
+};
+
+static const pairing_vector_t DOCUMENTED_SAMPLE = {
+    .host_key = {0x35, 0x03, 0xE9, 0x29, 0x82, 0x87, 0x71, 0x24,
+                 0xBE, 0xA8, 0x0C, 0x66, 0x46, 0x15, 0x83, 0x4B},
+    .challenge = {0x6F, 0xC6, 0xDF, 0x8A, 0xD8, 0xFE, 0xDF, 0x15,
+                  0xBB, 0x8C, 0x15, 0xE9, 0x1F, 0x32, 0x05, 0x44},
+    .link_key = {0x69, 0xF5, 0x07, 0x50, 0xAE, 0x58, 0x74, 0xC5,
+                 0x04, 0x83, 0x6F, 0x43, 0x82, 0x0F, 0xDC, 0x5B},
+    .response = {0x13, 0x4C, 0x97, 0xF5, 0x11, 0xB9, 0xB6, 0xDD,
+                 0x4D, 0x86, 0xFD, 0x40, 0xF5, 0x36, 0xE9, 0xED},
+};
+
+static bool link_key_matches(const pairing_vector_t *vector) {
+    uint8_t link_key[PAIRING_KEY_SIZE];
+
+    pairing_derive_link_key(vector->host_key, link_key);
+
+    ASSERT_MEM_EQ(link_key, vector->link_key, PAIRING_KEY_SIZE);
+    return true;
+}
+
+static bool response_matches(const pairing_vector_t *vector) {
+    uint8_t response[PAIRING_KEY_SIZE];
+
+    pairing_answer_challenge(vector->link_key, vector->challenge, response);
+
+    ASSERT_MEM_EQ(response, vector->response, PAIRING_KEY_SIZE);
+    return true;
+}
+
+static bool test_controller_key_is_the_documented_constant(void) {
+    // Arrange
+    const uint8_t expected[PAIRING_KEY_SIZE] = {
+        0x5C, 0xF6, 0xEE, 0x79, 0x2C, 0xDF, 0x05, 0xE1,
+        0xBA, 0x2B, 0x63, 0x25, 0xC4, 0x1A, 0x5F, 0x10,
+    };
+    uint8_t controller_key[PAIRING_KEY_SIZE];
+
+    // Act
+    pairing_controller_key(controller_key);
+
+    // Assert
+    ASSERT_MEM_EQ(controller_key, expected, PAIRING_KEY_SIZE);
+    return true;
+}
+
+static bool test_link_key_first_captured_pairing(void) {
+    return link_key_matches(&FIRST_CAPTURED_PAIRING);
+}
+
+static bool test_link_key_second_captured_pairing(void) {
+    return link_key_matches(&SECOND_CAPTURED_PAIRING);
+}
+
+static bool test_challenge_response_first_captured_pairing(void) {
+    return response_matches(&FIRST_CAPTURED_PAIRING);
+}
+
+static bool test_challenge_response_second_captured_pairing(void) {
+    return response_matches(&SECOND_CAPTURED_PAIRING);
+}
+
+static bool test_link_key_documented_sample(void) {
+    return link_key_matches(&DOCUMENTED_SAMPLE);
+}
+
+static bool test_challenge_response_documented_sample(void) {
+    return response_matches(&DOCUMENTED_SAMPLE);
+}
+
+TEST_MAIN_BEGIN("pairing_crypto")
+    RUN_TEST(test_controller_key_is_the_documented_constant);
+    RUN_TEST(test_link_key_first_captured_pairing);
+    RUN_TEST(test_link_key_second_captured_pairing);
+    RUN_TEST(test_link_key_documented_sample);
+    RUN_TEST(test_challenge_response_first_captured_pairing);
+    RUN_TEST(test_challenge_response_second_captured_pairing);
+    RUN_TEST(test_challenge_response_documented_sample);
+TEST_MAIN_END()
