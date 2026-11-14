@@ -113,7 +113,7 @@ defmodule Picopad.Connection do
       GenServer.reply(state.pending_request, {:error, {:uart_error, reason}})
     end
 
-    {:stop, {:uart_error, reason}, %{state | pending_request: nil, timeout_timer: nil}}
+    {:stop, :shutdown, %{state | pending_request: nil, timeout_timer: nil}}
   end
 
   def handle_info({:circuits_uart, _port, data}, state) when is_binary(data) do

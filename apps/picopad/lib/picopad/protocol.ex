@@ -1,6 +1,8 @@
 defmodule Picopad.Protocol do
   import Bitwise
 
+  require Logger
+
   alias Picopad.COBS
   alias Picopad.CRC8
 
@@ -22,6 +24,8 @@ defmodule Picopad.Protocol do
   @cmd_amiibo_load_start 0x32
   @cmd_amiibo_load_chunk 0x33
   @cmd_amiibo_load_finish 0x34
+  @cmd_amiibo_read 0x35
+  @cmd_amiibo_read_chunk 0x36
   @cmd_amiibo_clear 0x37
   @cmd_amiibo_set_readonly 0x38
   @cmd_get_mcu_state 0x39
@@ -105,6 +109,12 @@ defmodule Picopad.Protocol do
   def build_get_version, do: build_request(@cmd_get_version)
   def build_amiibo_get_status, do: build_request(@cmd_amiibo_get_status)
   def build_amiibo_load_finish, do: build_request(@cmd_amiibo_load_finish)
+  def build_amiibo_read, do: build_request(@cmd_amiibo_read)
+
+  def build_amiibo_read_chunk(chunk_idx) when is_integer(chunk_idx) do
+    build_request(@cmd_amiibo_read_chunk, <<chunk_idx>>)
+  end
+
   def build_amiibo_clear, do: build_request(@cmd_amiibo_clear)
   def build_get_mcu_state, do: build_request(@cmd_get_mcu_state)
   def build_get_mcu_debug, do: build_request(@cmd_get_mcu_debug)
@@ -242,6 +252,23 @@ defmodule Picopad.Protocol do
     }
   end
 
+  def parse_status_payload(payload) do
+    Logger.warning("Unknown status payload format: #{inspect(payload)}")
+    :error
+  end
+
+  def parse_connection_changed_payload(<<conn, addr::binary-size(6)>>) do
+    %{
+      connection: connection_state_to_atom(conn),
+      switch_address: addr
+    }
+  end
+
+  def parse_connection_changed_payload(payload) do
+    Logger.warning("Unknown connection_changed payload format: #{inspect(payload)}")
+    :error
+  end
+
   def parse_input_state_payload(
         <<buttons::binary-size(3), lh::little-16, lv::little-16, rh::little-16, rv::little-16>>
       ) do
@@ -300,6 +327,10 @@ defmodule Picopad.Protocol do
       last_connected_timestamp: timestamp,
       connection_count: count
     }
+  end
+
+  def parse_amiibo_read_payload(<<size::little-16, chunk_size>>) do
+    %{size: size, chunk_size: chunk_size}
   end
 
   def parse_log_payload(<<level, message::binary>>) do

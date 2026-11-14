@@ -1,5 +1,4 @@
 defmodule Picopad do
-
   alias Picopad.Connection
   alias Picopad.Protocol
 
@@ -221,6 +220,32 @@ defmodule Picopad do
     end
   end
 
+  def read_amiibo(pid) do
+    with {:ok, %{status: :ok, payload: payload}} <-
+           Connection.send_command(pid, Protocol.build_amiibo_read()) do
+      %{size: size, chunk_size: chunk_size} = Protocol.parse_amiibo_read_payload(payload)
+      num_chunks = div(size + chunk_size - 1, chunk_size)
+
+      chunks =
+        Enum.reduce_while(0..(num_chunks - 1), [], fn idx, acc ->
+          case Connection.send_command(pid, Protocol.build_amiibo_read_chunk(idx)) do
+            {:ok, %{status: :ok, payload: chunk_data}} -> {:cont, [chunk_data | acc]}
+            {:ok, %{status: status}} -> {:halt, {:error, status}}
+            error -> {:halt, error}
+          end
+        end)
+
+      case chunks do
+        {:error, _} = error ->
+          error
+
+        chunk_list when is_list(chunk_list) ->
+          data = chunk_list |> Enum.reverse() |> IO.iodata_to_binary()
+          {:ok, data}
+      end
+    end
+  end
+
   def clear_amiibo(pid) do
     send_simple_command(pid, Protocol.build_amiibo_clear())
   end
@@ -260,7 +285,7 @@ defmodule Picopad do
 
   def log_to_file(pid, path) do
     on_log(pid, fn %{level: level, message: message} ->
-      msg = ["[", to_string(level), "]: ", message, "\n"]
+      msg = ["[", to_string(level), "] ", message, "\n"]
       File.write(path, msg, [:append])
     end)
 

@@ -10,7 +10,6 @@ defmodule PicopadProxy.Application do
     children = [
       {Phoenix.PubSub, name: PicopadProxy.PubSub},
       PicopadProxyWeb.Telemetry,
-      {DNSCluster, query: Application.get_env(:picopad_proxy, :dns_cluster_query) || :ignore},
       {PicopadProxy.ConnectionManager, []},
       {PicopadProxy.InputTracker, []},
       {PicopadProxy.UsbGamepad.Reader, []},
