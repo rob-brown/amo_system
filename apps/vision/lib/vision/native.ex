@@ -36,6 +36,16 @@ defmodule Vision.Native do
     GenServer.call(@name, :resolution)
   end
 
+  @doc """
+  Requests a new capture resolution on the already-open device. Not
+  guaranteed — some capture cards only support a fixed set of modes and
+  silently ignore an unsupported request. Returns the actual resulting
+  resolution so callers can tell whether the request took effect.
+  """
+  def set_resolution(width, height) when is_integer(width) and is_integer(height) do
+    GenServer.call(@name, {:set_resolution, width, height})
+  end
+
   def capture_crop(save_file, {left, top}, {right, bottom})
       when is_binary(save_file) do
     path = Path.expand(save_file)
@@ -97,16 +107,20 @@ defmodule Vision.Native do
 
   ## GenServer
 
-  def start_link(index \\ 0) do
-    GenServer.start_link(__MODULE__, index, name: @name)
+  def start_link(index) when is_integer(index) do
+    start_link({index, @frame_width, @frame_height})
   end
 
-  def init(index) do
+  def start_link({index, width, height}) do
+    GenServer.start_link(__MODULE__, {index, width, height}, name: @name)
+  end
+
+  def init({index, width, height}) do
     capture = VideoCapture.videoCapture(index)
 
     if VideoCapture.isOpened(capture) do
-      VideoCapture.set(capture, @cap_prop_frame_width, @frame_width)
-      VideoCapture.set(capture, @cap_prop_frame_height, @frame_height)
+      VideoCapture.set(capture, @cap_prop_frame_width, width)
+      VideoCapture.set(capture, @cap_prop_frame_height, height)
       VideoCapture.set(capture, @cap_prop_fps, 30)
       VideoCapture.set(capture, @cap_prop_buffersize, 1)
 
@@ -116,10 +130,14 @@ defmodule Vision.Native do
     end
   end
 
-  def child_spec(index) do
+  def child_spec(index) when is_integer(index) do
+    child_spec({index, @frame_width, @frame_height})
+  end
+
+  def child_spec(arg = {_index, _width, _height}) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [index]}
+      start: {__MODULE__, :start_link, [arg]}
     }
   end
 
@@ -158,6 +176,20 @@ defmodule Vision.Native do
   end
 
   def handle_call(:resolution, _from, state = %__MODULE__{capture: c}) do
+    case capture_frame(c) do
+      {:ok, img} ->
+        %Evision.Mat{shape: {h, w, _depth}} = img
+        {:reply, {:ok, {w, h}}, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  def handle_call({:set_resolution, width, height}, _from, state = %__MODULE__{capture: c}) do
+    VideoCapture.set(c, @cap_prop_frame_width, width)
+    VideoCapture.set(c, @cap_prop_frame_height, height)
+
     case capture_frame(c) do
       {:ok, img} ->
         %Evision.Mat{shape: {h, w, _depth}} = img
