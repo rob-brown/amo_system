@@ -6,6 +6,7 @@ defmodule AmiiboSerialization.Amiibo do
 
   alias AmiiboSerialization.ByteBuffer
   alias AmiiboSerialization.CRC32
+  alias AmiiboSerialization.Format
   alias AmiiboSerialization.UID
 
   def new(<<binary::binary-size(540)>>) do
@@ -18,6 +19,14 @@ defmodule AmiiboSerialization.Amiibo do
 
   def new(<<binary::binary-size(540), _::binary-size(32)>>) do
     %__MODULE__{binary: binary}
+  end
+
+  def new(<<binary::binary-size(2048)>>) do
+    %__MODULE__{binary: binary}
+  end
+
+  def format(%__MODULE__{binary: binary}) do
+    Format.of_decrypted(binary)
   end
 
   def read_file(path) do
@@ -110,20 +119,24 @@ defmodule AmiiboSerialization.Amiibo do
     set_serial(a, UID.random())
   end
 
-  def set_serial(%__MODULE__{binary: binary}, serial) do
-    <<partial_uid::binary-size(8), bcc1>> = UID.write(serial)
-
+  def set_serial(amiibo = %__MODULE__{binary: binary}, serial) do
     binary
     |> ByteBuffer.from_binary()
-    |> ByteBuffer.set(468, partial_uid)
-    |> ByteBuffer.set(0, <<bcc1>>)
+    |> write_uid(format(amiibo), serial)
     |> ByteBuffer.to_binary()
     |> new()
   end
 
-  def serial_number(%__MODULE__{binary: binary}) do
-    <<_::binary-size(468), uid::binary-size(9), _::bits>> = binary
-    UID.read(uid)
+  def serial_number(amiibo = %__MODULE__{binary: binary}) do
+    case format(amiibo) do
+      :v2 ->
+        <<_::binary-size(468), uid::binary-size(9), _::bits>> = binary
+        UID.read(uid)
+
+      :v3 ->
+        <<_::binary-size(468), uid::binary-size(7), _::bits>> = binary
+        uid
+    end
   end
 
   def mii_profile(%__MODULE__{binary: binary}) do
@@ -154,6 +167,18 @@ defmodule AmiiboSerialization.Amiibo do
   end
 
   ## Helpers
+
+  defp write_uid(buffer, :v2, serial) do
+    <<partial_uid::binary-size(8), bcc1>> = UID.write(serial)
+
+    buffer
+    |> ByteBuffer.set(468, partial_uid)
+    |> ByteBuffer.set(0, <<bcc1>>)
+  end
+
+  defp write_uid(buffer, :v3, serial) do
+    ByteBuffer.set(buffer, 468, UID.read(UID.write(serial)))
+  end
 
   defp decrypt(binary) do
     if AmiiboSerialization.encrypted?(binary) do
