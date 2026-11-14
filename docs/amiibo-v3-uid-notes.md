@@ -35,7 +35,16 @@ Quoted or paraphrased from the data sheets; inferences are marked.
 
 - The amiibo key seed is tag bytes 0-7 raw (`UID0..UID6, 00`). With the BCC form instead of raw bytes both HMAC checks fail. Verified on all three dumps.
 - When the UID changes, `encrypt_binary` rederives the keys and recomputes the data HMAC and the tag HMAC, so the amiibo-layer integrity data stays valid.
-- Not updated by us: the SRAM block `0x3C0-0x3FF` (about 26 authenticated bytes plus a CRC16 at `0x3FE`) and anything inside the game-encrypted payload. We do not know how these relate to the UID.
+- Not updated by us: the SRAM block `0x3C0-0x3FF` and anything inside the game-encrypted payload. See the rule below for how the game ties them to the UID.
+
+## Dump structure learned so far
+
+- The dump is a straight page dump: sector 0 is `0x000-0x3FF` (pages 00h-FFh) and sector 1 is `0x400-0x7FF`.
+- `0x388-0x3B7` is the NTAG I²C Plus register area, identical on all three figures (dynamic lock page E2h, AUTH0 E3h, ACCESS E4h, PT_I2C E7h, config registers E8h-E9h, session registers ECh-EDh with pass-through on). It is not game data. The `0x710` config pages named in the earlier spec are zero in every dump. (Found by the advisor session.)
+- `0x3C0-0x3FF` is the SRAM (pages F0h-FFh). Layout: `[0-1]` = `02 00`, `[2-14]` 13 bytes that differ per figure and are verified by the game, `[15]` = `00`, `[16]` `82`/`81`/`4A`, `[17]` = `00`, `[18]` `03`/`0A`/`11`, `[19-24]` code (`PB4W17`, `PB5T42`, `PC6U55`), `[25]` = `20`, `[26-28]` `01 01 02`/`04`/`04`, rest zero, `[62-63]` CRC-16.
+- The SRAM CRC is CRC-16/MCRF4XX (poly `0x1021`, init `0xFFFF`, reflected in and out, no final XOR) over SRAM bytes 0-61, stored big-endian. It matches all three dumps. Flipping one bit of SRAM byte 2 with a corrected CRC makes the game report error 2115-0176 "This is not an amiibo", so the game verifies those bytes beyond the CRC.
+- There are two slotted regions, 10 slots each, and a figure uses the same slot index in both: 32-byte slots at `0x248 + 32n` and 100-byte slots at `0x400 + 100n` (each starting `A5 00 01 00`). Kirby uses slot 0, Meta Knight slot 3, Dedede slot 4, matching Warp Star, Shadow Star and Tank Star. Inference: one slot per machine, holding saved progress. Offline checks (HMAC-SHA256 of the 100-byte slot under the raw and derived keys, AES-CTR with the derived keys) found no relationship on any dump.
+- In the decrypted 2048-byte image, offsets at or after `0x248` equal tag offsets.
 
 ## Console tests (KAR, picopad emulating, scanned in-game)
 
@@ -54,19 +63,30 @@ Data is Kirby's unless noted. The UID is tag bytes 0-6, SRAM is tag `0x3C0-0x3FF
 | Meta Knight (registered data) | Kirby's (Warp Star), via `KAR.set_machine(:warp_star)` | Scans: "Warp Star & Meta Knight Figure", then Ammoknight on a Warp Star with fashion, FP level and Balanced type intact |
 | Dedede (registered data) | Meta Knight's (Shadow Star), via `KAR.set_machine(:shadow_star)` | Scans: "Shadow Star & King Dedede Figure" |
 
+More runs, all on the Kirby image with the payload re-encrypted for the UID used:
+
+| UID | SRAM | Other change | Result |
+|---|---|---|---|
+| Kirby | Kirby | one bit of SRAM byte 2 flipped, CRC fixed | **Rejected**, error 2115-0176 "This is not an amiibo" |
+| Dedede | Kirby | Kirby's slot 0 blobs zeroed, Dedede's slot 4 blobs copied in | **Rejected**, 2115-0548 |
+| Dedede | Kirby | Dedede's reserved block `0x80-0xBF` copied in | **Rejected**, 2115-0548 |
+| Meta Knight | Kirby | none | **Rejected**, 2115-0548 |
+| Meta Knight | Meta Knight | none | Scans: Skirby on a Shadow Star |
+
 Findings:
 
-- The machine comes from the SRAM block. Swapping SRAM while keeping the figure's own UID changed the machine and was accepted for all three figures (Kirby with Dedede's and Meta Knight's SRAM, Meta Knight with Kirby's, Dedede with Meta Knight's). Registered data (nickname, fashion, FP level) survives the swap.
-- Every rejection so far changed the UID away from the data's own UID (random UID; Dedede's UID on Kirby's data with Kirby's SRAM). One counter-example: Dedede's UID on Kirby's data with Dedede's SRAM was accepted, so UID changes are not always rejected.
-- A random UID and a Dedede UID with Kirby's SRAM were both rejected. Open: whether the game checks the UID against the SRAM, checks the UID format, or something else. The accepted and rejected cases are not explained by "UID must equal the SRAM's own UID".
-- The game remembers a rider and machine combination in its session, which may affect repeat scans. Order of scans is recorded above.
+- The machine comes from the SRAM block. Swapping SRAM while keeping the figure's own UID changed the machine and was accepted for all three figures. Registered data (nickname, fashion, FP level) survives the swap.
+- Rule that fits every run so far (payload P, UID u, SRAM s): the scan passes when the UID is the original UID of the payload or the original UID of the SRAM block. Passes: (Kirby,k,k) (Kirby,d,d) (Kirby,k,d) (Kirby,k,m) (Kirby,m,m) (MK,m,m) (MK,m,k) (Dedede,d,d) (Dedede,d,m). Fails: (Kirby,d,k) (Kirby,m,k) (Kirby,random,k), and the Dedede-slot and Dedede-reserved variants of (Kirby,d,k).
+- So the SRAM block is bound to its figure's UID and replays only under that UID. The payload is bound too, but swapping slot blobs or the reserved block did not move that binding, so it lives elsewhere (probably in the game-layer encrypted payload).
+- Consequence: a brand-new UID needs a Nintendo-keyed proof we cannot produce. Usable UIDs are the ones we hold SRAM blocks for, and a machine swap is always possible while the payload keeps its own UID.
+- The game remembers a rider and machine combination in its session, which may affect repeat scans.
 
 ## Open questions
 
-- Why Dedede UID + Kirby SRAM fails while Kirby UID + Dedede SRAM and Kirby UID + Meta Knight SRAM pass.
-- Whether UID structure matters (the `90` suffix, UID5 values) and whether a crafted UID with real-looking structure would pass.
-- Whether SRAM-only swaps work on Meta Knight's and Dedede's own UIDs.
-- Whether more figures (Dedede data with other SRAM, etc.) change the picture. More dumps from the user are expected.
+- Where the payload-side UID binding lives (the game-layer bytes `0xDC-0x1B3` of the decrypted image, or the slot blobs together with something else).
+- Whether the slot index is derived from the machine and what the slots hold. The write path (the game saving FP data back into a slot) has not been exercised on the picopad.
+- Whether the SRAM check is a MAC with a Nintendo key or a signature. Offline probes found nothing.
+- Whether more figures (other riders and machines) follow the same rule. More dumps are expected.
 
 ## Side effects of testing
 
