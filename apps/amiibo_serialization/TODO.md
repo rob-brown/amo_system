@@ -6,7 +6,7 @@ The format notes are in `~/Sync/Code/picopad/docs/v3-amiibo.md` (a working docum
 
 ## Status
 
-v3 read/decrypt/edit/encrypt works and round-trips byte for byte on the three console-verified dumps (kirby, metaknight-registered, dedede-registered). v2 output is byte-identical to the pre-change baseline. Merged to main; verified through `picopad_proxy`. Remaining work is accessor coverage, the hardware check for shuffled serials, and the optional v3 to v2 conversion.
+v3 read/decrypt/edit/encrypt works and round-trips byte for byte on the three console-verified dumps (kirby, metaknight-registered, dedede-registered). v2 output is byte-identical to the pre-change baseline. Merged to main. Console tested in Kirby Air Riders (via amo-automation + picopad): the unmodified dump and a renamed v3 scan fully, but a v3 with a shuffled serial is rejected (error 2115-0548). Remaining work: decide what v3 `shuffle_serial/1` and `set_serial/2` do, accessor coverage, and the optional v3 to v2 conversion.
 
 Key findings:
 
@@ -29,7 +29,8 @@ Key findings:
 
 - [x] **Test v3 with `apps/picopad_proxy`.** The proxy suite passes (70/70) on main. Rename, shuffle and rename plus shuffle through `PicopadProxy.AmiiboFile` were checked on all three v3 dumps and the v2 dump: the result re-parses with valid hashes, the id, owner and unmanaged tail are untouched, and the nickname truncates to 10 characters.
 - [ ] **Accessor coverage on v3 dumps.** Only nickname, amiibo id, serial number, `shuffle_serial` and `rename` are tested. Add checks for `owner_name/1`, `mii_profile/1`, `app_id/1`, `program_id/1`, `update_hash/1` and `set_id/2`; they use the shared internal offsets, so they should work.
-- [ ] **Shuffled v3 serial on hardware.** The library round-trips a changed v3 UID, but whether a console accepts it is untested.
+- [x] **Console test in KAR (2026-11-14).** Unmodified kirby: scans, "Skirby". Renamed metaknight-registered ("Renamed"): scans with the new nickname, fashion, FP level and proficiency intact. Kirby with a shuffled serial (UID changed, re-encrypted with valid HMACs): fails with error 2115-0548.
+- [ ] **v3 serial change is rejected by the game.** The firmware returns 32 zero bytes for READ_SIG regardless of UID, and the original UID scans, so the signature is not what fails. Something UID-bound that we preserve verbatim (the game-specific block from 0x388, or the authenticated SRAM bytes) most likely fails. Decide: make v3 `shuffle_serial/1` and `set_serial/2` return an error (and have `AmiiboLive` disable or hide Shuffle for v3) instead of producing a file the game refuses. Note that Switch 2 keys would be needed to support it properly.
 - [ ] **v3 to v2 conversion (low priority).** Sketch: set byte 7 of the amiibo id to 0x02, build a 540-byte tail with v2 config pages, encrypt through the v2 path. The console may validate more than the format byte.
 
 ## Open questions
