@@ -25,7 +25,7 @@ defmodule Picopad.Test.FakeFirmware do
     0xF4
   ]
 
-  def new(kind, opts \\ []) when kind in [:picopad, :nordicpad] do
+  def new(kind, opts \\ []) when kind in [:picopad, :nordicpad, :silent] do
     %{
       kind: kind,
       connection: Keyword.get(opts, :connection, 3),
@@ -39,6 +39,10 @@ defmodule Picopad.Test.FakeFirmware do
   def version_string(:nordicpad), do: "nordicpad 0.1.0"
 
   def chunk_size, do: @chunk_size
+
+  def handle(%{kind: :silent} = state, _cmd, _payload) do
+    {:silent, state}
+  end
 
   def handle(state, cmd, payload) do
     if supported?(state.kind, cmd) do

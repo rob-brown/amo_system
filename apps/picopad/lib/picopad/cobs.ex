@@ -1,6 +1,6 @@
 defmodule Picopad.COBS do
   @delimiter 0x00
-  @max_block_size 254
+  @full_block_code 0xFF
 
   def encode(<<>>), do: <<>>
 
@@ -16,8 +16,8 @@ defmodule Picopad.COBS do
     do_encode(rest, <<>>, acc <> <<code>> <> block, 1)
   end
 
-  defp do_encode(<<byte, rest::binary>>, block, acc, code) when code == @max_block_size do
-    do_encode(rest, <<byte>>, acc <> <<0xFF>> <> block, 2)
+  defp do_encode(<<byte, rest::binary>>, block, acc, @full_block_code) do
+    do_encode(rest, <<byte>>, acc <> <<@full_block_code>> <> block, 2)
   end
 
   defp do_encode(<<byte, rest::binary>>, block, acc, code) do

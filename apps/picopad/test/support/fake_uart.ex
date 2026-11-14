@@ -85,6 +85,8 @@ defmodule Picopad.Test.FakeUart do
     {cmd, binary_part(rest, 0, byte_size(rest) - 1)}
   end
 
+  defp deliver_reply(_state, _cmd, :silent), do: :ok
+
   defp deliver_reply(state, cmd, {:ok, payload}) do
     send(state.owner, {:circuits_uart, state.port, frame(<<cmd, 0x00>>, payload)})
   end

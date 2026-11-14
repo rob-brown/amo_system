@@ -63,6 +63,45 @@ defmodule Picopad.COBSTest do
     end
   end
 
+  describe "runs without a zero byte" do
+    test "a full block of 254 bytes is introduced by the code 0xFF" do
+      # Arrange
+      data = :binary.copy(<<0x11>>, 254)
+
+      # Act
+      encoded = COBS.encode(data)
+
+      # Assert
+      assert encoded == <<0xFF>> <> data
+    end
+
+    test "one byte more than a full block starts a second block" do
+      # Arrange
+      data = :binary.copy(<<0x11>>, 255)
+
+      # Act
+      encoded = COBS.encode(data)
+
+      # Assert
+      assert encoded == <<0xFF>> <> :binary.copy(<<0x11>>, 254) <> <<0x02, 0x11>>
+    end
+
+    test "lengths around the block boundary roundtrip" do
+      # Arrange
+      lengths = [252, 253, 254, 255, 256, 507, 508, 509, 1000]
+
+      # Act
+      results =
+        for length <- lengths do
+          data = :binary.copy(<<0x42>>, length)
+          COBS.decode(COBS.encode(data))
+        end
+
+      # Assert
+      assert results == for(length <- lengths, do: {:ok, :binary.copy(<<0x42>>, length)})
+    end
+  end
+
   describe "roundtrip" do
     test "various patterns" do
       patterns = [

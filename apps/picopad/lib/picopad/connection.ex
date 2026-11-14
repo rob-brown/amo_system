@@ -24,12 +24,12 @@ defmodule Picopad.Connection do
     uart_module = Keyword.get(opts, :uart_module, Circuits.UART)
 
     gen_opts = if name, do: [name: name], else: []
+    init_arg = %{port: port, baud: baud, uart_module: uart_module}
 
-    GenServer.start_link(
-      __MODULE__,
-      %{port: port, baud: baud, uart_module: uart_module},
-      gen_opts
-    )
+    with {:ok, pid} <- GenServer.start(__MODULE__, init_arg, gen_opts) do
+      Process.link(pid)
+      {:ok, pid}
+    end
   end
 
   def send_command(pid, packet, timeout \\ @response_timeout) do

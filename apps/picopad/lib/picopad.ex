@@ -5,6 +5,7 @@ defmodule Picopad do
   require Logger
 
   @default_press_duration 50
+  @default_probe_timeout 1_000
 
   def connect(port, opts \\ []) when is_binary(port) do
     opts = Keyword.put(opts, :port, port)
@@ -13,6 +14,24 @@ defmodule Picopad do
 
   def disconnect(pid) do
     Connection.close(pid)
+  end
+
+  @doc """
+  Checks whether a serial port answers the host protocol, without keeping it open.
+
+  The nordicpad dongle exposes two serial ports and only one speaks the protocol,
+  so callers probe each candidate. Returns `:ok`, `{:error, :no_response}` when
+  nothing answers within the timeout, or `{:error, {:open_failed, reason}}`, for
+  example `:eagain` when another process holds the port.
+  """
+  def probe(port, opts \\ []) when is_binary(port) do
+    {timeout, connect_opts} = Keyword.pop(opts, :timeout, @default_probe_timeout)
+
+    with {:ok, pid} <- connect(port, connect_opts) do
+      result = ping_within(pid, timeout)
+      close_quietly(pid)
+      result
+    end
   end
 
   def status(pid) do
@@ -292,6 +311,23 @@ defmodule Picopad do
     end
 
     Connection.register_event_handler(pid, :log, wrapped_handler)
+  end
+
+  defp ping_within(pid, timeout) do
+    case Connection.send_command(pid, Protocol.build_ping(), timeout) do
+      {:ok, %{status: :ok}} -> :ok
+      {:ok, %{status: status}} -> {:error, status}
+      error -> error
+    end
+  catch
+    :exit, {:timeout, _call} -> {:error, :no_response}
+    :exit, reason -> {:error, {:exit, reason}}
+  end
+
+  defp close_quietly(pid) do
+    Connection.close(pid)
+  catch
+    :exit, _reason -> :ok
   end
 
   defp request(pid, packet) do

@@ -21,6 +21,92 @@ defmodule Picopad.ApiTest do
     for index <- 0..(size - 1), into: <<>>, do: <<rem(index * 7 + 3, 256)>>
   end
 
+  describe "connect/2" do
+    test "returns the open error and leaves the caller alive when the port cannot be opened" do
+      # Arrange
+      port = "fake-missing-#{System.unique_integer([:positive])}"
+      caller = self()
+
+      # Act
+      result = Picopad.connect(port, uart_module: FakeUart)
+
+      # Assert
+      assert result == {:error, {:open_failed, :enoent}}
+      refute_received {:EXIT, ^caller, _reason}
+      assert Process.alive?(caller)
+    end
+
+    test "links the connection to the caller" do
+      # Arrange
+      port = "fake-#{System.unique_integer([:positive])}"
+      FakeUart.install(port, :nordicpad)
+      on_exit(fn -> FakeUart.uninstall(port) end)
+
+      # Act
+      {:ok, pid} = Picopad.connect(port, uart_module: FakeUart)
+      {:links, links} = Process.info(self(), :links)
+
+      # Assert
+      assert pid in links
+    end
+  end
+
+  describe "probe/2" do
+    test "succeeds on a port that answers the protocol" do
+      # Arrange
+      port = "fake-#{System.unique_integer([:positive])}"
+      FakeUart.install(port, :nordicpad)
+      on_exit(fn -> FakeUart.uninstall(port) end)
+
+      # Act
+      result = Picopad.probe(port, uart_module: FakeUart)
+
+      # Assert
+      assert result == :ok
+    end
+
+    test "reports no_response for a port that stays silent" do
+      # Arrange
+      port = "fake-#{System.unique_integer([:positive])}"
+      FakeUart.install(port, :silent)
+      on_exit(fn -> FakeUart.uninstall(port) end)
+
+      # Act
+      result = Picopad.probe(port, uart_module: FakeUart, timeout: 50)
+
+      # Assert
+      assert result == {:error, :no_response}
+    end
+
+    test "reports the open error for a port that cannot be opened" do
+      # Arrange
+      port = "fake-missing-#{System.unique_integer([:positive])}"
+
+      # Act
+      result = Picopad.probe(port, uart_module: FakeUart)
+
+      # Assert
+      assert result == {:error, {:open_failed, :enoent}}
+    end
+
+    test "does not keep the port open" do
+      # Arrange
+      port = "fake-#{System.unique_integer([:positive])}"
+      FakeUart.install(port, :nordicpad)
+      on_exit(fn -> FakeUart.uninstall(port) end)
+      uart_before = :persistent_term.get({FakeUart, :uart, port}, nil)
+
+      # Act
+      Picopad.probe(port, uart_module: FakeUart)
+      uart = :persistent_term.get({FakeUart, :uart, port})
+      ref = Process.monitor(uart)
+
+      # Assert
+      assert uart_before == nil
+      assert_receive {:DOWN, ^ref, :process, ^uart, _reason}
+    end
+  end
+
   describe "commands the nordicpad firmware does not implement" do
     test "answer unknown_command instead of crashing or timing out" do
       # Arrange
