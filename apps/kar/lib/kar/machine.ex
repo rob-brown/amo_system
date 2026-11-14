@@ -1,38 +1,58 @@
 defmodule KAR.Machine do
   alias AmiiboSerialization.Amiibo
+  alias KAR.Machines
 
-  @enforce_keys [:uid, :sram]
-  defstruct [:uid, :sram]
+  @enforce_keys [:sram]
+  defstruct [:sram, :name, :code]
 
-  @uid_offset 468
   @sram_offset 960
   @code_offset 0x13
   @code_size 6
 
-  def read(%Amiibo{
-        binary:
-          <<_::binary-size(@uid_offset), uid::binary-size(7), _::binary-size(485),
-            sram::binary-size(64), _::binary>>
-      }) do
-    {:ok, %__MODULE__{uid: uid, sram: sram}}
+  def new(<<sram::binary-size(64)>>) do
+    %__MODULE__{
+      sram: sram,
+      name: Machines.name(sram),
+      code: :binary.part(sram, @code_offset, @code_size)
+    }
+  end
+
+  def resolve(name) when is_atom(name) do
+    with {:ok, sram} <- Machines.sram(name) do
+      {:ok, new(sram)}
+    else
+      :error -> {:error, :unknown_machine}
+    end
+  end
+
+  def resolve(<<_::binary-size(64)>> = sram) do
+    {:ok, new(sram)}
+  end
+
+  def resolve(%__MODULE__{} = machine) do
+    {:ok, machine}
+  end
+
+  def resolve(%Amiibo{} = amiibo) do
+    read(amiibo)
+  end
+
+  def resolve(_other) do
+    {:error, :invalid_machine}
+  end
+
+  def read(%Amiibo{binary: <<_::binary-size(@sram_offset), sram::binary-size(64), _::binary>>}) do
+    {:ok, new(sram)}
   end
 
   def read(%Amiibo{}) do
     {:error, :not_v3}
   end
 
-  def write(amiibo = %Amiibo{}, %__MODULE__{uid: uid, sram: sram}) do
+  def write(%Amiibo{} = amiibo, %__MODULE__{sram: sram}) do
     case Amiibo.format(amiibo) do
-      :v3 ->
-        {:ok,
-         amiibo |> Amiibo.put_bytes(@uid_offset, uid) |> Amiibo.put_bytes(@sram_offset, sram)}
-
-      _ ->
-        {:error, :not_v3}
+      :v3 -> {:ok, Amiibo.put_bytes(amiibo, @sram_offset, sram)}
+      _ -> {:error, :not_v3}
     end
-  end
-
-  def code(%__MODULE__{sram: sram}) do
-    :binary.part(sram, @code_offset, @code_size)
   end
 end

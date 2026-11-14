@@ -3,79 +3,94 @@ defmodule KAR.PrivateDumpsTest do
 
   alias AmiiboSerialization.Amiibo
   alias KAR.Fixtures
-  alias KAR.Machine
+  alias KAR.Machines
 
   @moduletag :private_dumps
 
-  describe "machine/1" do
-    test "reads each figure's own UID, SRAM and code" do
-      # Arrange
-      expected = %{
-        "kirby" => "PB4W17",
-        "metaknight-registered" => "PB5T42",
-        "dedede-registered" => "PC6U55"
-      }
+  @machines %{
+    "kirby" => {:warp_star, "PB4W17"},
+    "metaknight-registered" => {:shadow_star, "PB5T42"},
+    "dedede-registered" => {:tank_star, "PC6U55"}
+  }
 
-      for {name, code} <- expected do
+  describe "machine/1" do
+    test "names each figure's own machine and reads its code" do
+      for {file, {name, code}} <- @machines do
+        # Arrange
+        amiibo = Fixtures.decrypted(file)
+
         # Act
-        {:ok, machine} = name |> Fixtures.decrypted() |> KAR.machine()
-        encrypted = Fixtures.dump(name)
+        {:ok, machine} = KAR.machine(amiibo)
 
         # Assert
-        assert Machine.code(machine) == code, name
-        assert machine.uid == binary_part(encrypted, 0, 7), name
-        assert machine.sram == binary_part(encrypted, 0x3C0, 64), name
+        assert machine.name == name, file
+        assert machine.code == code, file
+        assert machine.sram == binary_part(Fixtures.dump(file), 0x3C0, 64), file
+      end
+    end
+
+    test "hard-coded machines match the dump SRAM blocks" do
+      for {file, {name, _code}} <- @machines do
+        # Arrange
+        expected = binary_part(Fixtures.dump(file), 0x3C0, 64)
+
+        # Act
+        result = Machines.sram(name)
+
+        # Assert
+        assert result == {:ok, expected}, file
       end
     end
   end
 
   describe "registered?/1" do
     test "is true for every real KAR dump" do
-      for name <- ["kirby", "metaknight-registered", "dedede-registered"] do
+      for file <- Map.keys(@machines) do
         # Arrange
-        amiibo = Fixtures.decrypted(name)
+        amiibo = Fixtures.decrypted(file)
 
         # Act
         result = KAR.registered?(amiibo)
 
         # Assert
-        assert result, name
+        assert result, file
       end
     end
   end
 
   describe "set_machine/2" do
-    test "moves Dedede's machine onto Kirby and survives encrypt and decrypt" do
+    test "puts Tank Star on Kirby, keeps Kirby's UID and survives encrypt and decrypt" do
       # Arrange
       kirby = Fixtures.decrypted("kirby")
-      dedede = Fixtures.decrypted("dedede-registered")
+      kirby_dump = Fixtures.dump("kirby")
       dedede_dump = Fixtures.dump("dedede-registered")
 
       # Act
-      {:ok, swapped} = KAR.set_machine(kirby, dedede)
+      {:ok, swapped} = KAR.set_machine(kirby, :tank_star)
       encrypted = Fixtures.encrypt!(swapped)
       {:ok, round_trip} = AmiiboSerialization.decrypt_binary(encrypted, Fixtures.key_path())
 
       # Assert
-      assert KAR.machine(swapped) == KAR.machine(dedede)
-      assert Fixtures.encrypt!(Amiibo.new(round_trip)) == encrypted
-      assert KAR.machine(Amiibo.new(round_trip)) == KAR.machine(dedede)
-      assert binary_part(encrypted, 0, 7) == binary_part(dedede_dump, 0, 7)
+      assert binary_part(encrypted, 0, 8) == binary_part(kirby_dump, 0, 8)
       assert binary_part(encrypted, 0x3C0, 64) == binary_part(dedede_dump, 0x3C0, 64)
+      assert Fixtures.encrypt!(Amiibo.new(round_trip)) == encrypted
+      assert KAR.machine(Amiibo.new(round_trip)) == KAR.machine(swapped)
       assert Amiibo.nickname(swapped) == Amiibo.nickname(kirby)
       assert Amiibo.amiibo_id(swapped) == Amiibo.amiibo_id(kirby)
     end
 
-    test "setting a figure's own machine reproduces the original dump" do
-      # Arrange
-      original = Fixtures.dump("metaknight-registered")
-      amiibo = Fixtures.decrypted("metaknight-registered")
+    test "giving a figure its own machine reproduces the original dump" do
+      for {file, {name, _code}} <- @machines do
+        # Arrange
+        original = Fixtures.dump(file)
+        amiibo = Fixtures.decrypted(file)
 
-      # Act
-      {:ok, same} = KAR.set_machine(amiibo, amiibo)
+        # Act
+        {:ok, same} = KAR.set_machine(amiibo, name)
 
-      # Assert
-      assert Fixtures.encrypt!(same) == original
+        # Assert
+        assert Fixtures.encrypt!(same) == original, file
+      end
     end
   end
 end
