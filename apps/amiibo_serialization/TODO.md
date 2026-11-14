@@ -6,7 +6,7 @@ The format notes are in `~/Sync/Code/picopad/docs/v3-amiibo.md` (a working docum
 
 ## Status
 
-v3 read/decrypt/edit/encrypt works and round-trips byte for byte on the three console-verified dumps (kirby, metaknight-registered, dedede-registered). v2 output is byte-identical to the pre-change baseline. Merged to main; remaining work is verification against `picopad_proxy` and the optional v3 to v2 conversion.
+v3 read/decrypt/edit/encrypt works and round-trips byte for byte on the three console-verified dumps (kirby, metaknight-registered, dedede-registered). v2 output is byte-identical to the pre-change baseline. Merged to main; verified through `picopad_proxy`. Remaining work is accessor coverage, the hardware check for shuffled serials, and the optional v3 to v2 conversion.
 
 Key findings:
 
@@ -27,7 +27,7 @@ Key findings:
 
 ## Remaining
 
-- [ ] **Test v3 with `apps/picopad_proxy`** once the proxy agent is done: `AmiiboLive` uses `new/1`, `encrypted?/1`, `decrypt_binary/1`, `encrypt_binary!/1` and `shuffle_serial/1`. The proxy needs `key_retail.bin` available to compile.
+- [x] **Test v3 with `apps/picopad_proxy`.** The proxy suite passes (70/70) on main. Rename, shuffle and rename plus shuffle through `PicopadProxy.AmiiboFile` were checked on all three v3 dumps and the v2 dump: the result re-parses with valid hashes, the id, owner and unmanaged tail are untouched, and the nickname truncates to 10 characters.
 - [ ] **Accessor coverage on v3 dumps.** Only nickname, amiibo id, serial number, `shuffle_serial` and `rename` are tested. Add checks for `owner_name/1`, `mii_profile/1`, `app_id/1`, `program_id/1`, `update_hash/1` and `set_id/2`; they use the shared internal offsets, so they should work.
 - [ ] **Shuffled v3 serial on hardware.** The library round-trips a changed v3 UID, but whether a console accepts it is untested.
 - [ ] **v3 to v2 conversion (low priority).** Sketch: set byte 7 of the amiibo id to 0x02, build a 540-byte tail with v2 config pages, encrypt through the v2 path. The console may validate more than the format byte.
