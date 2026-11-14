@@ -53,6 +53,16 @@ defmodule AmiiboSerialization.Amiibo do
     value
   end
 
+  def put_bytes(%__MODULE__{binary: binary}, offset, value)
+      when is_integer(offset) and offset >= 0 and is_binary(value) and
+             offset + byte_size(value) <= byte_size(binary) do
+    binary
+    |> ByteBuffer.from_binary()
+    |> ByteBuffer.set(offset, value)
+    |> ByteBuffer.to_binary()
+    |> new()
+  end
+
   def app_id(%__MODULE__{binary: binary}) do
     <<id::unsigned-big-size(32)>> =
       binary

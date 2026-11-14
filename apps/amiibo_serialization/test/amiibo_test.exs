@@ -12,4 +12,26 @@ defmodule AmiiboTest do
 
     assert "Cecil" == Amiibo.nickname(amiibo)
   end
+
+  describe "put_bytes/3" do
+    test "replaces only the given range" do
+      # Arrange
+      amiibo = Amiibo.new(:binary.copy(<<1>>, 540))
+
+      # Act
+      result = Amiibo.put_bytes(amiibo, 10, <<9, 9, 9>>)
+
+      # Assert
+      assert result.binary ==
+               :binary.copy(<<1>>, 10) <> <<9, 9, 9>> <> :binary.copy(<<1>>, 527)
+    end
+
+    test "rejects a range that runs past the end" do
+      # Arrange
+      amiibo = Amiibo.new(:binary.copy(<<1>>, 540))
+
+      # Act and Assert
+      assert_raise FunctionClauseError, fn -> Amiibo.put_bytes(amiibo, 539, <<9, 9>>) end
+    end
+  end
 end
