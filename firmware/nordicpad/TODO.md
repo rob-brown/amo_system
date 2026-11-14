@@ -35,8 +35,8 @@ Wanted, not needed by the proxy yet:
 Events (the dongle only sends the connection-changed event, 0xE0, with a 7-byte payload `<<state, address::6>>` where the address is currently zeros):
 
 - [ ] **Fill in the console address** in the connection-changed event and in `get_status` (`switch_address`) once the link has a peer.
-- [ ] **Amiibo scanned (0xE1)**, payload `<<write_request>>` (0 for a read). Send it when the console completes an amiibo read in `nfc_session`; the proxy shows scans from it. Define `HOST_EVT_AMIIBO_SCANNED` in `host_ids.h` (value 0xE1).
-- [ ] **Other events** the Pico sends: amiibo write complete (0xE2, with the write work), error (0xE3), reconnect success/failed (0xE4/0xE5, with the reconnect command), bonding cleared (0xE6, with forget bonding), log (0xE7, `<<level, text...>>`; optional, useful to forward the dongle log to the host instead of the first serial port).
+- [x] **Amiibo scanned (0xE1)**, `<<0>>` for a read, sent when the console starts a read (verified, twice per scan). The write-request flag is never set until the write work exists.
+- [ ] **Other events** the Pico sends: amiibo write complete (0xE2, with the write work), error (0xE3), log (0xE7, `<<level, text...>>`; optional, useful to forward the dongle log to the host instead of the first serial port). Reconnect success/failed (0xE4/0xE5) and bonding cleared (0xE6) are done.
 - [ ] **Player number.** `get_status` reports `player` as 0xFF (none) always, so the proxy cannot show which player slot the console assigned. Unverified guess: the console sends the controller a player-lights command during init or after assignment. Look for it in the `req:` log lines (unhandled commands show up there), confirm it carries the player number, then store it and report it in `get_status` and the connection event. If the console sends nothing like it, drop this item.
 
 ## Controller behavior
