@@ -100,7 +100,7 @@ static bool test_version_starts_with_major_minor_patch(void) {
     // Assert
     ASSERT_EQ(response.status, HOST_STATUS_OK);
     ASSERT_EQ(response.payload[0], 0);
-    ASSERT_EQ(response.payload[1], 1);
+    ASSERT_EQ(response.payload[1], 2);
     ASSERT_EQ(response.payload[2], 0);
     ASSERT(response.length > 3);
     return true;

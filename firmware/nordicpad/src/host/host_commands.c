@@ -7,9 +7,9 @@
 #define STATUS_REPLY_SIZE 10
 #define NO_PLAYER 0xFF
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
+#define VERSION_MINOR 2
 #define VERSION_PATCH 0
-#define VERSION_STRING "nordicpad 0.1.0"
+#define VERSION_STRING "nordicpad 0.2.0"
 
 typedef struct {
     uint8_t command;
