@@ -2,6 +2,7 @@ defmodule PicopadProxyWeb.HomeLive do
   use PicopadProxyWeb, :live_view
 
   alias PicopadProxy.ConnectionManager
+  alias PicopadProxyWeb.PicopadStatus
 
   @impl true
   def mount(_params, _session, socket) do
@@ -15,9 +16,7 @@ defmodule PicopadProxyWeb.HomeLive do
 
     socket =
       socket
-      |> assign(:picopad_status, status.status)
-      |> assign(:picopad_port, status.port)
-      |> assign(:picopad_player, status.player_number)
+      |> assign_device(status)
       |> assign(:gamepad_connected, map_size(gamepads) > 0)
 
     {:ok, socket}
@@ -25,13 +24,7 @@ defmodule PicopadProxyWeb.HomeLive do
 
   @impl true
   def handle_info({:connection_changed, info}, socket) do
-    socket =
-      socket
-      |> assign(:picopad_status, info.status)
-      |> assign(:picopad_port, info.port)
-      |> assign(:picopad_player, info.player_number)
-
-    {:noreply, socket}
+    {:noreply, assign_device(socket, info)}
   end
 
   @impl true
@@ -61,22 +54,36 @@ defmodule PicopadProxyWeb.HomeLive do
           <dl class="space-y-2">
             <div>
               <dt class="text-sm font-medium text-gray-500">Connection</dt>
-              <dd class="mt-1 text-lg">
-                <span class={status_badge_class(@picopad_status)}>
-                  {status_text(@picopad_status)}
+              <dd id="home-picopad-status" class="mt-1 text-lg">
+                <span class={PicopadStatus.status_badge_class(@picopad_status)}>
+                  {PicopadStatus.status_text(@picopad_status)}
                 </span>
               </dd>
             </div>
+            <%= if @picopad_firmware do %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Device</dt>
+                <dd id="home-picopad-firmware" class="mt-1 text-lg">
+                  {PicopadStatus.firmware_text(@picopad_firmware)}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Player</dt>
+                <dd id="home-picopad-player" class="mt-1 text-lg">
+                  {PicopadStatus.player_text(@picopad_player)}
+                </dd>
+              </div>
+            <% end %>
             <%= if @picopad_port do %>
               <div>
                 <dt class="text-sm font-medium text-gray-500">Port</dt>
                 <dd class="mt-1 text-lg">{@picopad_port}</dd>
               </div>
             <% end %>
-            <%= if @picopad_player do %>
+            <%= if @picopad_error do %>
               <div>
-                <dt class="text-sm font-medium text-gray-500">Player</dt>
-                <dd class="mt-1 text-lg">Player {@picopad_player}</dd>
+                <dt class="text-sm font-medium text-gray-500">Last Error</dt>
+                <dd id="home-picopad-error" class="mt-1 text-sm text-red-600">{@picopad_error}</dd>
               </div>
             <% end %>
           </dl>
@@ -128,15 +135,12 @@ defmodule PicopadProxyWeb.HomeLive do
     """
   end
 
-  defp status_text(:disconnected), do: "Disconnected"
-  defp status_text(:connected), do: "Connected"
-  defp status_text(:advertising), do: "Advertising"
-  defp status_text(:pairing), do: "Pairing"
-  defp status_text(:paired), do: "Paired"
-
-  defp status_badge_class(:disconnected), do: "text-gray-500"
-  defp status_badge_class(:connected), do: "text-blue-600"
-  defp status_badge_class(:advertising), do: "text-yellow-600"
-  defp status_badge_class(:pairing), do: "text-orange-600"
-  defp status_badge_class(:paired), do: "text-green-600"
+  defp assign_device(socket, info) do
+    socket
+    |> assign(:picopad_status, info.status)
+    |> assign(:picopad_port, info.port)
+    |> assign(:picopad_player, info.player_number)
+    |> assign(:picopad_firmware, info.firmware)
+    |> assign(:picopad_error, info.last_error)
+  end
 end

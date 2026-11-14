@@ -10,6 +10,7 @@ defmodule PicopadProxy.ConnectionManager do
   @connection_topic "picopad:connection"
   @event_topic "picopad:events"
   @radio_commands [:start_advertising, :stop_advertising, :forget_bonding, :reconnect]
+  @info_keys [:status, :port, :player_number, :last_error, :firmware, :controller]
   @retry_delay 5_000
   @lost_delay 2_000
   @settle_delay 100
@@ -17,7 +18,15 @@ defmodule PicopadProxy.ConnectionManager do
 
   defmodule State do
     @enforce_keys [:picopad_pid, :port, :status]
-    defstruct [:picopad_pid, :port, :status, :last_error, :player_number, :firmware]
+    defstruct [
+      :picopad_pid,
+      :port,
+      :status,
+      :last_error,
+      :player_number,
+      :firmware,
+      :controller
+    ]
   end
 
   def start_link(opts) do
@@ -163,7 +172,7 @@ defmodule PicopadProxy.ConnectionManager do
   end
 
   def handle_call(:status, _from, state) do
-    {:reply, Map.take(state, [:status, :port, :player_number, :last_error, :firmware]), state}
+    {:reply, Map.take(state, @info_keys), state}
   end
 
   def handle_call(:picopad_pid, _from, state) do
@@ -171,7 +180,7 @@ defmodule PicopadProxy.ConnectionManager do
   end
 
   @impl true
-  def handle_info({:picopad_event, :connection_changed, payload}, state) do
+  def handle_info({:picopad_event, :connection_changed, payload}, %State{} = state) do
     case Picopad.Protocol.parse_connection_changed_payload(payload) do
       :error ->
         {:noreply, state}
@@ -251,7 +260,7 @@ defmodule PicopadProxy.ConnectionManager do
     {:noreply, state}
   end
 
-  defp handle_picopad_down(state) do
+  defp handle_picopad_down(%State{} = state) do
     Logger.notice("Picopad connection lost, attempting to reconnect...")
 
     new_state = %State{
@@ -260,7 +269,8 @@ defmodule PicopadProxy.ConnectionManager do
         port: nil,
         status: :disconnected,
         player_number: nil,
-        firmware: nil
+        firmware: nil,
+        controller: nil
     }
 
     broadcast_connection_changed(new_state)
@@ -288,7 +298,7 @@ defmodule PicopadProxy.ConnectionManager do
     end
   end
 
-  defp read_device(state, pid, port) do
+  defp read_device(%State{} = state, pid, port) do
     connected = %State{
       state
       | picopad_pid: pid,
@@ -307,17 +317,22 @@ defmodule PicopadProxy.ConnectionManager do
     end
   end
 
-  defp refresh_status(state) do
+  defp refresh_status(%State{} = state) do
     case Picopad.status(state.picopad_pid) do
-      {:ok, %{connection: connection, player: player}} ->
-        %State{state | status: ConnectionStatus.from_firmware(connection), player_number: player}
+      {:ok, %{connection: connection, player: player, controller: controller}} ->
+        %State{
+          state
+          | status: ConnectionStatus.from_firmware(connection),
+            player_number: player,
+            controller: controller
+        }
 
       _other ->
         state
     end
   end
 
-  defp detect_firmware(state) do
+  defp detect_firmware(%State{} = state) do
     case Picopad.firmware(state.picopad_pid) do
       {:ok, firmware} -> %State{state | firmware: firmware}
       _other -> state
@@ -333,7 +348,7 @@ defmodule PicopadProxy.ConnectionManager do
 
   defp drop_connection(%State{picopad_pid: nil} = state), do: state
 
-  defp drop_connection(state) do
+  defp drop_connection(%State{} = state) do
     close_quietly(state.picopad_pid)
 
     %State{
@@ -341,7 +356,8 @@ defmodule PicopadProxy.ConnectionManager do
       | picopad_pid: nil,
         status: :disconnected,
         player_number: nil,
-        firmware: nil
+        firmware: nil,
+        controller: nil
     }
   end
 
@@ -352,12 +368,16 @@ defmodule PicopadProxy.ConnectionManager do
   end
 
   defp note_failure(state, :not_found), do: state
-  defp note_failure(state, reason), do: %State{state | last_error: Errors.message(reason)}
 
-  defp fail(state, reason) do
-    broadcast_error(reason)
-    broadcast_connection_changed(state)
+  defp note_failure(%State{} = state, reason) do
     %State{state | last_error: Errors.message(reason)}
+  end
+
+  defp fail(%State{} = state, reason) do
+    new_state = %State{state | last_error: Errors.message(reason)}
+    broadcast_error(reason)
+    broadcast_connection_changed(new_state)
+    new_state
   end
 
   defp finder_opts do
@@ -382,7 +402,7 @@ defmodule PicopadProxy.ConnectionManager do
     Phoenix.PubSub.broadcast(
       PicopadProxy.PubSub,
       @connection_topic,
-      {:connection_changed, Map.take(state, [:status, :port, :player_number, :firmware])}
+      {:connection_changed, Map.take(state, @info_keys)}
     )
   end
 
