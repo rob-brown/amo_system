@@ -2,6 +2,7 @@ defmodule AmiiboSerialization do
   alias AmiiboSerialization.ByteBuffer
   alias AmiiboSerialization.Key
   alias AmiiboSerialization.DerivedKey
+  alias AmiiboSerialization.Format
   alias AmiiboSerialization.UID
 
   def decrypt_file!(in_path) do
@@ -49,7 +50,8 @@ defmodule AmiiboSerialization do
   end
 
   defp decrypt_binary(binary, data_key = %Key{}, tag_key = %Key{}) do
-    <<internal::binary-size(520)>> = tag_to_internal(binary)
+    format = Format.of_tag(binary)
+    <<internal::binary-size(520)>> = tag_to_internal(binary, format)
     derived_data_key = DerivedKey.new(data_key, internal)
     derived_tag_key = DerivedKey.new(tag_key, internal)
     buffer = ByteBuffer.from_binary(internal)
@@ -64,8 +66,7 @@ defmodule AmiiboSerialization do
     original_tag_hash = :binary.part(internal, 0x1B4, 0x20)
 
     if original_data_hash == data_hash and original_tag_hash == tag_hash do
-      result = ByteBuffer.to_binary(buffer) <> :binary.part(binary, 520, byte_size(binary) - 520)
-      {:ok, result}
+      {:ok, ByteBuffer.to_binary(buffer) <> Format.extract_tail(format, binary)}
     else
       {:error, :bad_hash}
     end
@@ -100,9 +101,10 @@ defmodule AmiiboSerialization do
     buffer = cipher(derived_data_key, buffer)
     buffer = ByteBuffer.set(buffer, 0x1B4, tag_hash)
     buffer = ByteBuffer.set(buffer, 0x8, data_hash)
+    format = Format.of_decrypted(binary)
     tail = :binary.part(binary, 520, byte_size(binary) - 520)
-    result = internal_to_tag(ByteBuffer.to_binary(buffer)) <> tail
-    {:ok, result}
+    {reserved, rest} = Format.split_tail(format, tail)
+    {:ok, internal_to_tag(ByteBuffer.to_binary(buffer), format, reserved) <> rest}
   end
 
   defp key_file() do
@@ -131,6 +133,10 @@ defmodule AmiiboSerialization do
     end
   end
 
+  def encrypted?(binary = <<_::binary-size(2048)>>) do
+    Format.of_tag(binary) == :v3
+  end
+
   def encrypted?(<<uid::binary-size(9), _::bits>>) do
     UID.valid?(uid)
   end
@@ -157,24 +163,25 @@ defmodule AmiiboSerialization do
     end
   end
 
-  defp tag_to_internal(binary) do
+  defp tag_to_internal(binary, format) do
     ByteBuffer.fixed(520, fill: 0)
     |> ByteBuffer.set(0x000, :binary.part(binary, 0x008, 0x008))
-    |> ByteBuffer.set(0x008, :binary.part(binary, 0x080, 0x020))
+    |> ByteBuffer.set(0x008, :binary.part(binary, Format.hmac_offset(format), 0x020))
     |> ByteBuffer.set(0x028, :binary.part(binary, 0x010, 0x024))
-    |> ByteBuffer.set(0x04C, :binary.part(binary, 0x0A0, 0x168))
+    |> ByteBuffer.set(0x04C, :binary.part(binary, Format.app_data_offset(format), 0x168))
     |> ByteBuffer.set(0x1B4, :binary.part(binary, 0x034, 0x020))
     |> ByteBuffer.set(0x1D4, :binary.part(binary, 0x000, 0x008))
     |> ByteBuffer.set(0x1DC, :binary.part(binary, 0x054, 0x02C))
     |> ByteBuffer.to_binary()
   end
 
-  defp internal_to_tag(binary) do
-    ByteBuffer.fixed(520, fill: 0)
+  defp internal_to_tag(binary, format, reserved) do
+    ByteBuffer.fixed(Format.tag_head_size(format), fill: 0)
+    |> ByteBuffer.set(Format.reserved_offset(), reserved)
     |> ByteBuffer.set(0x008, :binary.part(binary, 0x000, 0x008))
-    |> ByteBuffer.set(0x080, :binary.part(binary, 0x008, 0x020))
+    |> ByteBuffer.set(Format.hmac_offset(format), :binary.part(binary, 0x008, 0x020))
     |> ByteBuffer.set(0x010, :binary.part(binary, 0x028, 0x024))
-    |> ByteBuffer.set(0x0A0, :binary.part(binary, 0x04C, 0x168))
+    |> ByteBuffer.set(Format.app_data_offset(format), :binary.part(binary, 0x04C, 0x168))
     |> ByteBuffer.set(0x034, :binary.part(binary, 0x1B4, 0x020))
     |> ByteBuffer.set(0x000, :binary.part(binary, 0x1D4, 0x008))
     |> ByteBuffer.set(0x054, :binary.part(binary, 0x1DC, 0x02C))
