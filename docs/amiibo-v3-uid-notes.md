@@ -73,12 +73,23 @@ More runs, all on the Kirby image with the payload re-encrypted for the UID used
 | Meta Knight | Kirby | none | **Rejected**, 2115-0548 |
 | Meta Knight | Meta Knight | none | Scans: Skirby on a Shadow Star |
 
+Decisive scans of a random UID (`04 FD EE DE A1 CE B1`) on the Kirby image, from the KAR amiibo menu:
+
+| UID | SRAM | Result |
+|---|---|---|
+| random | Dedede | Not the 0548 error. Dialog: "This amiibo can't participate in matches." |
+| random | Meta Knight | Same dialog: "This amiibo can't participate in matches." |
+
 Findings:
 
 - The machine comes from the SRAM block. Swapping SRAM while keeping the figure's own UID changed the machine and was accepted for all three figures. Registered data (nickname, fashion, FP level) survives the swap.
-- Rule that fits every run so far (payload P, UID u, SRAM s): the scan passes when the UID is the original UID of the payload or the original UID of the SRAM block. Passes: (Kirby,k,k) (Kirby,d,d) (Kirby,k,d) (Kirby,k,m) (Kirby,m,m) (MK,m,m) (MK,m,k) (Dedede,d,d) (Dedede,d,m). Fails: (Kirby,d,k) (Kirby,m,k) (Kirby,random,k), and the Dedede-slot and Dedede-reserved variants of (Kirby,d,k).
-- So the SRAM block is bound to its figure's UID and replays only under that UID. The payload is bound too, but swapping slot blobs or the reserved block did not move that binding, so it lives elsewhere (probably in the game-layer encrypted payload).
-- Consequence: a brand-new UID needs a Nintendo-keyed proof we cannot produce. Usable UIDs are the ones we hold SRAM blocks for, and a machine swap is always possible while the payload keeps its own UID.
+- Provisional model that fits every run so far (payload P, UID u, SRAM s):
+  - Eligible: the UID is the original UID of the payload or the original UID of the SRAM block. Passes: (Kirby,k,k) (Kirby,d,d) (Kirby,k,d) (Kirby,k,m) (Kirby,m,m) (MK,m,m) (MK,m,k) (Dedede,d,d) (Dedede,d,m).
+  - Not eligible and the SRAM's machine is the payload's own machine: hard failure, error 2115-0548. Runs: (Kirby,d,k) (Kirby,m,k) (Kirby,random,k) and the slot and reserved-block variants of (Kirby,d,k).
+  - Not eligible and the machine differs from the payload's: the tag is read but the game says "This amiibo can't participate in matches." Runs: (Kirby,random,d) (Kirby,random,m).
+  - The advisor's alternative (rule B: fail only when the machine matches the payload's and the UID differs, otherwise pass) predicted a pass for the random UID. The soft failure shows UID eligibility matters even when the machine differs, but it does not disprove B's 0548 condition. Whether eligibility comes from the SRAM block, the payload, or a record in this console's save is not separated yet: the three figures were all scanned on this console before.
+- Swapping slot blobs or the reserved block did not change any result, so the payload-side binding is not in those regions (probably in the game-layer encrypted payload).
+- Consequence: a brand-new UID cannot be made eligible with what we have. Usable UIDs are the ones we hold SRAM blocks or payloads for, and a machine swap is always possible while the payload keeps its own UID.
 - The game remembers a rider and machine combination in its session, which may affect repeat scans.
 
 ## Open questions
