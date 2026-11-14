@@ -217,7 +217,7 @@ defmodule UiWeb.ManageAmiiboLive do
 
   defp amiibo_image_url(amiibo) do
     {head, tail} = SSBU.character_info(amiibo)
-    "https://raw.githubusercontent.com/N3evin/AmiiboAPI/master/images/icon_#{head}-#{tail}.png"
+    "https://raw.githubusercontent.com/8bitDream/AmiiboAPI/dev/images/icon_#{head}-#{tail}.png"
   end
 
   defp extract_stats(amiibo) do

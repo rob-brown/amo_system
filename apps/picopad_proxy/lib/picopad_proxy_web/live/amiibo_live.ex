@@ -3,6 +3,7 @@ defmodule PicopadProxyWeb.AmiiboLive do
 
   alias AmiiboManager
   alias PicopadProxy.AmiiboFile
+  alias PicopadProxy.AmiiboImage
   alias PicopadProxy.ConnectionManager
 
   @impl true
@@ -352,8 +353,7 @@ defmodule PicopadProxyWeb.AmiiboLive do
   end
 
   defp amiibo_image_url(amiibo) do
-    {head, tail} = SSBU.character_info(amiibo)
-    "https://raw.githubusercontent.com/N3evin/AmiiboAPI/master/images/icon_#{head}-#{tail}.png"
+    amiibo |> SSBU.character_info() |> AmiiboImage.url()
   end
 
   defp extract_stats(amiibo) do
