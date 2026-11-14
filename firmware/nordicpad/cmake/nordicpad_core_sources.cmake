@@ -1,0 +1,38 @@
+set(NORDICPAD_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/../src)
+
+set(NORDICPAD_CORE_SOURCES
+    ${NORDICPAD_SOURCE_DIR}/controller/controller_input.c
+    ${NORDICPAD_SOURCE_DIR}/controller/identity.c
+    ${NORDICPAD_SOURCE_DIR}/controller/input_report.c
+    ${NORDICPAD_SOURCE_DIR}/controller/profile_identity.c
+    ${NORDICPAD_SOURCE_DIR}/controller/profile_joycon_r.c
+    ${NORDICPAD_SOURCE_DIR}/controller/profile_pro_controller.c
+    ${NORDICPAD_SOURCE_DIR}/host/cobs.c
+    ${NORDICPAD_SOURCE_DIR}/host/crc8.c
+    ${NORDICPAD_SOURCE_DIR}/host/handlers/amiibo_commands.c
+    ${NORDICPAD_SOURCE_DIR}/host/handlers/appearance_commands.c
+    ${NORDICPAD_SOURCE_DIR}/host/handlers/input_commands.c
+    ${NORDICPAD_SOURCE_DIR}/host/handlers/system_commands.c
+    ${NORDICPAD_SOURCE_DIR}/host/host_commands.c
+    ${NORDICPAD_SOURCE_DIR}/host/host_link.c
+    ${NORDICPAD_SOURCE_DIR}/host/host_packet.c
+    ${NORDICPAD_SOURCE_DIR}/nfc/amiibo_store.c
+    ${NORDICPAD_SOURCE_DIR}/nfc/nfc_buffer.c
+    ${NORDICPAD_SOURCE_DIR}/nfc/nfc_session.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/aes128.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/command_frame.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/command_router.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/command_session.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/command_set.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/handlers/memory_read.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/handlers/nfc_commands.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/handlers/pairing_commands.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/handlers/static_reply.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/pairing.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/pairing_crypto.c
+    ${NORDICPAD_SOURCE_DIR}/protocol/reply_queue.c
+    ${NORDICPAD_SOURCE_DIR}/storage/file_pairing_store.c
+    ${NORDICPAD_SOURCE_DIR}/storage/pairing_record_codec.c
+    ${NORDICPAD_SOURCE_DIR}/storage/ram_pairing_store.c
+    ${NORDICPAD_SOURCE_DIR}/util/byte_order.c
+)
