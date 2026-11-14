@@ -23,4 +23,10 @@ void host_service_start(host_service_t *service);
 
 void host_service_publish_connection(host_service_t *service, host_connection_state_t state);
 
+void host_service_publish_bonding_cleared(host_service_t *service);
+
+void host_service_publish_amiibo_scanned(host_service_t *service, bool write_request);
+
+void host_service_publish_reconnect_result(host_service_t *service, bool succeeded);
+
 #endif

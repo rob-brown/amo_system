@@ -1,5 +1,6 @@
 #include "storage/file_pairing_store.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -34,10 +35,17 @@ static bool file_save(void *context, const pairing_record_t *record) {
     return written == sizeof(image);
 }
 
+static bool file_clear(void *context) {
+    const file_pairing_store_t *file_store = context;
+
+    return remove(file_store->path) == 0 || errno == ENOENT;
+}
+
 void file_pairing_store_init(file_pairing_store_t *file_store, const char *path) {
     strncpy(file_store->path, path, sizeof(file_store->path) - 1);
     file_store->path[sizeof(file_store->path) - 1] = '\0';
     file_store->store.load = file_load;
     file_store->store.save = file_save;
+    file_store->store.clear = file_clear;
     file_store->store.context = file_store;
 }

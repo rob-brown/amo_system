@@ -3,12 +3,30 @@ defmodule PicopadProxy.ConnectionManager do
 
   require Logger
 
+  alias PicopadProxy.ConnectionStatus
+  alias PicopadProxy.Errors
+  alias PicopadProxy.PortFinder
+
   @connection_topic "picopad:connection"
   @event_topic "picopad:events"
+  @radio_commands [:start_advertising, :stop_advertising, :forget_bonding, :reconnect]
+  @info_keys [:status, :port, :player_number, :last_error, :firmware, :controller]
+  @retry_delay 5_000
+  @lost_delay 2_000
+  @settle_delay 100
+  @discovery_timeout 20_000
 
   defmodule State do
     @enforce_keys [:picopad_pid, :port, :status]
-    defstruct [:picopad_pid, :port, :status, :last_error, :player_number]
+    defstruct [
+      :picopad_pid,
+      :port,
+      :status,
+      :last_error,
+      :player_number,
+      :firmware,
+      :controller
+    ]
   end
 
   def start_link(opts) do
@@ -16,7 +34,11 @@ defmodule PicopadProxy.ConnectionManager do
   end
 
   def connect(port) when is_binary(port) do
-    GenServer.call(__MODULE__, {:connect, port})
+    GenServer.call(__MODULE__, {:connect, port}, @discovery_timeout)
+  end
+
+  def auto_connect do
+    GenServer.call(__MODULE__, :auto_connect, @discovery_timeout)
   end
 
   def disconnect do
@@ -24,19 +46,19 @@ defmodule PicopadProxy.ConnectionManager do
   end
 
   def start_advertising do
-    GenServer.call(__MODULE__, :start_advertising)
+    GenServer.call(__MODULE__, {:radio, :start_advertising})
   end
 
   def stop_advertising do
-    GenServer.call(__MODULE__, :stop_advertising)
+    GenServer.call(__MODULE__, {:radio, :stop_advertising})
   end
 
   def forget_bonding do
-    GenServer.call(__MODULE__, :forget_bonding)
+    GenServer.call(__MODULE__, {:radio, :forget_bonding})
   end
 
   def reconnect do
-    GenServer.call(__MODULE__, :reconnect)
+    GenServer.call(__MODULE__, {:radio, :reconnect})
   end
 
   def load_amiibo(data) when is_binary(data) do
@@ -57,371 +79,188 @@ defmodule PicopadProxy.ConnectionManager do
 
   @impl true
   def init(_opts) do
-    # Trap exits so we don't crash when the linked Picopad process dies
     Process.flag(:trap_exit, true)
 
-    state = %State{
-      picopad_pid: nil,
-      port: nil,
-      status: :disconnected
-    }
+    state = %State{picopad_pid: nil, port: nil, status: :disconnected}
 
-    # Try to auto-connect on startup
-    send(self(), :auto_connect)
+    if Application.get_env(:picopad_proxy, :auto_connect, true) do
+      send(self(), :auto_connect)
+    end
 
     {:ok, state}
   end
 
   @impl true
   def handle_call({:connect, port}, _from, state) do
-    case Picopad.connect(port) do
-      {:ok, pid} ->
-        # Monitor the Picopad process for auto-reconnect
-        Process.monitor(pid)
-        setup_event_handlers(pid)
+    dropped = drop_connection(state)
 
-        new_state =
-          case Picopad.status(pid) do
-            {:ok, info} ->
-              status =
-                case info.connection do
-                  :disconnected -> :connected
-                  :advertising -> :advertising
-                  :pairing -> :pairing
-                  :ready -> :paired
-                  _ -> :connected
-                end
-
-              %State{
-                state
-                | picopad_pid: pid,
-                  port: port,
-                  status: status,
-                  player_number: info.player,
-                  last_error: nil
-              }
-
-            {:error, _reason} ->
-              %State{
-                state
-                | picopad_pid: pid,
-                  port: port,
-                  status: :connected,
-                  last_error: nil
-              }
-          end
-
+    case establish(dropped, port) do
+      {:ok, new_state} ->
         broadcast_connection_changed(new_state)
         {:reply, :ok, new_state}
 
-      {:error, reason} = error ->
-        new_state = %State{state | last_error: inspect(reason)}
-        broadcast_error(reason)
-        {:reply, error, new_state}
+      {:error, reason} ->
+        {:reply, {:error, reason}, fail(dropped, reason)}
     end
   end
 
-  @impl true
-  def handle_call(:disconnect, _from, state) do
-    if state.picopad_pid do
-      Picopad.disconnect(state.picopad_pid)
+  def handle_call(:auto_connect, _from, %State{picopad_pid: pid} = state) when is_pid(pid) do
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:auto_connect, _from, state) do
+    case discover(state) do
+      {:ok, new_state} ->
+        broadcast_connection_changed(new_state)
+        {:reply, :ok, new_state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, fail(state, reason)}
     end
+  end
 
-    new_state = %State{
-      state
-      | picopad_pid: nil,
-        status: :disconnected
-    }
-
+  def handle_call(:disconnect, _from, state) do
+    new_state = drop_connection(state)
     broadcast_connection_changed(new_state)
     {:reply, :ok, new_state}
   end
 
-  @impl true
-  def handle_call(:start_advertising, _from, state) do
-    if state.picopad_pid do
-      result = Picopad.start_advertising(state.picopad_pid)
+  def handle_call({:radio, _command}, _from, %State{picopad_pid: nil} = state) do
+    {:reply, {:error, :not_connected}, state}
+  end
 
-      case result do
-        :ok ->
-          new_state = %State{state | status: :advertising}
-          broadcast_connection_changed(new_state)
-          {:reply, :ok, new_state}
+  def handle_call({:radio, command}, _from, state) when command in @radio_commands do
+    case call_device(fn -> apply(Picopad, command, [state.picopad_pid]) end) do
+      :ok ->
+        new_state = refresh_status(state)
+        broadcast_connection_changed(new_state)
+        {:reply, :ok, new_state}
 
-        error ->
-          {:reply, error, state}
-      end
-    else
-      {:reply, {:error, :not_connected}, state}
+      error ->
+        {:reply, error, state}
     end
   end
 
-  @impl true
-  def handle_call(:stop_advertising, _from, state) do
-    if state.picopad_pid do
-      result = Picopad.stop_advertising(state.picopad_pid)
-
-      case result do
-        :ok ->
-          new_state = %State{state | status: :connected}
-          broadcast_connection_changed(new_state)
-          {:reply, :ok, new_state}
-
-        error ->
-          {:reply, error, state}
-      end
-    else
-      {:reply, {:error, :not_connected}, state}
-    end
+  def handle_call({:load_amiibo, _data}, _from, %State{picopad_pid: nil} = state) do
+    {:reply, {:error, :not_connected}, state}
   end
 
-  @impl true
-  def handle_call(:forget_bonding, _from, state) do
-    if state.picopad_pid do
-      result = Picopad.forget_bonding(state.picopad_pid)
-      {:reply, result, state}
-    else
-      {:reply, {:error, :not_connected}, state}
-    end
-  end
-
-  @impl true
-  def handle_call(:reconnect, _from, state) do
-    if state.picopad_pid do
-      result = Picopad.reconnect(state.picopad_pid)
-      {:reply, result, state}
-    else
-      {:reply, {:error, :not_connected}, state}
-    end
-  end
-
-  @impl true
   def handle_call({:load_amiibo, data}, _from, state) do
-    if state.picopad_pid do
-      result = Picopad.load_amiibo(state.picopad_pid, data)
+    case call_device(fn -> Picopad.load_amiibo(state.picopad_pid, data) end) do
+      {:ok, info} ->
+        broadcast_event({:amiibo_loaded, info})
+        {:reply, :ok, state}
 
-      case result do
-        {:ok, info} ->
-          broadcast_event({:amiibo_loaded, info})
-          {:reply, :ok, state}
-
-        error ->
-          {:reply, error, state}
-      end
-    else
-      {:reply, {:error, :not_connected}, state}
+      error ->
+        {:reply, error, state}
     end
   end
 
-  @impl true
+  def handle_call(:clear_amiibo, _from, %State{picopad_pid: nil} = state) do
+    {:reply, {:error, :not_connected}, state}
+  end
+
   def handle_call(:clear_amiibo, _from, state) do
-    if state.picopad_pid do
-      result = Picopad.clear_amiibo(state.picopad_pid)
+    case call_device(fn -> Picopad.clear_amiibo(state.picopad_pid) end) do
+      :ok ->
+        broadcast_event(:amiibo_cleared)
+        {:reply, :ok, state}
 
-      case result do
-        :ok ->
-          broadcast_event(:amiibo_cleared)
-          {:reply, :ok, state}
-
-        error ->
-          {:reply, error, state}
-      end
-    else
-      {:reply, {:error, :not_connected}, state}
+      error ->
+        {:reply, error, state}
     end
   end
 
-  @impl true
   def handle_call(:status, _from, state) do
-    {:reply, Map.take(state, [:status, :port, :player_number, :last_error]), state}
+    {:reply, Map.take(state, @info_keys), state}
   end
 
-  @impl true
   def handle_call(:picopad_pid, _from, state) do
     {:reply, state.picopad_pid, state}
   end
 
   @impl true
-  def handle_info({:picopad_event, :connection_changed, payload}, state) do
+  def handle_info({:picopad_event, :connection_changed, payload}, %State{} = state) do
     case Picopad.Protocol.parse_connection_changed_payload(payload) do
       :error ->
-        # Unknown payload format - keep current state
         {:noreply, state}
 
       info ->
-        status =
-          case info.connection do
-            :disconnected -> :connected
-            :advertising -> :advertising
-            :pairing -> :pairing
-            :ready -> :paired
-            _ -> :connected
-          end
-
-        new_state = %State{state | status: status}
+        new_state = %State{state | status: ConnectionStatus.from_firmware(info.connection)}
         broadcast_connection_changed(new_state)
         {:noreply, new_state}
     end
   end
 
-  @impl true
   def handle_info({:picopad_event, :amiibo_scanned, payload}, state) do
     broadcast_event({:amiibo_scanned, payload})
     {:noreply, state}
   end
 
-  @impl true
-  def handle_info({:picopad_event, :log, payload}, state) do
-    log_info = Picopad.Protocol.parse_log_payload(payload)
-
-    Logger.log(
-      log_info.level,
-      "[Picopad] #{log_info.message}"
-    )
-
+  def handle_info({:picopad_event, event, _payload}, state)
+      when event in [:bonding_cleared, :reconnect_success, :reconnect_failed] do
+    broadcast_event(event)
     {:noreply, state}
   end
 
-  @impl true
+  def handle_info({:picopad_event, :log, payload}, state) do
+    log_info = Picopad.Protocol.parse_log_payload(payload)
+    Logger.log(log_info.level, "[Picopad] #{log_info.message}")
+    {:noreply, state}
+  end
+
   def handle_info({:picopad_event, _event, _payload}, state) do
     {:noreply, state}
   end
 
-  @impl true
-  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) when pid == state.picopad_pid do
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, %State{picopad_pid: pid} = state) do
     handle_picopad_down(state)
   end
 
-  @impl true
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
     {:noreply, state}
   end
 
-  @impl true
-  def handle_info({:EXIT, pid, _reason}, state) when pid == state.picopad_pid do
+  def handle_info({:EXIT, pid, _reason}, %State{picopad_pid: pid} = state) do
     handle_picopad_down(state)
   end
 
-  @impl true
   def handle_info({:EXIT, _pid, _reason}, state) do
     {:noreply, state}
   end
 
-  @impl true
+  def handle_info(:auto_connect, %State{picopad_pid: nil} = state) do
+    case discover(state) do
+      {:ok, new_state} ->
+        broadcast_connection_changed(new_state)
+        {:noreply, new_state}
+
+      {:error, reason} ->
+        {:noreply, note_failure(state, reason)}
+    end
+  end
+
   def handle_info(:auto_connect, state) do
-    case find_picopad_port() do
-      nil ->
-        {:noreply, state}
+    {:noreply, state}
+  end
 
-      port ->
-        case Picopad.connect(port) do
-          {:ok, pid} ->
-            Process.monitor(pid)
-            setup_event_handlers(pid)
+  def handle_info(:attempt_reconnect, %State{picopad_pid: nil} = state) do
+    case discover(state, settle: @settle_delay) do
+      {:ok, new_state} ->
+        broadcast_connection_changed(new_state)
+        {:noreply, new_state}
 
-            new_state =
-              case Picopad.status(pid) do
-                {:ok, info} ->
-                  status =
-                    case info.connection do
-                      :disconnected -> :connected
-                      :advertising -> :advertising
-                      :pairing -> :pairing
-                      :ready -> :paired
-                      _ -> :connected
-                    end
-
-                  %State{
-                    state
-                    | picopad_pid: pid,
-                      port: port,
-                      status: status,
-                      player_number: info.player,
-                      last_error: nil
-                  }
-
-                {:error, _reason} ->
-                  %State{
-                    state
-                    | picopad_pid: pid,
-                      port: port,
-                      status: :connected,
-                      last_error: nil
-                  }
-              end
-
-            broadcast_connection_changed(new_state)
-            {:noreply, new_state}
-
-          {:error, _reason} ->
-            {:noreply, state}
-        end
+      {:error, reason} ->
+        Process.send_after(self(), :attempt_reconnect, @retry_delay)
+        {:noreply, note_failure(state, reason)}
     end
   end
 
-  @impl true
   def handle_info(:attempt_reconnect, state) do
-    # Don't attempt if already connected
-    if state.picopad_pid do
-      {:noreply, state}
-    else
-      case find_picopad_port() do
-        nil ->
-          Process.send_after(self(), :attempt_reconnect, 5000)
-          {:noreply, state}
-
-        port ->
-          case Picopad.connect(port) do
-            {:ok, pid} ->
-              Process.monitor(pid)
-              setup_event_handlers(pid)
-
-              # Give Pico a moment to stabilize before querying status
-              Process.sleep(100)
-
-              new_state =
-                case Picopad.status(pid) do
-                  {:ok, info} ->
-                    status =
-                      case info.connection do
-                        :disconnected -> :connected
-                        :advertising -> :advertising
-                        :pairing -> :pairing
-                        :ready -> :paired
-                        _ -> :connected
-                      end
-
-                    %State{
-                      state
-                      | picopad_pid: pid,
-                        port: port,
-                        status: status,
-                        player_number: info.player,
-                        last_error: nil
-                    }
-
-                  {:error, _reason} ->
-                    %State{
-                      state
-                      | picopad_pid: pid,
-                        port: port,
-                        status: :connected,
-                        last_error: nil
-                    }
-                end
-
-              broadcast_connection_changed(new_state)
-              {:noreply, new_state}
-
-            {:error, _reason} ->
-              Process.send_after(self(), :attempt_reconnect, 5000)
-              {:noreply, state}
-          end
-      end
-    end
+    {:noreply, state}
   end
 
-  defp handle_picopad_down(state) do
+  defp handle_picopad_down(%State{} = state) do
     Logger.notice("Picopad connection lost, attempting to reconnect...")
 
     new_state = %State{
@@ -429,47 +268,141 @@ defmodule PicopadProxy.ConnectionManager do
       | picopad_pid: nil,
         port: nil,
         status: :disconnected,
-        player_number: nil
+        player_number: nil,
+        firmware: nil,
+        controller: nil
     }
 
     broadcast_connection_changed(new_state)
-    Process.send_after(self(), :attempt_reconnect, 2000)
+    Process.send_after(self(), :attempt_reconnect, @lost_delay)
 
     {:noreply, new_state}
   end
 
-  defp find_picopad_port do
-    case Circuits.UART.enumerate() do
-      ports when is_map(ports) ->
-        ports
-        |> Enum.find(fn {_port, info} ->
-          Map.get(info, :vendor_id) == 11914
-        end)
-        |> case do
-          {port, _info} -> port
-          nil -> nil
-        end
-
-      _ ->
-        nil
+  defp discover(state, opts \\ []) do
+    with {:ok, port} <- PortFinder.find(finder_opts()) do
+      establish(state, port, opts)
     end
   end
 
-  defp setup_event_handlers(pid) do
+  defp establish(state, port, opts \\ []) do
+    case Errors.normalize(Picopad.connect(port, connect_opts())) do
+      {:ok, pid} ->
+        Process.monitor(pid)
+        register_event_handler(pid)
+        Process.sleep(Keyword.get(opts, :settle, 0))
+        read_device(state, pid, port)
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  defp read_device(%State{} = state, pid, port) do
+    connected = %State{
+      state
+      | picopad_pid: pid,
+        port: port,
+        status: :connected,
+        last_error: nil
+    }
+
+    case call_device(fn -> {:ok, connected |> refresh_status() |> detect_firmware()} end) do
+      {:ok, _new_state} = ok ->
+        ok
+
+      {:error, _reason} = error ->
+        close_quietly(pid)
+        error
+    end
+  end
+
+  defp refresh_status(%State{} = state) do
+    case Picopad.status(state.picopad_pid) do
+      {:ok, %{connection: connection, player: player, controller: controller}} ->
+        %State{
+          state
+          | status: ConnectionStatus.from_firmware(connection),
+            player_number: player,
+            controller: controller
+        }
+
+      _other ->
+        state
+    end
+  end
+
+  defp detect_firmware(%State{} = state) do
+    case Picopad.firmware(state.picopad_pid) do
+      {:ok, firmware} -> %State{state | firmware: firmware}
+      _other -> state
+    end
+  end
+
+  defp call_device(fun) do
+    Errors.normalize(fun.())
+  catch
+    :exit, {:timeout, _call} -> {:error, :no_response}
+    :exit, reason -> {:error, {:exit, reason}}
+  end
+
+  defp drop_connection(%State{picopad_pid: nil} = state), do: state
+
+  defp drop_connection(%State{} = state) do
+    close_quietly(state.picopad_pid)
+
+    %State{
+      state
+      | picopad_pid: nil,
+        status: :disconnected,
+        player_number: nil,
+        firmware: nil,
+        controller: nil
+    }
+  end
+
+  defp close_quietly(pid) do
+    Picopad.disconnect(pid)
+  catch
+    :exit, _reason -> :ok
+  end
+
+  defp note_failure(state, :not_found), do: state
+
+  defp note_failure(%State{} = state, reason) do
+    %State{state | last_error: Errors.message(reason)}
+  end
+
+  defp fail(%State{} = state, reason) do
+    new_state = %State{state | last_error: Errors.message(reason)}
+    broadcast_error(reason)
+    broadcast_connection_changed(new_state)
+    new_state
+  end
+
+  defp finder_opts do
+    configured = Application.get_env(:picopad_proxy, :port_finder, [])
+    probe_opts = Keyword.merge(connect_opts(), Keyword.get(configured, :probe_opts, []))
+    Keyword.put(configured, :probe_opts, probe_opts)
+  end
+
+  defp connect_opts do
+    Application.get_env(:picopad_proxy, :picopad_connect_opts, [])
+  end
+
+  defp register_event_handler(pid) do
     handler = fn %{event: event, payload: payload} ->
       send(__MODULE__, {:picopad_event, event, payload})
     end
 
-    Picopad.on_event(pid, :connection_changed, handler)
-    Picopad.on_event(pid, :amiibo_scanned, handler)
-    Picopad.on_event(pid, :log, handler)
+    Picopad.on_event(pid, :all, handler)
   end
 
   defp broadcast_connection_changed(state) do
     Phoenix.PubSub.broadcast(
       PicopadProxy.PubSub,
       @connection_topic,
-      {:connection_changed, Map.take(state, [:status, :port, :player_number])}
+      {:connection_changed, Map.take(state, @info_keys)}
     )
   end
 
@@ -485,7 +418,7 @@ defmodule PicopadProxy.ConnectionManager do
     Phoenix.PubSub.broadcast(
       PicopadProxy.PubSub,
       @connection_topic,
-      {:error, inspect(reason)}
+      {:error, Errors.message(reason)}
     )
   end
 end

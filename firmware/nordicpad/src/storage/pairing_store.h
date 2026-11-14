@@ -15,6 +15,7 @@ typedef struct {
 typedef struct {
     bool (*load)(void *context, pairing_record_t *record);
     bool (*save)(void *context, const pairing_record_t *record);
+    bool (*clear)(void *context);
     void *context;
 } pairing_store_t;
 

@@ -33,6 +33,7 @@ defmodule Picopad.Protocol do
   @cmd_reconnect 0x40
   @cmd_forget_bonding 0x41
   @cmd_get_bonding_status 0x42
+  @cmd_set_colors 0x43
   @cmd_ping 0xF0
   @cmd_get_version 0xF1
   @cmd_reset 0xF2
@@ -42,6 +43,9 @@ defmodule Picopad.Protocol do
   @evt_amiibo_scanned 0xE1
   @evt_amiibo_write_complete 0xE2
   @evt_error 0xE3
+  @evt_reconnect_success 0xE4
+  @evt_reconnect_failed 0xE5
+  @evt_bonding_cleared 0xE6
   @evt_log 0xE7
 
   @type_joycon_l 0x01
@@ -82,6 +86,8 @@ defmodule Picopad.Protocol do
     x: {0, 1},
     b: {0, 2},
     a: {0, 3},
+    sl: {0, 4},
+    sr: {0, 5},
     r: {0, 6},
     zr: {0, 7},
     minus: {1, 0},
@@ -90,10 +96,13 @@ defmodule Picopad.Protocol do
     l_stick: {1, 3},
     home: {1, 4},
     capture: {1, 5},
+    c: {1, 6},
+    gl: {1, 7},
     down: {2, 0},
     up: {2, 1},
     right: {2, 2},
     left: {2, 3},
+    gr: {2, 4},
     l: {2, 6},
     zl: {2, 7}
   }
@@ -184,6 +193,16 @@ defmodule Picopad.Protocol do
     build_request(@cmd_set_log_level, <<level_byte>>)
   end
 
+  def build_set_colors(colors) do
+    payload =
+      Enum.map_join([:body, :buttons, :highlight, :grip], fn part ->
+        {r, g, b} = Keyword.fetch!(colors, part)
+        <<r, g, b>>
+      end)
+
+    build_request(@cmd_set_colors, payload)
+  end
+
   def build_request(cmd, payload \\ <<>>) when is_integer(cmd) and is_binary(payload) do
     len = 2 + 1 + byte_size(payload) + 1
     packet = <<len::little-16, cmd>> <> payload
@@ -199,11 +218,11 @@ defmodule Picopad.Protocol do
     end
   end
 
-  defp parse_decoded_response(data) when byte_size(data) < 5 do
+  def parse_decoded_response(data) when byte_size(data) < 5 do
     {:error, :too_short}
   end
 
-  defp parse_decoded_response(data) do
+  def parse_decoded_response(data) do
     <<len::little-16, cmd, status, rest::binary>> = data
     payload_size = byte_size(rest) - 1
     <<payload::binary-size(payload_size), crc>> = rest
@@ -224,11 +243,11 @@ defmodule Picopad.Protocol do
     end
   end
 
-  defp parse_decoded_event(data) when byte_size(data) < 4 do
+  def parse_decoded_event(data) when byte_size(data) < 4 do
     {:error, :too_short}
   end
 
-  defp parse_decoded_event(data) do
+  def parse_decoded_event(data) do
     <<len::little-16, cmd, rest::binary>> = data
     payload_size = byte_size(rest) - 1
     <<payload::binary-size(payload_size), crc>> = rest
@@ -383,6 +402,9 @@ defmodule Picopad.Protocol do
   defp cmd_to_event(@evt_amiibo_scanned), do: :amiibo_scanned
   defp cmd_to_event(@evt_amiibo_write_complete), do: :amiibo_write_complete
   defp cmd_to_event(@evt_error), do: :error
+  defp cmd_to_event(@evt_reconnect_success), do: :reconnect_success
+  defp cmd_to_event(@evt_reconnect_failed), do: :reconnect_failed
+  defp cmd_to_event(@evt_bonding_cleared), do: :bonding_cleared
   defp cmd_to_event(@evt_log), do: :log
   defp cmd_to_event(cmd), do: {:unknown, cmd}
 
@@ -459,8 +481,16 @@ defmodule Picopad.Protocol do
   defp button_to_id(:capture), do: 0x0F
   defp button_to_id(:l_stick), do: 0x10
   defp button_to_id(:r_stick), do: 0x11
+  defp button_to_id(:sl), do: 0x12
+  defp button_to_id(:sr), do: 0x13
+  defp button_to_id(:c), do: 0x14
+  defp button_to_id(:gl), do: 0x15
+  defp button_to_id(:gr), do: 0x16
 
-  defp buttons_to_bytes(button_atoms) do
+  def firmware_from_version("nordicpad" <> _), do: :nordicpad
+  def firmware_from_version(_version), do: :picopad
+
+  def buttons_to_bytes(button_atoms) do
     {b0, b1, b2} =
       Enum.reduce(button_atoms, {0, 0, 0}, fn button, {b0, b1, b2} ->
         case Map.get(@button_map, button) do

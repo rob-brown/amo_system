@@ -33,8 +33,16 @@ static bool flash_save(void *context, const pairing_record_t *record) {
     return saved;
 }
 
+static bool flash_clear(void *context) {
+    (void)context;
+
+    bool cleared = flash_erase(flash_device(), STORAGE_OFFSET, ERASE_SIZE) == 0;
+    LOG("pairing record %s", cleared ? "erased from flash" : "could not be erased");
+    return cleared;
+}
+
 const pairing_store_t *zephyr_flash_pairing_store(void) {
-    static const pairing_store_t store = {.load = flash_load, .save = flash_save, .context = NULL};
+    static const pairing_store_t store = {.load = flash_load, .save = flash_save, .clear = flash_clear, .context = NULL};
 
     return &store;
 }

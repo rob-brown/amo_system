@@ -7,9 +7,9 @@
 #define STATUS_REPLY_SIZE 10
 #define NO_PLAYER 0xFF
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
+#define VERSION_MINOR 2
 #define VERSION_PATCH 0
-#define VERSION_STRING "nordicpad 0.1.0"
+#define VERSION_STRING "nordicpad 0.2.0"
 
 typedef struct {
     uint8_t command;
@@ -47,6 +47,10 @@ static uint8_t handle_get_version(host_commands_t *commands, const host_request_
 
 static const command_entry_t COMMAND_TABLE[] = {
     {HOST_CMD_GET_STATUS, handle_get_status},
+    {HOST_CMD_START_ADVERTISING, host_handle_start_advertising},
+    {HOST_CMD_STOP_ADVERTISING, host_handle_stop_advertising},
+    {HOST_CMD_RECONNECT, host_handle_reconnect},
+    {HOST_CMD_FORGET_BONDING, host_handle_forget_bonding},
     {HOST_CMD_SET_BUTTONS, host_handle_set_buttons},
     {HOST_CMD_SET_ALL_BUTTONS, host_handle_set_all_buttons},
     {HOST_CMD_CLEAR_BUTTONS, host_handle_clear_buttons},
@@ -82,6 +86,10 @@ void host_commands_set_appearance(host_commands_t *commands, const host_appearan
 
 void host_commands_set_system(host_commands_t *commands, const host_system_t *system) {
     commands->system = *system;
+}
+
+void host_commands_set_radio(host_commands_t *commands, const host_radio_t *radio) {
+    commands->radio = *radio;
 }
 
 void host_commands_set_controller_type(host_commands_t *commands, controller_type_t type) {

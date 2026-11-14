@@ -7,6 +7,10 @@ config :picopad_proxy, PicopadProxyWeb.Endpoint,
   secret_key_base: "5MQOWVUVvyJbyJ5Iq2kj7wRF6Qxd2Z+fm+JshspfHFAFiIcwJef6v/WLkkEnI1Go",
   server: false
 
+config :picopad_proxy,
+  auto_connect: false,
+  picopad_connect_opts: [uart_module: Picopad.Test.FakeUart]
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

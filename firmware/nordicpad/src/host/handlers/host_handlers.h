@@ -15,6 +15,11 @@ uint8_t host_handle_set_stick_preset(host_commands_t *commands, const host_reque
 uint8_t host_handle_get_input_state(host_commands_t *commands, const host_request_t *request);
 uint8_t host_handle_press_button(host_commands_t *commands, const host_request_t *request);
 
+uint8_t host_handle_start_advertising(host_commands_t *commands, const host_request_t *request);
+uint8_t host_handle_stop_advertising(host_commands_t *commands, const host_request_t *request);
+uint8_t host_handle_reconnect(host_commands_t *commands, const host_request_t *request);
+uint8_t host_handle_forget_bonding(host_commands_t *commands, const host_request_t *request);
+
 uint8_t host_handle_reset(host_commands_t *commands, const host_request_t *request);
 
 uint8_t host_handle_set_colors(host_commands_t *commands, const host_request_t *request);

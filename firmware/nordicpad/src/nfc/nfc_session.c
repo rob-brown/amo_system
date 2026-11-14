@@ -42,9 +42,15 @@ void nfc_session_init(nfc_session_t *session, const amiibo_store_t *amiibo) {
     memset(session, 0, sizeof(*session));
     session->amiibo = amiibo;
     session->state = NFC_STATE_IDLE;
+    session->seen_generation = amiibo->generation;
+}
+
+void nfc_session_set_listener(nfc_session_t *session, const nfc_session_listener_t *listener) {
+    session->listener = *listener;
 }
 
 void nfc_session_configure(nfc_session_t *session, const uint8_t *payload, size_t length) {
+    session->configured = true;
     if (!amiibo_store_is_loaded(session->amiibo)) {
         return;
     }
@@ -54,6 +60,13 @@ void nfc_session_configure(nfc_session_t *session, const uint8_t *payload, size_
 }
 
 void nfc_session_tick(nfc_session_t *session, uint32_t elapsed_ms) {
+    if (session->amiibo->generation != session->seen_generation) {
+        session->seen_generation = session->amiibo->generation;
+        if (session->configured && amiibo_store_is_loaded(session->amiibo)) {
+            schedule_event(session, NFC_REPEAT_CONFIGURE_DELAY_MS);
+        }
+    }
+
     if (!session->event_pending) {
         return;
     }
@@ -72,6 +85,7 @@ uint8_t nfc_session_event_counter(const nfc_session_t *session) {
 }
 
 void nfc_session_end(nfc_session_t *session) {
+    session->configured = false;
     session->state = NFC_STATE_IDLE;
     session->buffer_length = 0;
     session->event_pending = false;
@@ -105,7 +119,13 @@ bool nfc_session_start_read(nfc_session_t *session, const uint8_t *payload, size
 
     size_t built = nfc_build_range_buffer(session->amiibo, &payload[REQUEST_ECHO_OFFSET], length - REQUEST_ECHO_OFFSET, session->buffer,
                                           sizeof(session->buffer));
-    return enter_phase(session, NFC_STATE_READING, built);
+    if (!enter_phase(session, NFC_STATE_READING, built)) {
+        return false;
+    }
+    if (session->listener.on_read_started != NULL) {
+        session->listener.on_read_started(session->listener.context);
+    }
+    return true;
 }
 
 bool nfc_session_commit_write(nfc_session_t *session) {

@@ -32,8 +32,19 @@ static bool flash_save(void *context, const pairing_record_t *record) {
     return true;
 }
 
+static bool flash_clear(void *context) {
+    (void)context;
+
+    uint32_t interrupts = save_and_disable_interrupts();
+    flash_range_erase(PAIRING_FLASH_OFFSET, FLASH_SECTOR_SIZE);
+    restore_interrupts(interrupts);
+
+    LOG("pairing record erased from flash");
+    return true;
+}
+
 const pairing_store_t *flash_pairing_store(void) {
-    static const pairing_store_t store = {.load = flash_load, .save = flash_save, .context = NULL};
+    static const pairing_store_t store = {.load = flash_load, .save = flash_save, .clear = flash_clear, .context = NULL};
 
     return &store;
 }

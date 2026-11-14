@@ -4,7 +4,7 @@ defmodule PicopadProxy.MixProject do
   def project do
     [
       app: :picopad_proxy,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -28,7 +28,10 @@ defmodule PicopadProxy.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test) do
+    ["lib", "test/support", Path.expand("../picopad/test/support", __DIR__)]
+  end
+
   defp elixirc_paths(_), do: ["lib"]
 
   defp deps do

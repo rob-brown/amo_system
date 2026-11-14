@@ -2,6 +2,8 @@ defmodule PicopadProxyWeb.AmiiboLive do
   use PicopadProxyWeb, :live_view
 
   alias AmiiboManager
+  alias PicopadProxy.AmiiboFile
+  alias PicopadProxy.AmiiboImage
   alias PicopadProxy.ConnectionManager
 
   @impl true
@@ -173,19 +175,18 @@ defmodule PicopadProxyWeb.AmiiboLive do
   def handle_event("load_amiibo", %{"id" => id}, socket) do
     amiibo = Enum.find(socket.assigns.amiibos, &(&1.id == String.to_integer(id)))
 
-    encrypted_data = AmiiboSerialization.encrypt_binary!(amiibo.data)
+    with {:ok, encrypted_data} <- AmiiboFile.encrypt(amiibo.data),
+         :ok <- ConnectionManager.load_amiibo(encrypted_data) do
+      socket =
+        socket
+        |> put_flash(:info, "Loaded #{amiibo.name} to Picopad")
+        |> assign(:selected_amiibo, amiibo)
 
-    case ConnectionManager.load_amiibo(encrypted_data) do
-      :ok ->
-        socket =
-          socket
-          |> put_flash(:info, "Loaded #{amiibo.name} to Picopad")
-          |> assign(:selected_amiibo, amiibo)
-
-        {:noreply, socket}
-
+      {:noreply, socket}
+    else
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to load amiibo: #{inspect(reason)}")}
+        {:noreply,
+         put_flash(socket, :error, "Failed to load amiibo: #{AmiiboFile.message(reason)}")}
     end
   end
 
@@ -195,14 +196,14 @@ defmodule PicopadProxyWeb.AmiiboLive do
       amiibo = socket.assigns.selected_amiibo
       a = AmiiboSerialization.Amiibo.new(amiibo.data)
       shuffled = AmiiboSerialization.Amiibo.shuffle_serial(a)
-      encrypted_data = AmiiboSerialization.encrypt_binary!(shuffled.binary)
 
-      case ConnectionManager.load_amiibo(encrypted_data) do
-        :ok ->
-          {:noreply, put_flash(socket, :info, "Shuffled ID and reloaded amiibo")}
-
+      with {:ok, encrypted_data} <- AmiiboFile.encrypt(shuffled.binary),
+           :ok <- ConnectionManager.load_amiibo(encrypted_data) do
+        {:noreply, put_flash(socket, :info, "Shuffled ID and reloaded amiibo")}
+      else
         {:error, reason} ->
-          {:noreply, put_flash(socket, :error, "Failed to shuffle ID: #{inspect(reason)}")}
+          {:noreply,
+           put_flash(socket, :error, "Failed to shuffle ID: #{AmiiboFile.message(reason)}")}
       end
     else
       {:noreply, socket}
@@ -221,7 +222,8 @@ defmodule PicopadProxyWeb.AmiiboLive do
         {:noreply, socket}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to clear amiibo: #{inspect(reason)}")}
+        {:noreply,
+         put_flash(socket, :error, "Failed to clear amiibo: #{AmiiboFile.message(reason)}")}
     end
   end
 
@@ -240,56 +242,9 @@ defmodule PicopadProxyWeb.AmiiboLive do
     collection = socket.assigns.selected_collection
 
     if collection do
-      uploaded_files =
-        consume_uploaded_entries(socket, :amiibo_file, fn %{path: path}, _entry ->
-          with {:ok, binary} <- File.read(path) do
-            encrypted? = AmiiboSerialization.encrypted?(binary)
-
-            decrypt_result =
-              if encrypted? do
-                AmiiboSerialization.decrypt_binary(binary)
-              else
-                {:ok, binary}
-              end
-
-            case decrypt_result do
-              {:ok, decrypted} ->
-                amiibo =
-                  try do
-                    AmiiboSerialization.Amiibo.new(decrypted)
-                  rescue
-                    _e ->
-                      nil
-                  end
-
-                if amiibo do
-                  case AmiiboManager.add_amiibo(collection, amiibo) do
-                    {:ok, saved_amiibo} ->
-                      {:ok, saved_amiibo}
-
-                    {:error, changeset} ->
-                      errors =
-                        Ecto.Changeset.traverse_errors(changeset, fn {msg, _} -> msg end)
-
-                      {:postpone, "Failed to save: #{inspect(errors)}"}
-                  end
-                else
-                  {:postpone, "Invalid amiibo format - unexpected size"}
-                end
-
-              {:error, reason} ->
-                {:postpone, "Decryption failed: #{inspect(reason)}"}
-
-              nil ->
-                {:postpone, "Decryption returned nil"}
-
-              _other ->
-                {:postpone, "Unexpected decryption result"}
-            end
-          else
-            {:error, reason} ->
-              {:postpone, "Failed to read file: #{inspect(reason)}"}
-          end
+      results =
+        consume_uploaded_entries(socket, :amiibo_file, fn %{path: path}, entry ->
+          {:ok, import_upload(path, entry.client_name, collection)}
         end)
 
       import Ecto.Query
@@ -303,12 +258,16 @@ defmodule PicopadProxyWeb.AmiiboLive do
         |> Enum.map(&enrich_amiibo/1)
         |> Enum.sort_by(& &1.name)
 
-      count = length(uploaded_files)
+      saved = Enum.count(results, &match?({:saved, _amiibo}, &1))
+
+      rejected =
+        for {:rejected, name, reason} <- results, do: "#{name}: #{AmiiboFile.message(reason)}"
 
       socket =
         socket
         |> assign(:amiibos, amiibos)
-        |> put_flash(:info, "Uploaded #{count} amiibo")
+        |> put_flash(:info, "Uploaded #{saved} amiibo")
+        |> flash_rejected(rejected)
 
       {:noreply, socket}
     else
@@ -356,6 +315,33 @@ defmodule PicopadProxyWeb.AmiiboLive do
     {:noreply, socket}
   end
 
+  defp import_upload(path, name, collection) do
+    with {:ok, binary} <- File.read(path),
+         {:ok, amiibo} <- AmiiboFile.parse(binary),
+         {:ok, saved} <- save_amiibo(collection, amiibo) do
+      {:saved, saved}
+    else
+      {:error, reason} -> {:rejected, name, reason}
+    end
+  end
+
+  defp save_amiibo(collection, amiibo) do
+    case AmiiboManager.add_amiibo(collection, amiibo) do
+      {:ok, saved} ->
+        {:ok, saved}
+
+      {:error, changeset} ->
+        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _} -> msg end)
+        {:error, {:save_failed, errors}}
+    end
+  end
+
+  defp flash_rejected(socket, []), do: socket
+
+  defp flash_rejected(socket, rejected) do
+    put_flash(socket, :error, "Rejected: " <> Enum.join(rejected, "; "))
+  end
+
   defp enrich_amiibo(amiibo) do
     a = AmiiboSerialization.Amiibo.new(amiibo.data)
 
@@ -367,8 +353,7 @@ defmodule PicopadProxyWeb.AmiiboLive do
   end
 
   defp amiibo_image_url(amiibo) do
-    {head, tail} = SSBU.character_info(amiibo)
-    "https://raw.githubusercontent.com/N3evin/AmiiboAPI/master/images/icon_#{head}-#{tail}.png"
+    amiibo |> SSBU.character_info() |> AmiiboImage.url()
   end
 
   defp extract_stats(amiibo) do

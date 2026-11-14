@@ -54,3 +54,16 @@ void host_service_publish_connection(host_service_t *service, host_connection_st
     uint8_t payload[CONNECTION_EVENT_SIZE] = {(uint8_t)state};
     host_link_send_event(&service->link, HOST_EVT_CONNECTION_CHANGED, payload, sizeof(payload));
 }
+
+void host_service_publish_bonding_cleared(host_service_t *service) {
+    host_link_send_event(&service->link, HOST_EVT_BONDING_CLEARED, NULL, 0);
+}
+
+void host_service_publish_amiibo_scanned(host_service_t *service, bool write_request) {
+    uint8_t payload[] = {write_request ? 1 : 0};
+    host_link_send_event(&service->link, HOST_EVT_AMIIBO_SCANNED, payload, sizeof(payload));
+}
+
+void host_service_publish_reconnect_result(host_service_t *service, bool succeeded) {
+    host_link_send_event(&service->link, succeeded ? HOST_EVT_RECONNECT_SUCCESS : HOST_EVT_RECONNECT_FAILED, NULL, 0);
+}

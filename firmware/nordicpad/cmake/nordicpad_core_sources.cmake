@@ -12,6 +12,7 @@ set(NORDICPAD_CORE_SOURCES
     ${NORDICPAD_SOURCE_DIR}/host/handlers/amiibo_commands.c
     ${NORDICPAD_SOURCE_DIR}/host/handlers/appearance_commands.c
     ${NORDICPAD_SOURCE_DIR}/host/handlers/input_commands.c
+    ${NORDICPAD_SOURCE_DIR}/host/handlers/radio_commands.c
     ${NORDICPAD_SOURCE_DIR}/host/handlers/system_commands.c
     ${NORDICPAD_SOURCE_DIR}/host/host_commands.c
     ${NORDICPAD_SOURCE_DIR}/host/host_link.c

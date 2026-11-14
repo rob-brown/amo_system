@@ -25,8 +25,16 @@ typedef enum {
 } nfc_state_t;
 
 typedef struct {
+    void (*on_read_started)(void *context);
+    void *context;
+} nfc_session_listener_t;
+
+typedef struct {
     const amiibo_store_t *amiibo;
+    nfc_session_listener_t listener;
     nfc_state_t state;
+    bool configured;
+    uint32_t seen_generation;
     uint8_t buffer[NFC_BUFFER_CAPACITY];
     size_t buffer_length;
     uint8_t event_counter;
@@ -35,6 +43,8 @@ typedef struct {
 } nfc_session_t;
 
 void nfc_session_init(nfc_session_t *session, const amiibo_store_t *amiibo);
+
+void nfc_session_set_listener(nfc_session_t *session, const nfc_session_listener_t *listener);
 
 void nfc_session_configure(nfc_session_t *session, const uint8_t *payload, size_t length);
 

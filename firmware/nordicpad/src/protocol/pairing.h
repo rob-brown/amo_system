@@ -38,6 +38,8 @@ void pairing_remember_host_address(pairing_t *pairing, const uint8_t host_addres
 
 bool pairing_commit(pairing_t *pairing);
 
+bool pairing_forget(pairing_t *pairing);
+
 bool pairing_get_host_address(const pairing_t *pairing, uint8_t host_address_le[PAIRING_ADDRESS_SIZE]);
 
 bool pairing_get_link_key(const pairing_t *pairing, uint8_t link_key[PAIRING_KEY_SIZE]);

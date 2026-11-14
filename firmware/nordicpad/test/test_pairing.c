@@ -288,7 +288,81 @@ static bool test_console_address_survives_a_restart(void) {
     return true;
 }
 
+static bool test_forget_removes_the_key_and_console_address(void) {
+    // Arrange
+    fixture_t fixture;
+    setup(&fixture);
+    run_full_pairing(&fixture);
+    uint8_t link_key[KEY_SIZE];
+    uint8_t host_address[PAIRING_ADDRESS_SIZE];
+
+    // Act
+    bool forgotten = pairing_forget(&fixture.pairing);
+
+    // Assert
+    ASSERT(forgotten);
+    ASSERT(!pairing_get_link_key(&fixture.pairing, link_key));
+    ASSERT(!pairing_get_host_address(&fixture.pairing, host_address));
+    ASSERT(!fixture.ram_store.occupied);
+    return true;
+}
+
+static bool test_forgotten_pairing_stays_gone_after_a_restart(void) {
+    // Arrange
+    fixture_t fixture;
+    setup(&fixture);
+    run_full_pairing(&fixture);
+    pairing_t restarted;
+    uint8_t link_key[KEY_SIZE];
+
+    // Act
+    pairing_forget(&fixture.pairing);
+    pairing_init(&restarted, &fixture.ram_store.store, LOCAL_ADDRESS);
+
+    // Assert
+    ASSERT(!pairing_get_link_key(&restarted, link_key));
+    return true;
+}
+
+static bool test_forget_discards_an_unfinished_pairing(void) {
+    // Arrange
+    fixture_t fixture;
+    setup(&fixture);
+    uint8_t reply[64];
+    SEND(&fixture, 0x04, KEY_EXCHANGE_REQUEST, reply);
+
+    // Act
+    pairing_forget(&fixture.pairing);
+    size_t length = SEND(&fixture, 0x03, FINALISE_REQUEST, reply);
+
+    // Assert
+    ASSERT_EQ(length, 0);
+    ASSERT(!fixture.ram_store.occupied);
+    return true;
+}
+
+static bool test_forget_keeps_the_key_when_the_store_cannot_clear(void) {
+    // Arrange
+    fixture_t fixture;
+    setup(&fixture);
+    run_full_pairing(&fixture);
+    fixture.ram_store.store.clear = NULL;
+    uint8_t link_key[KEY_SIZE];
+
+    // Act
+    bool forgotten = pairing_forget(&fixture.pairing);
+
+    // Assert
+    ASSERT(!forgotten);
+    ASSERT(pairing_get_link_key(&fixture.pairing, link_key));
+    return true;
+}
+
 TEST_MAIN_BEGIN("pairing")
+    RUN_TEST(test_forget_removes_the_key_and_console_address);
+    RUN_TEST(test_forgotten_pairing_stays_gone_after_a_restart);
+    RUN_TEST(test_forget_discards_an_unfinished_pairing);
+    RUN_TEST(test_forget_keeps_the_key_when_the_store_cannot_clear);
     RUN_TEST(test_finalise_stores_the_console_address);
     RUN_TEST(test_console_address_is_unknown_before_pairing_finishes);
     RUN_TEST(test_console_address_survives_a_restart);

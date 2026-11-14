@@ -90,6 +90,45 @@ static bool test_start_without_a_tag_is_refused(void) {
     return true;
 }
 
+static int reads_started;
+
+static void count_read_started(void *context) {
+    (void)context;
+    reads_started++;
+}
+
+static bool test_listener_hears_about_each_read_that_starts(void) {
+    // Arrange
+    load_fixture();
+    reads_started = 0;
+    const nfc_session_listener_t listener = {count_read_started, NULL};
+    nfc_session_set_listener(&fixture.session, &listener);
+
+    // Act
+    nfc_session_start_read(&fixture.session, THREE_RANGE_START, sizeof(THREE_RANGE_START));
+    nfc_session_end(&fixture.session);
+    nfc_session_start_read(&fixture.session, THREE_RANGE_START, sizeof(THREE_RANGE_START));
+
+    // Assert
+    ASSERT_EQ(reads_started, 2);
+    return true;
+}
+
+static bool test_listener_is_silent_when_the_read_is_refused(void) {
+    // Arrange
+    load_empty_fixture();
+    reads_started = 0;
+    const nfc_session_listener_t listener = {count_read_started, NULL};
+    nfc_session_set_listener(&fixture.session, &listener);
+
+    // Act
+    nfc_session_start_read(&fixture.session, THREE_RANGE_START, sizeof(THREE_RANGE_START));
+
+    // Assert
+    ASSERT_EQ(reads_started, 0);
+    return true;
+}
+
 static bool test_read_before_start_returns_nothing(void) {
     // Arrange
     load_fixture();
@@ -437,6 +476,85 @@ static bool test_no_event_is_raised_without_a_tag(void) {
     return true;
 }
 
+static bool test_loading_an_amiibo_while_the_console_waits_raises_an_event(void) {
+    // Arrange
+    load_empty_fixture();
+    nfc_session_configure(&fixture.session, FIRST_CONFIGURE, sizeof(FIRST_CONFIGURE));
+    nfc_session_tick(&fixture.session, 5000);
+    for (size_t index = 0; index < sizeof(fixture.dump); index++) {
+        fixture.dump[index] = (uint8_t)(index * 5 + 1);
+    }
+
+    // Act
+    amiibo_store_load(&fixture.amiibo, fixture.dump, sizeof(fixture.dump));
+    nfc_session_tick(&fixture.session, NFC_REPEAT_CONFIGURE_DELAY_MS);
+
+    // Assert
+    ASSERT_EQ(nfc_session_event_counter(&fixture.session), 1);
+    return true;
+}
+
+static bool test_replacing_the_amiibo_while_the_console_waits_raises_another_event(void) {
+    // Arrange
+    load_fixture();
+    nfc_session_configure(&fixture.session, REPEAT_CONFIGURE, sizeof(REPEAT_CONFIGURE));
+    nfc_session_tick(&fixture.session, NFC_REPEAT_CONFIGURE_DELAY_MS);
+    uint8_t before = nfc_session_event_counter(&fixture.session);
+
+    // Act
+    amiibo_store_load(&fixture.amiibo, fixture.dump, sizeof(fixture.dump));
+    nfc_session_tick(&fixture.session, NFC_REPEAT_CONFIGURE_DELAY_MS);
+
+    // Assert
+    ASSERT_EQ(before, 1);
+    ASSERT_EQ(nfc_session_event_counter(&fixture.session), 2);
+    return true;
+}
+
+static bool test_loading_an_amiibo_before_the_console_scans_raises_no_early_event(void) {
+    // Arrange
+    load_empty_fixture();
+    nfc_session_tick(&fixture.session, 1);
+
+    // Act
+    amiibo_store_load(&fixture.amiibo, fixture.dump, sizeof(fixture.dump));
+    nfc_session_tick(&fixture.session, 5000);
+
+    // Assert
+    ASSERT_EQ(nfc_session_event_counter(&fixture.session), 0);
+    return true;
+}
+
+static bool test_loading_an_amiibo_after_the_scan_ended_raises_no_event(void) {
+    // Arrange
+    load_empty_fixture();
+    nfc_session_configure(&fixture.session, FIRST_CONFIGURE, sizeof(FIRST_CONFIGURE));
+    nfc_session_end(&fixture.session);
+
+    // Act
+    amiibo_store_load(&fixture.amiibo, fixture.dump, sizeof(fixture.dump));
+    nfc_session_tick(&fixture.session, 5000);
+
+    // Assert
+    ASSERT_EQ(nfc_session_event_counter(&fixture.session), 0);
+    return true;
+}
+
+static bool test_clearing_the_amiibo_while_the_console_waits_raises_no_event(void) {
+    // Arrange
+    load_fixture();
+    nfc_session_configure(&fixture.session, REPEAT_CONFIGURE, sizeof(REPEAT_CONFIGURE));
+    nfc_session_tick(&fixture.session, NFC_REPEAT_CONFIGURE_DELAY_MS);
+
+    // Act
+    amiibo_store_clear(&fixture.amiibo);
+    nfc_session_tick(&fixture.session, 5000);
+
+    // Assert
+    ASSERT_EQ(nfc_session_event_counter(&fixture.session), 1);
+    return true;
+}
+
 static bool test_ending_the_scan_cancels_a_pending_event(void) {
     // Arrange
     load_fixture();
@@ -481,6 +599,13 @@ static bool test_event_counter_wraps_after_seven(void) {
 }
 
 TEST_MAIN_BEGIN("nfc_session")
+    RUN_TEST(test_loading_an_amiibo_while_the_console_waits_raises_an_event);
+    RUN_TEST(test_replacing_the_amiibo_while_the_console_waits_raises_another_event);
+    RUN_TEST(test_loading_an_amiibo_before_the_console_scans_raises_no_early_event);
+    RUN_TEST(test_loading_an_amiibo_after_the_scan_ended_raises_no_event);
+    RUN_TEST(test_clearing_the_amiibo_while_the_console_waits_raises_no_event);
+    RUN_TEST(test_listener_hears_about_each_read_that_starts);
+    RUN_TEST(test_listener_is_silent_when_the_read_is_refused);
     RUN_TEST(test_v3_read_header_carries_the_v3_flag_and_a_contiguous_uid);
     RUN_TEST(test_v3_four_range_read_covers_every_requested_page);
     RUN_TEST(test_commit_before_a_read_is_refused);

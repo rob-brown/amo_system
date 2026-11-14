@@ -39,4 +39,12 @@ typedef struct {
 
 int ble_peripheral_start(const ble_peripheral_config_t *config);
 
+void ble_peripheral_start_advertising(void);
+
+void ble_peripheral_stop_advertising(void);
+
+bool ble_peripheral_is_advertising(void);
+
+void ble_peripheral_disconnect(void);
+
 #endif

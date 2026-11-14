@@ -2,7 +2,6 @@ defmodule Picopad.Connection do
   use GenServer
 
   alias Picopad.COBS
-  alias Picopad.CRC8
   alias Picopad.Protocol
 
   @default_baud 115_200
@@ -10,6 +9,7 @@ defmodule Picopad.Connection do
 
   defstruct [
     :uart,
+    :uart_module,
     :port,
     :timeout_timer,
     rx_buffer: <<>>,
@@ -21,12 +21,18 @@ defmodule Picopad.Connection do
     port = Keyword.fetch!(opts, :port)
     name = Keyword.get(opts, :name)
     baud = Keyword.get(opts, :baud, @default_baud)
+    uart_module = Keyword.get(opts, :uart_module, Circuits.UART)
 
     gen_opts = if name, do: [name: name], else: []
-    GenServer.start_link(__MODULE__, %{port: port, baud: baud}, gen_opts)
+    init_arg = %{port: port, baud: baud, uart_module: uart_module}
+
+    with {:ok, pid} <- GenServer.start(__MODULE__, init_arg, gen_opts) do
+      Process.link(pid)
+      {:ok, pid}
+    end
   end
 
-  def send_command(pid, packet, timeout \\ @response_timeout) do
+  def send_command(pid, packet, timeout \\ response_timeout()) do
     GenServer.call(pid, {:send_command, packet}, timeout)
   end
 
@@ -42,9 +48,13 @@ defmodule Picopad.Connection do
     GenServer.stop(pid, :normal)
   end
 
+  defp response_timeout do
+    Application.get_env(:picopad, :response_timeout, @response_timeout)
+  end
+
   @impl true
-  def init(%{port: port, baud: baud}) do
-    case Circuits.UART.start_link() do
+  def init(%{port: port, baud: baud, uart_module: uart_module}) do
+    case uart_module.start_link() do
       {:ok, uart} ->
         uart_opts = [
           speed: baud,
@@ -54,13 +64,13 @@ defmodule Picopad.Connection do
           active: true
         ]
 
-        case Circuits.UART.open(uart, port, uart_opts) do
+        case uart_module.open(uart, port, uart_opts) do
           :ok ->
-            state = %__MODULE__{uart: uart, port: port}
+            state = %__MODULE__{uart: uart, uart_module: uart_module, port: port}
             {:ok, state}
 
           {:error, reason} ->
-            Circuits.UART.stop(uart)
+            uart_module.stop(uart)
             {:stop, {:open_failed, reason}}
         end
 
@@ -75,8 +85,8 @@ defmodule Picopad.Connection do
       nil ->
         if state.timeout_timer, do: Process.cancel_timer(state.timeout_timer)
 
-        Circuits.UART.write(state.uart, packet)
-        timer = Process.send_after(self(), :command_timeout, @response_timeout + 100)
+        state.uart_module.write(state.uart, packet)
+        timer = Process.send_after(self(), :command_timeout, response_timeout() + 100)
 
         new_state = %{state | pending_request: from, timeout_timer: timer}
         {:noreply, new_state}
@@ -127,8 +137,8 @@ defmodule Picopad.Connection do
     if state.timeout_timer, do: Process.cancel_timer(state.timeout_timer)
 
     if state.uart do
-      Circuits.UART.close(state.uart)
-      Circuits.UART.stop(state.uart)
+      state.uart_module.close(state.uart)
+      state.uart_module.stop(state.uart)
     end
 
     :ok
@@ -186,32 +196,14 @@ defmodule Picopad.Connection do
       from ->
         if state.timeout_timer, do: Process.cancel_timer(state.timeout_timer)
 
-        result = parse_response_packet(decoded)
+        result = Protocol.parse_decoded_response(decoded)
         GenServer.reply(from, result)
         %{state | pending_request: nil, timeout_timer: nil}
     end
   end
 
-  defp parse_response_packet(data) when byte_size(data) < 5 do
-    {:error, :too_short}
-  end
-
-  defp parse_response_packet(data) do
-    <<len::little-16, cmd, status, rest::binary>> = data
-    payload_size = byte_size(rest) - 1
-    <<payload::binary-size(payload_size), crc>> = rest
-
-    expected_crc = CRC8.calculate(binary_part(data, 0, byte_size(data) - 1))
-
-    cond do
-      len != byte_size(data) -> {:error, :length_mismatch}
-      crc != expected_crc -> {:error, :crc_mismatch}
-      true -> {:ok, %{cmd: cmd, status: status_to_atom(status), payload: payload}}
-    end
-  end
-
   defp handle_event(decoded, state) do
-    case parse_event_packet(decoded) do
+    case Protocol.parse_decoded_event(decoded) do
       {:ok, %{event: event} = parsed} ->
         case Map.get(state.event_handlers, event) do
           nil -> :ok
@@ -229,38 +221,4 @@ defmodule Picopad.Connection do
 
     state
   end
-
-  defp parse_event_packet(data) when byte_size(data) < 4 do
-    {:error, :too_short}
-  end
-
-  defp parse_event_packet(data) do
-    <<len::little-16, cmd, rest::binary>> = data
-    payload_size = byte_size(rest) - 1
-    <<payload::binary-size(payload_size), crc>> = rest
-
-    expected_crc = CRC8.calculate(binary_part(data, 0, byte_size(data) - 1))
-
-    cond do
-      len != byte_size(data) -> {:error, :length_mismatch}
-      crc != expected_crc -> {:error, :crc_mismatch}
-      true -> {:ok, %{event: cmd_to_event(cmd), payload: payload}}
-    end
-  end
-
-  defp status_to_atom(0x00), do: :ok
-  defp status_to_atom(0x01), do: :unknown_command
-  defp status_to_atom(0x02), do: :invalid_params
-  defp status_to_atom(0x03), do: :busy
-  defp status_to_atom(0x04), do: :not_connected
-  defp status_to_atom(0x05), do: :amiibo_error
-  defp status_to_atom(0xFF), do: :error
-  defp status_to_atom(code), do: {:unknown, code}
-
-  defp cmd_to_event(0xE0), do: :connection_changed
-  defp cmd_to_event(0xE1), do: :amiibo_scanned
-  defp cmd_to_event(0xE2), do: :amiibo_write_complete
-  defp cmd_to_event(0xE3), do: :error
-  defp cmd_to_event(0xE7), do: :log
-  defp cmd_to_event(cmd), do: {:unknown, cmd}
 end

@@ -75,6 +75,22 @@ bool pairing_commit(pairing_t *pairing) {
     return true;
 }
 
+bool pairing_forget(pairing_t *pairing) {
+    if (pairing->store->clear == NULL || !pairing->store->clear(pairing->store->context)) {
+        return false;
+    }
+
+    memset(pairing->link_key, 0, sizeof(pairing->link_key));
+    memset(pairing->pending_key, 0, sizeof(pairing->pending_key));
+    memset(pairing->host_address_le, 0, sizeof(pairing->host_address_le));
+    memset(pairing->pending_host_address_le, 0, sizeof(pairing->pending_host_address_le));
+    pairing->has_link_key = false;
+    pairing->has_pending_key = false;
+    pairing->has_host_address = false;
+    pairing->has_pending_host_address = false;
+    return true;
+}
+
 bool pairing_get_link_key(const pairing_t *pairing, uint8_t link_key[PAIRING_KEY_SIZE]) {
     if (!pairing->has_link_key) {
         return false;

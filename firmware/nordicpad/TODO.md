@@ -6,8 +6,8 @@ State on 2026-11-14: the nRF52840 dongle runs BTstack plus the open-source Zephy
 
 - [ ] **Writes.** The console writes when an amiibo is registered or changed (System Settings > amiibo > Enter Owner and Nickname > OK, and in games). The `nfc:` log lines already show the commands (`01.14` write is acked but ignored today). Work out the Switch 2 write sequence and ack, apply the data to the stored dump, and mirror the Switch 1 write ACK findings (sequential block ids, WriteDone).
 - [ ] **Hand the modified dump back to the host.** Needs the amiibo read commands (0x35, 0x36) in the host-channel section below.
-- [ ] **Persist the loaded amiibo** (it lives only in RAM and is lost on reset), or document that the host reloads it after each reset.
-- [ ] **Re-verify v2 and the other v3 dumps on the dongle** (Meta Knight, King Dedede, a v2 dump). Only Kirby was scanned on the dongle; the others were verified on the Mac build.
+- [x] **Amiibo loaded while the console is already scanning** is now picked up (verified on the dongle 2026-11-14, system menu scan screen). The store has a generation counter, and `nfc_session_tick` signals the console like a scan start when the generation changes with an amiibo present and the console has an NFC session open. Before, a scan screen opened first never noticed a later load.
+- [x] **Re-verified on the dongle (2026-11-14), loaded through the proxy's Amiibo page while the console waited on System Settings > amiibo > Enter Owner and Nickname:** Kirby (v3), Meta Knight (v3), King Dedede (v3) and a v2 dump (SSBU) all scan and show their nicknames. Not tried: scanning in a game (Kirby Air Riders, SSBU) rather than the system menu, and writing a registration back.
 - [ ] **The 32-byte per-amiibo header block** is a constant taken from a Kirby capture, not derived. Find where the console's value comes from.
 
 ## Host channel
@@ -16,9 +16,11 @@ The host protocol is the one in `firmware/picopad/src/host_protocol.c` (COBS pac
 
 Needed by `apps/picopad_proxy` (its Picopad page and connection status):
 
-- [ ] **Start advertising (0x02)** and **stop advertising (0x03)**, no payload, reply OK. The dongle advertises on its own at boot today and has no pairing-mode switch; give the BLE layer a way to start and stop advertising and make the connection state (advertising / pairing / ready) follow it, so the proxy's status matches.
-- [ ] **Reconnect (0x40)**, no payload. Pico behavior: error status if there is no stored pairing, OK when a reconnect attempt started, BUSY if one is already running. On the dongle this means advertising with the stored console address again (see `ble_peripheral.c` host-address advertising).
-- [ ] **Forget bonding (0x41)**, no payload, reply OK. `host_ids.h` has the id but no handler. Must clear the flash pairing record (`src/storage/zephyr_flash_pairing_store.c`) and the in-RAM key, drop any live link, and resume pairing-mode advertising, so re-pairing needs no reflash. Emit the bonding-cleared event (below).
+- [x] **Start advertising (0x02)** and **stop advertising (0x03)**. Done and verified on the dongle (2026-11-14): after a stop `get_status` reads disconnected and stays so (no re-advertise on disconnect); start gives advertising, pairing, ready as the console connects.
+- [x] **Reconnect (0x40)**. Done and verified: ERROR with no stored pairing, OK after a stop with a stored pairing (advertising, then 0xE4, then pairing, ready), BUSY while connected. Not verified: BUSY while advertising only.
+- [x] **Forget bonding (0x41)**. Done and verified: the link drops, 0xE6 is sent, the dongle advertises open, and the console on Change Grip/Order paired again by itself within 3 s.
+- [x] **Events 0xE1, 0xE4, 0xE6.** Verified on hardware. 0xE1 (`<<0>>`) is sent each time the console starts a read; the console reads twice per scan on Enter Owner and Nickname, so expect two events per scan.
+- [ ] **Reconnect failed (0xE5)** after the 30 s reconnect timeout is implemented but not verified on hardware (the console always reconnected at once).
 
 Wanted, not needed by the proxy yet:
 
@@ -32,8 +34,8 @@ Wanted, not needed by the proxy yet:
 Events (the dongle only sends the connection-changed event, 0xE0, with a 7-byte payload `<<state, address::6>>` where the address is currently zeros):
 
 - [ ] **Fill in the console address** in the connection-changed event and in `get_status` (`switch_address`) once the link has a peer.
-- [ ] **Amiibo scanned (0xE1)**, payload `<<write_request>>` (0 for a read). Send it when the console completes an amiibo read in `nfc_session`; the proxy shows scans from it. Define `HOST_EVT_AMIIBO_SCANNED` in `host_ids.h` (value 0xE1).
-- [ ] **Other events** the Pico sends: amiibo write complete (0xE2, with the write work), error (0xE3), reconnect success/failed (0xE4/0xE5, with the reconnect command), bonding cleared (0xE6, with forget bonding), log (0xE7, `<<level, text...>>`; optional, useful to forward the dongle log to the host instead of the first serial port).
+- [x] **Amiibo scanned (0xE1)**, `<<0>>` for a read, sent when the console starts a read (verified, twice per scan). The write-request flag is never set until the write work exists.
+- [ ] **Other events** the Pico sends: amiibo write complete (0xE2, with the write work), error (0xE3), log (0xE7, `<<level, text...>>`; optional, useful to forward the dongle log to the host instead of the first serial port). Reconnect success/failed (0xE4/0xE5) and bonding cleared (0xE6) are done.
 - [ ] **Player number.** `get_status` reports `player` as 0xFF (none) always, so the proxy cannot show which player slot the console assigned. Unverified guess: the console sends the controller a player-lights command during init or after assignment. Look for it in the `req:` log lines (unhandled commands show up there), confirm it carries the player number, then store it and report it in `get_status` and the connection event. If the console sends nothing like it, drop this item.
 
 ## Controller behavior
@@ -43,6 +45,7 @@ Events (the dongle only sends the connection-changed event, 0xE0, with a 7-byte 
 - [ ] **Joy-Con L profile** and the regression with both real Joy-Cons wireless (case (a), not run).
 - [ ] **The one-time 0x1e bounce per fresh pairing** is avoided only by patching the shared NCS tree (`dongle/zephyr_conn_interval_min.patch`). Keep the patch applied in the build instructions, or carry it as a west patch/fork.
 - [ ] **Unexplained:** the 2026-11-10 night where the link ran 20+ minutes at interval 12 without a console update; the PHY update to 2M after reconnect is not decoded in the log.
+- [ ] **Intermittent: re-pairing after forget bonding stuck once (2026-11-14).** Forget bonding with the console on Controllers > Change Grip/Order, after an amiibo scan session and with an amiibo loaded: the console connected every ~3 s, finished the MTU exchange, sent no command, and dropped the link after 2 s (`disconnected, reason 0x13`, log line `write to handle 0x0000 ignored (0 bytes)` just before). The state stayed `pairing`/`advertising` for 40+ s and clearing the amiibo did not help; rebooting the dongle (host command 0xF2) fixed it and the console paired at once. Not reproduced in three retries (library with and without an amiibo, and from the proxy page): each re-paired in about 3 s. Candidates: leftover console-side state from the scan session, or dongle BTstack state after an in-place disconnect and re-advertise. If it recurs, capture the log from the forget itself, and try forgetting twice or sending the reset before reaching for a reflash.
 
 ## Firmware and tooling
 

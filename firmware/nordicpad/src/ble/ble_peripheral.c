@@ -29,6 +29,10 @@ _Static_assert(HANDLE_COMMAND_REPLY_CCC == GATT_ATTRIBUTE(GATT_COMMAND_REPLY_UUI
 
 static ble_peripheral_config_t config;
 static btstack_packet_callback_registration_t hci_registration;
+static bool advertising;
+static bool advertising_wanted = true;
+static bool connected;
+static hci_con_handle_t connection_handle;
 
 static void address_to_le(const bd_addr_t address, uint8_t address_le[BLE_ADDRESS_SIZE]) {
     for (int index = 0; index < BLE_ADDRESS_SIZE; index++) {
@@ -46,9 +50,10 @@ static bool fill_host_address(uint8_t data[ADVERTISING_DATA_MAX_SIZE]) {
     return true;
 }
 
-static void start_advertising(void) {
+static void begin_advertising(void) {
     bd_addr_t no_peer = {0};
 
+    gap_advertisements_enable(0);
     gap_advertisements_set_params(ADVERTISING_INTERVAL_UNITS,
                                   ADVERTISING_INTERVAL_UNITS,
                                   ADVERTISING_TYPE_CONNECTABLE_UNDIRECTED,
@@ -66,7 +71,32 @@ static void start_advertising(void) {
         gap_scan_response_set_data((uint8_t)config.profile->scan_response_length, scan_response);
     }
     gap_advertisements_enable(1);
+    advertising = true;
     LOG("advertising as %s (%s)", config.profile->name, reconnecting ? "for the paired console" : "open to any console");
+}
+
+void ble_peripheral_start_advertising(void) {
+    advertising_wanted = true;
+    if (!connected) {
+        begin_advertising();
+    }
+}
+
+void ble_peripheral_stop_advertising(void) {
+    advertising_wanted = false;
+    gap_advertisements_enable(0);
+    advertising = false;
+    LOG("advertising stopped");
+}
+
+bool ble_peripheral_is_advertising(void) {
+    return advertising;
+}
+
+void ble_peripheral_disconnect(void) {
+    if (connected) {
+        gap_disconnect(connection_handle);
+    }
 }
 
 static void handle_ready(void) {
@@ -79,7 +109,7 @@ static void handle_ready(void) {
 
     config.listener.on_ready(config.listener.context, local_address_le);
     ble_diagnostics_on_ready();
-    start_advertising();
+    ble_peripheral_start_advertising();
 }
 
 #ifdef NORDICPAD_DIAGNOSTIC_DISCONNECT_MS
@@ -121,6 +151,9 @@ static void handle_le_meta_event(uint8_t *packet) {
             hci_subevent_le_connection_complete_get_peer_address_type(packet),
             hci_subevent_le_connection_complete_get_connection_handle(packet),
             hci_subevent_le_connection_complete_get_conn_interval(packet));
+        connected = true;
+        advertising = false;
+        connection_handle = hci_subevent_le_connection_complete_get_connection_handle(packet);
         skip_identity_lookup(hci_subevent_le_connection_complete_get_connection_handle(packet));
         gatt_bridge_connected(hci_subevent_le_connection_complete_get_connection_handle(packet));
         config.listener.on_connected(config.listener.context);
@@ -196,8 +229,11 @@ static void handle_hci_event(uint8_t packet_type, uint16_t channel, uint8_t *pac
         LOG("disconnected, reason 0x%02x", hci_event_disconnection_complete_get_reason(packet));
         ble_diagnostics_on_disconnected();
         gatt_bridge_disconnected();
+        connected = false;
         config.listener.on_disconnected(config.listener.context);
-        start_advertising();
+        if (advertising_wanted) {
+            begin_advertising();
+        }
         break;
     default:
         if (!is_noisy_event(hci_event_packet_get_type(packet))) {

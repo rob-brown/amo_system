@@ -71,7 +71,42 @@ static bool test_garbage_file_has_no_record(void) {
     return true;
 }
 
+static bool test_cleared_store_has_no_record(void) {
+    // Arrange
+    remove(TEST_PATH);
+    file_pairing_store_t file_store;
+    const pairing_record_t original = sample_record();
+    pairing_record_t loaded;
+    file_pairing_store_init(&file_store, TEST_PATH);
+    file_store.store.save(file_store.store.context, &original);
+
+    // Act
+    bool cleared = file_store.store.clear(file_store.store.context);
+    bool found = file_store.store.load(file_store.store.context, &loaded);
+
+    // Assert
+    ASSERT(cleared);
+    ASSERT(!found);
+    return true;
+}
+
+static bool test_clearing_an_empty_store_succeeds(void) {
+    // Arrange
+    remove(TEST_PATH);
+    file_pairing_store_t file_store;
+    file_pairing_store_init(&file_store, TEST_PATH);
+
+    // Act
+    bool cleared = file_store.store.clear(file_store.store.context);
+
+    // Assert
+    ASSERT(cleared);
+    return true;
+}
+
 TEST_MAIN_BEGIN("file_pairing_store")
+    RUN_TEST(test_cleared_store_has_no_record);
+    RUN_TEST(test_clearing_an_empty_store_succeeds);
     RUN_TEST(test_saved_record_loads_from_a_new_store_instance);
     RUN_TEST(test_missing_file_has_no_record);
     RUN_TEST(test_garbage_file_has_no_record);

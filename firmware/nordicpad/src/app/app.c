@@ -19,6 +19,7 @@
 #define NFC_POLL_SUBCOMMAND 0x05
 #define NFC_LOG_SKIP 17
 #define HEARTBEAT_MS 5000
+#define RECONNECT_TIMEOUT_MS 30000
 #define DEFAULT_REPORT_INTERVAL_MS 15
 #define CONNECTION_UNIT_NUMERATOR 5
 #define CONNECTION_UNIT_DENOMINATOR 4
@@ -45,6 +46,8 @@ static app_t app;
 static host_service_t host;
 static btstack_timer_source_t heartbeat;
 static btstack_timer_source_t input_timer;
+static btstack_timer_source_t reconnect_timer;
+static bool reconnect_pending;
 static uint32_t report_interval_ms = DEFAULT_REPORT_INTERVAL_MS;
 
 static uint32_t connection_interval_ms(uint16_t interval_units) {
@@ -58,7 +61,7 @@ static host_connection_state_t connection_state(void *context) {
     if (app.connected) {
         return gatt_bridge_input_enabled() ? HOST_CONNECTION_READY : HOST_CONNECTION_PAIRING;
     }
-    return app.ready ? HOST_CONNECTION_ADVERTISING : HOST_CONNECTION_DISCONNECTED;
+    return ble_peripheral_is_advertising() ? HOST_CONNECTION_ADVERTISING : HOST_CONNECTION_DISCONNECTED;
 }
 
 static void input_timer_handler(btstack_timer_source_t *timer) {
@@ -164,9 +167,79 @@ static void on_set_colors(void *context, const controller_colors_t *colors) {
     LOG("controller colors changed; the console reads them when it reconnects");
 }
 
+static void on_start_advertising(void *context) {
+    UNUSED(context);
+
+    ble_peripheral_start_advertising();
+}
+
+static void on_stop_advertising(void *context) {
+    UNUSED(context);
+
+    ble_peripheral_stop_advertising();
+}
+
+static void finish_reconnect(bool succeeded) {
+    if (!reconnect_pending) {
+        return;
+    }
+    reconnect_pending = false;
+    btstack_run_loop_remove_timer(&reconnect_timer);
+    host_service_publish_reconnect_result(&host, succeeded);
+}
+
+static void reconnect_timeout_handler(btstack_timer_source_t *timer) {
+    UNUSED(timer);
+
+    LOG("reconnect timed out");
+    finish_reconnect(false);
+}
+
+static void start_reconnect_timer(void) {
+    reconnect_timer.process = reconnect_timeout_handler;
+    btstack_run_loop_set_timer(&reconnect_timer, RECONNECT_TIMEOUT_MS);
+    btstack_run_loop_add_timer(&reconnect_timer);
+}
+
+static void on_read_started(void *context) {
+    UNUSED(context);
+
+    host_service_publish_amiibo_scanned(&host, false);
+}
+
+static uint8_t on_reconnect(void *context) {
+    UNUSED(context);
+    uint8_t link_key[PAIRING_KEY_SIZE];
+
+    if (!app.ready || !pairing_get_link_key(&app.pairing, link_key)) {
+        return HOST_STATUS_ERROR;
+    }
+    if (app.connected || ble_peripheral_is_advertising() || reconnect_pending) {
+        return HOST_STATUS_BUSY;
+    }
+    reconnect_pending = true;
+    start_reconnect_timer();
+    ble_peripheral_start_advertising();
+    return HOST_STATUS_OK;
+}
+
+static bool on_forget_bonding(void *context) {
+    UNUSED(context);
+
+    if (!app.ready || !pairing_forget(&app.pairing)) {
+        return false;
+    }
+    LOG("pairing forgotten");
+    ble_peripheral_start_advertising();
+    ble_peripheral_disconnect();
+    host_service_publish_bonding_cleared(&host);
+    return true;
+}
+
 static void on_connected(void *context) {
     UNUSED(context);
     app.connected = true;
+    finish_reconnect(true);
 }
 
 static void on_disconnected(void *context) {
@@ -219,8 +292,12 @@ int app_run(const app_platform_t *platform) {
     const host_appearance_t appearance = {on_set_colors, NULL};
     host_commands_set_appearance(&host.commands, &appearance);
     host_commands_set_system(&host.commands, &platform->system);
+    const host_radio_t radio = {on_start_advertising, on_stop_advertising, on_reconnect, on_forget_bonding, NULL};
+    host_commands_set_radio(&host.commands, &radio);
     host_commands_set_controller_type(&host.commands, app.profile->type);
     nfc_session_init(&app.nfc, &host.amiibo);
+    const nfc_session_listener_t nfc_listener = {on_read_started, NULL};
+    nfc_session_set_listener(&app.nfc, &nfc_listener);
     host_service_start(&host);
     start_heartbeat();
     start_input_timer();

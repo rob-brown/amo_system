@@ -100,7 +100,7 @@ static bool test_version_starts_with_major_minor_patch(void) {
     // Assert
     ASSERT_EQ(response.status, HOST_STATUS_OK);
     ASSERT_EQ(response.payload[0], 0);
-    ASSERT_EQ(response.payload[1], 1);
+    ASSERT_EQ(response.payload[1], 2);
     ASSERT_EQ(response.payload[2], 0);
     ASSERT(response.length > 3);
     return true;
@@ -399,7 +399,148 @@ static bool test_reset_fails_when_the_platform_cannot_reboot(void) {
     return true;
 }
 
+typedef struct {
+    int started;
+    int stopped;
+    int reconnects;
+    int forgotten;
+    uint8_t reconnect_status;
+    bool forget_succeeds;
+} radio_spy_t;
+
+static radio_spy_t radio_spy;
+
+static void spy_start(void *context) {
+    ((radio_spy_t *)context)->started++;
+}
+
+static void spy_stop(void *context) {
+    ((radio_spy_t *)context)->stopped++;
+}
+
+static uint8_t spy_reconnect(void *context) {
+    radio_spy_t *spy = context;
+    spy->reconnects++;
+    return spy->reconnect_status;
+}
+
+static bool spy_forget(void *context) {
+    radio_spy_t *spy = context;
+    spy->forgotten++;
+    return spy->forget_succeeds;
+}
+
+static void attach_radio_spy(void) {
+    memset(&radio_spy, 0, sizeof(radio_spy));
+    radio_spy.reconnect_status = HOST_STATUS_OK;
+    radio_spy.forget_succeeds = true;
+    const host_radio_t radio = {spy_start, spy_stop, spy_reconnect, spy_forget, &radio_spy};
+    host_commands_set_radio(&fixture.commands, &radio);
+}
+
+static bool test_start_advertising_asks_the_radio_to_advertise(void) {
+    // Arrange
+    reset_fixture();
+    attach_radio_spy();
+
+    // Act
+    host_response_t response = run(HOST_CMD_START_ADVERTISING, NULL, 0);
+
+    // Assert
+    ASSERT_EQ(response.status, HOST_STATUS_OK);
+    ASSERT_EQ(response.length, 0);
+    ASSERT_EQ(radio_spy.started, 1);
+    ASSERT_EQ(radio_spy.stopped, 0);
+    return true;
+}
+
+static bool test_stop_advertising_asks_the_radio_to_stop(void) {
+    // Arrange
+    reset_fixture();
+    attach_radio_spy();
+
+    // Act
+    host_response_t response = run(HOST_CMD_STOP_ADVERTISING, NULL, 0);
+
+    // Assert
+    ASSERT_EQ(response.status, HOST_STATUS_OK);
+    ASSERT_EQ(radio_spy.stopped, 1);
+    ASSERT_EQ(radio_spy.started, 0);
+    return true;
+}
+
+static bool test_reconnect_reports_what_the_radio_decided(void) {
+    // Arrange
+    reset_fixture();
+    attach_radio_spy();
+    const uint8_t outcomes[] = {HOST_STATUS_OK, HOST_STATUS_BUSY, HOST_STATUS_ERROR};
+    uint8_t statuses[sizeof(outcomes)];
+
+    // Act
+    for (size_t index = 0; index < sizeof(outcomes); index++) {
+        radio_spy.reconnect_status = outcomes[index];
+        statuses[index] = run(HOST_CMD_RECONNECT, NULL, 0).status;
+    }
+
+    // Assert
+    ASSERT_MEM_EQ(statuses, outcomes, sizeof(outcomes));
+    ASSERT_EQ(radio_spy.reconnects, 3);
+    return true;
+}
+
+static bool test_forget_bonding_succeeds_when_the_radio_forgets(void) {
+    // Arrange
+    reset_fixture();
+    attach_radio_spy();
+
+    // Act
+    host_response_t response = run(HOST_CMD_FORGET_BONDING, NULL, 0);
+
+    // Assert
+    ASSERT_EQ(response.status, HOST_STATUS_OK);
+    ASSERT_EQ(radio_spy.forgotten, 1);
+    return true;
+}
+
+static bool test_forget_bonding_fails_when_the_radio_cannot_forget(void) {
+    // Arrange
+    reset_fixture();
+    attach_radio_spy();
+    radio_spy.forget_succeeds = false;
+
+    // Act
+    host_response_t response = run(HOST_CMD_FORGET_BONDING, NULL, 0);
+
+    // Assert
+    ASSERT_EQ(response.status, HOST_STATUS_ERROR);
+    return true;
+}
+
+static bool test_radio_commands_fail_without_a_radio(void) {
+    // Arrange
+    reset_fixture();
+
+    // Act
+    host_response_t start = run(HOST_CMD_START_ADVERTISING, NULL, 0);
+    host_response_t stop = run(HOST_CMD_STOP_ADVERTISING, NULL, 0);
+    host_response_t reconnect = run(HOST_CMD_RECONNECT, NULL, 0);
+    host_response_t forget = run(HOST_CMD_FORGET_BONDING, NULL, 0);
+
+    // Assert
+    ASSERT_EQ(start.status, HOST_STATUS_ERROR);
+    ASSERT_EQ(stop.status, HOST_STATUS_ERROR);
+    ASSERT_EQ(reconnect.status, HOST_STATUS_ERROR);
+    ASSERT_EQ(forget.status, HOST_STATUS_ERROR);
+    return true;
+}
+
 TEST_MAIN_BEGIN("host_commands")
+    RUN_TEST(test_start_advertising_asks_the_radio_to_advertise);
+    RUN_TEST(test_stop_advertising_asks_the_radio_to_stop);
+    RUN_TEST(test_reconnect_reports_what_the_radio_decided);
+    RUN_TEST(test_forget_bonding_succeeds_when_the_radio_forgets);
+    RUN_TEST(test_forget_bonding_fails_when_the_radio_cannot_forget);
+    RUN_TEST(test_radio_commands_fail_without_a_radio);
     RUN_TEST(test_reset_asks_the_platform_to_reboot_into_the_requested_target);
     RUN_TEST(test_reset_rejects_an_unknown_target_without_rebooting);
     RUN_TEST(test_reset_fails_when_the_platform_cannot_reboot);
