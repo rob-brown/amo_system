@@ -1,0 +1,209 @@
+<title>Amiibo v2 vs v3 Layout</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+  /* Layout: a two-column memory map (v2 | v3), one row per region, offsets in mono, category colours on a left stripe */
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --fg: #1b2430;
+    --muted: #5d6b7c;
+    --line: #d6dde5;
+    --uid: #2f6fed;
+    --plain: #7a8794;
+    --enc: #1f9d6b;
+    --hmac: #b7791f;
+    --app: #7c4dcc;
+    --reserved: #c0392b;
+    --opaque: #d9622b;
+    --sram: #0e8fa8;
+    --cfg: #6b7280;
+    --font-display: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161d; --panel: #18212b; --fg: #e6ebf1; --muted: #93a1b2; --line: #2b3745;
+      --uid: #6b9bff; --plain: #8f9baa; --enc: #3fc790; --hmac: #e0a948; --app: #a98af0;
+      --reserved: #ef7a6c; --opaque: #f08a55; --sram: #46c3da; --cfg: #98a2b3;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161d; --panel: #18212b; --fg: #e6ebf1; --muted: #93a1b2; --line: #2b3745;
+    --uid: #6b9bff; --plain: #8f9baa; --enc: #3fc790; --hmac: #e0a948; --app: #a98af0;
+    --reserved: #ef7a6c; --opaque: #f08a55; --sram: #46c3da; --cfg: #98a2b3;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-block: 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  h1 { font-family: var(--font-display); font-size: clamp(26px, 4vw, 38px); line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }
+  h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 10px; }
+  p { margin: 0; max-width: 68ch; color: var(--muted); }
+  .mono { font-family: var(--font-mono); font-size: 12.5px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .map { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .head, .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.25fr); }
+  .head { background: var(--bg); border-bottom: 1px solid var(--line); font-family: var(--font-display); font-weight: 700; }
+  .head div { padding: 12px 14px; }
+  .head small { display: block; font-family: var(--font-body); font-weight: 400; color: var(--muted); font-size: 12px; }
+  .row { border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row > div { padding: 12px 14px; min-width: 0; }
+  .what { font-weight: 600; font-size: 14px; }
+  .what small { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .cell { border-left: 4px solid var(--stripe, var(--line)); }
+  .cell b { display: block; font-family: var(--font-mono); font-weight: 500; font-size: 12.5px; }
+  .cell span { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .cell.none { color: var(--muted); border-left-color: transparent; font-size: 13px; }
+  .uid { --stripe: var(--uid); } .plain { --stripe: var(--plain); } .enc { --stripe: var(--enc); }
+  .hmac { --stripe: var(--hmac); } .app { --stripe: var(--app); } .reserved { --stripe: var(--reserved); }
+  .opaque { --stripe: var(--opaque); } .sram { --stripe: var(--sram); } .cfg { --stripe: var(--cfg); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card p { color: var(--fg); }
+  .scale { display: flex; flex-direction: column; gap: 10px; }
+  .bar { display: grid; grid-template-columns: 74px 1fr; gap: 10px; align-items: center; font-family: var(--font-mono); font-size: 12px; }
+  .bar div { height: 22px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; display: flex; }
+  .bar i { display: block; height: 100%; }
+  ul { margin: 0; padding-left: 18px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+  @media (max-width: 760px) {
+    .head { display: none; }
+    .row { grid-template-columns: 1fr; }
+    .row > div { padding: 8px 14px; }
+    .row > .what { padding-top: 14px; }
+    .cell::before { content: attr(data-ver); display: block; font-family: var(--font-display); font-weight: 700; font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
+  }
+</style>
+
+<main>
+  <header>
+    <h1>Amiibo v2 vs v3 layout</h1>
+    <p>Where the data sits on a v2 tag (NTAG215, 540 bytes) and a v3 tag (NTAG I²C Plus 2K, 2048 bytes). Offsets are tag byte offsets. Everything here comes from the three console-verified v3 dumps and one v2 dump, except rows marked as from the spec.</p>
+  </header>
+
+  <div class="legend" aria-label="Legend">
+    <span><i style="background:var(--uid)"></i>UID</span>
+    <span><i style="background:var(--plain)"></i>Plaintext, covered by HMAC</span>
+    <span><i style="background:var(--enc)"></i>Encrypted with the amiibo key (we decrypt)</span>
+    <span><i style="background:var(--hmac)"></i>HMAC</span>
+    <span><i style="background:var(--app)"></i>App data (game payload inside)</span>
+    <span><i style="background:var(--reserved)"></i>Reserved, preserved untouched</span>
+    <span><i style="background:var(--opaque)"></i>Game data, not decryptable</span>
+    <span><i style="background:var(--sram)"></i>SRAM mirror (machine)</span>
+    <span><i style="background:var(--cfg)"></i>Config and lock pages</span>
+  </div>
+
+  <section class="map" aria-label="Memory map">
+    <div class="head">
+      <div>v2 tag<small>540 bytes, 135 pages</small></div>
+      <div>Region</div>
+      <div>v3 tag<small>2048 bytes, 512 pages</small></div>
+    </div>
+
+    <div class="row">
+      <div class="cell uid" data-ver="v2"><b>0x000–0x008</b><span>UID with BCC bytes: UID0–2, BCC0, UID3–6, BCC1</span></div>
+      <div class="what">UID<small>Part of the key seed</small></div>
+      <div class="cell uid" data-ver="v3"><b>0x000–0x006, 0x007, 0x008</b><span>7 UID bytes, no BCC. Byte 7 is 00 and byte 8 is 44 in all three dumps. No cascade-tag flag is stored.</span></div>
+    </div>
+    <div class="row">
+      <div class="cell plain" data-ver="v2"><b>0x009–0x00F</b><span>Internal byte, lock bytes, capability container</span></div>
+      <div class="what">Header</div>
+      <div class="cell plain" data-ver="v3"><b>0x009–0x00F</b><span>Same, except byte 9 is 00 here and 48 on the v2 dump. Rest is 0F E0 F1 10 FF EE</span></div>
+    </div>
+    <div class="row">
+      <div class="cell enc" data-ver="v2"><b>0x010–0x033</b><span>36 bytes. 0x010–0x013 plaintext, 0x014–0x033 encrypted</span></div>
+      <div class="what">Settings<small>Write counter and flags</small></div>
+      <div class="cell enc" data-ver="v3"><b>0x010–0x033</b><span>Same layout and encryption</span></div>
+    </div>
+    <div class="row">
+      <div class="cell hmac" data-ver="v2"><b>0x034–0x053</b><span>Tag HMAC, 32 bytes</span></div>
+      <div class="what">Tag hash</div>
+      <div class="cell hmac" data-ver="v3"><b>0x034–0x053</b><span>Same</span></div>
+    </div>
+    <div class="row">
+      <div class="cell plain" data-ver="v2"><b>0x054–0x07F</b><span>Amiibo ID at 0x054–0x05B (byte 0x05B = 02), plus 36 bytes of data</span></div>
+      <div class="what">Amiibo ID<small>Format version is the last ID byte</small></div>
+      <div class="cell plain" data-ver="v3"><b>0x054–0x07F</b><span>Same, but byte 0x05B = 03. Kirby 1F00 0000 04C4 1E03</span></div>
+    </div>
+    <div class="row">
+      <div class="cell none" data-ver="v2">Not present</div>
+      <div class="what">Reserved block<small>Random-looking, never edited</small></div>
+      <div class="cell reserved" data-ver="v3"><b>0x080–0x0BF</b><span>64 bytes, preserved verbatim</span></div>
+    </div>
+    <div class="row">
+      <div class="cell hmac" data-ver="v2"><b>0x080–0x09F</b><span>Data HMAC, 32 bytes</span></div>
+      <div class="what">Data hash</div>
+      <div class="cell hmac" data-ver="v3"><b>0x0C0–0x0DF</b><span>Data HMAC, moved by 0x40</span></div>
+    </div>
+    <div class="row">
+      <div class="cell app" data-ver="v2"><b>0x0A0–0x207</b><span>360 bytes. SSBU stores readable fields here</span></div>
+      <div class="what">App data<small>Nickname, owner, Mii, app ID, game payload</small></div>
+      <div class="cell app" data-ver="v3"><b>0x0E0–0x247</b><span>360 bytes. After amiibo decryption the KAR payload (offsets 0xDC–0x1B3 of the decrypted image) is still high-entropy</span></div>
+    </div>
+    <div class="row">
+      <div class="cell cfg" data-ver="v2"><b>0x208–0x21B</b><span>Dynamic lock, CFG0, CFG1, PWD, PACK. End of tag at 0x21C</span></div>
+      <div class="what">Tail<small>Everything after the app data</small></div>
+      <div class="cell opaque" data-ver="v3"><b>0x248–0x267</b><span>32 bytes, identical on all three figures. Not decryptable by us</span></div>
+    </div>
+    <div class="row">
+      <div class="cell none" data-ver="v2">Not present</div>
+      <div class="what">Game data<small>Appears when a figure is registered</small></div>
+      <div class="cell opaque" data-ver="v3"><b>0x2A8–0x2E7, 0x400–0x463, 0x52C–0x5F3</b><span>Blobs starting A5 00 01 00. Unregistered Kirby has one at 0x400, registered figures at 0x52C. Not decryptable by us</span></div>
+    </div>
+    <div class="row">
+      <div class="cell none" data-ver="v2">Not present</div>
+      <div class="what">Plain constants</div>
+      <div class="cell plain" data-ver="v3"><b>0x380–0x3BF</b><span>Identical on all three figures. The spec calls 0x388–0x3A8 game-specific encrypted data, but it reads as fixed plaintext here</span></div>
+    </div>
+    <div class="row">
+      <div class="cell none" data-ver="v2">Not present</div>
+      <div class="what">SRAM mirror<small>Decides the machine</small></div>
+      <div class="cell sram" data-ver="v3"><b>0x3C0–0x3FF</b><span>64 bytes. About 26 authenticated bytes (0x3C2–0x3DB), a code like PB4W17 at 0x3D3, CRC16 at 0x3FE. Swapping it changed the machine in KAR</span></div>
+    </div>
+    <div class="row">
+      <div class="cell none" data-ver="v2">Not present</div>
+      <div class="what">Config pages<small>From the spec, not checked on a dump</small></div>
+      <div class="cell cfg" data-ver="v3"><b>0x710–0x723</b><span>CFG0, CFG1, dynamic lock, PWD, PACK, relocated from v2</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How much is decryptable</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="scale" role="img" aria-label="Share of each tag covered by the amiibo key">
+          <div class="bar"><span>v2 540 B</span><div><i style="width:96.3%;background:var(--enc)"></i></div></div>
+          <div class="bar"><span>v3 2048 B</span><div><i style="width:28.5%;background:var(--enc)"></i></div></div>
+        </div>
+        <p style="margin-top:12px">Green is the range covered by the amiibo-layer crypto: v2 bytes 0x000–0x207, v3 bytes 0x000–0x247 (584 of 2048).</p>
+      </div>
+      <div class="card">
+        <h2>Amiibo layer, done</h2>
+        <p>AES-128-CTR over 392 bytes (0x014–0x033 and the 360-byte app data), HMAC-SHA256 for the tag and data hashes. The same retail key file works for both formats. v3 only changes where the HMAC and app data sit.</p>
+      </div>
+      <div class="card">
+        <h2>Game layer, not done</h2>
+        <p>The KAR payload inside the app data, the blocks after 0x248 and the SRAM authentication bytes are not covered by the amiibo key. We keep them byte for byte so a decrypt followed by an encrypt returns the original file.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Things the dumps showed</h2>
+    <ul>
+      <li>Format is detected by size, and for encrypted v3 by the ID format byte at 0x05B being 03.</li>
+      <li>A decrypted v3 binary is 2048 bytes: the 520-byte internal layout, the 64 reserved bytes, then everything from 0x248.</li>
+      <li>The machine in Kirby Air Riders follows the SRAM block, not the encrypted data. Changing only the UID breaks the scan (error 2115-0548).</li>
+    </ul>
+  </section>
+</main>
