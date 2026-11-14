@@ -13,6 +13,20 @@ Picopad Proxy enables you to:
 
 This replaces the existing `gamepad` app's Joycontrol (Python Bluetooth emulation) approach with native Picopad hardware control.
 
+## Supported hardware
+
+The proxy talks to either of two devices through the `Picopad` library (`apps/picopad`). Both speak the same USB serial host protocol, and the proxy detects which one is connected.
+
+| | Raspberry Pi Pico 2 W | nordicpad nRF52840 dongle |
+|---|---|---|
+| Firmware | `firmware/picopad` | `firmware/nordicpad` |
+| Console | Switch 1 (Bluetooth Classic) | Switch 2 (Bluetooth LE), shows up as a Pro Controller 2 |
+| Serial ports | one | two: the first is a text log, the second is the host channel |
+| Amiibo | v2 (540 bytes) | v2 (540 bytes) and v3 (2048 bytes, Kirby Air Riders) |
+| Advertising | starts when you click "Start Advertising" | advertises by itself at boot, with the stored console when there is one |
+
+The Home and Picopad pages show which device is connected. A command the firmware does not implement shows "Not supported by this firmware" and leaves the status alone.
+
 ## Features
 
 ### Core Functionality
@@ -85,12 +99,12 @@ Visit `http://localhost:4000` in your browser.
 
 ### 1. Connect Picopad
 
-1. Plug in Picopad via USB
-2. Navigate to "Picopad Connection" page
-3. Select the serial port from the dropdown
-4. Click "Connect"
-5. Click "Start Advertising" to make the Picopad discoverable
-6. Pair with Nintendo Switch (Controllers → Change Grip/Order)
+1. Plug in the Pico or the nRF52840 dongle via USB
+2. Navigate to "Picopad Connection" page (it tries to detect the device when it opens)
+3. Click "Detect", or select the serial port from the dropdown and click "Connect". The dongle has two ports; "Detect" probes them and picks the one that answers, and for a manual connect pick the second one (macOS `/dev/cu.usbmodem...3`, Linux `ttyACM1`)
+4. Pico: click "Start Advertising" to make it discoverable. Dongle: it is already advertising, so the status goes to Paired once the console connects
+5. Pair with the console on Controllers → Change Grip/Order (Switch 1 and Switch 2)
+6. "Reconnect to Console" starts advertising to the stored console again, and "Forget Bonding" clears the pairing so you can pair from scratch
 
 ### 2. Connect USB Gamepad
 
@@ -169,14 +183,14 @@ end
 
 ### State Management
 
-- **ConnectionManager**: Picopad connection state (disconnected → connected → advertising → paired)
+- **ConnectionManager**: Picopad connection state (disconnected → connected → advertising → pairing → paired), plus which firmware is connected. After each Bluetooth command it re-reads the real status from the device
 - **InputTracker**: Current button/stick state (held buttons, stick positions)
 - **Reader**: Connected gamepad list (ID → name mapping)
 
 ### PubSub Topics
 
-- `picopad:connection` - Connection state changes, player number updates
-- `picopad:events` - Amiibo loaded/cleared events
+- `picopad:connection` - Connection state changes (status, port, firmware, controller, player number when the firmware reports it, last error)
+- `picopad:events` - Amiibo loaded/cleared/scanned, reconnect success/failed, bonding cleared
 - `gamepad:events` - Gamepad connected/disconnected events
 
 ## Troubleshooting
@@ -200,16 +214,17 @@ sudo usermod -a -G input $USER
 ### Picopad connection fails
 
 1. Check USB cable (must support data, not just power)
-2. Verify correct serial port selected
-3. Ensure no other application is using the port
-4. Try unplugging and replugging Picopad
+2. Use "Detect" or pick the right serial port. For the dongle that is the second of its two ports; connecting to the first one (the log) fails with "The port did not answer the Picopad protocol"
+3. "Port in use by another program" means something else holds the serial port, and only one process can open it. The automation daemon (`apps/automation_mcp`) connects to the first port that answers when it starts, so stop it or let it be the only one using the device. Scripts and a second proxy fail the same way
+4. Try unplugging and replugging the device
 
 ### Amiibo fails to load
 
-1. Verify Picopad is connected
-2. Check .bin file is valid (540 or 532 bytes)
-3. Ensure file is not corrupted
-4. Try clearing and reloading
+1. Verify the device is connected
+2. Check the .bin file is a 540 byte (v2) or 2048 byte (v3) dump; other sizes are rejected with the reason shown on the page
+3. A v3 dump needs the nordicpad dongle; the Pico firmware may reject it ("The firmware rejected the amiibo")
+4. Ensure the file is not corrupted and `key_retail.bin` is the right key
+5. Try clearing and reloading
 
 ## License
 
