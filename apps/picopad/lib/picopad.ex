@@ -16,9 +16,7 @@ defmodule Picopad do
   end
 
   def status(pid) do
-    packet = Protocol.build_get_status()
-
-    with {:ok, %{status: :ok, payload: payload}} <- Connection.send_command(pid, packet) do
+    with {:ok, payload} <- request(pid, Protocol.build_get_status()) do
       {:ok, Protocol.parse_status_payload(payload)}
     end
   end
@@ -44,11 +42,18 @@ defmodule Picopad do
   end
 
   def bonding_status(pid) do
-    packet = Protocol.build_get_bonding_status()
-
-    with {:ok, %{status: :ok, payload: payload}} <- Connection.send_command(pid, packet) do
+    with {:ok, payload} <- request(pid, Protocol.build_get_bonding_status()) do
       {:ok, Protocol.parse_bonding_status_payload(payload)}
     end
+  end
+
+  @doc """
+  Sets the controller colors the console shows, effective on its next reconnect.
+  Each part is an `{r, g, b}` tuple. Only the nordicpad firmware implements it;
+  the Pico firmware answers `{:error, :unknown_command}`.
+  """
+  def set_colors(pid, colors) do
+    send_simple_command(pid, Protocol.build_set_colors(colors))
   end
 
   def set_controller_type(pid, type) when type in [:joycon_l, :joycon_r, :pro_controller] do
@@ -68,7 +73,7 @@ defmodule Picopad do
   end
 
   def release(pid, buttons) when is_list(buttons) do
-    {_pressed, mask} = buttons_to_bytes(buttons)
+    {_pressed, mask} = Protocol.buttons_to_bytes(buttons)
     zeros = <<0, 0, 0>>
     send_simple_command(pid, Protocol.build_set_buttons(zeros, mask))
   end
@@ -101,41 +106,36 @@ defmodule Picopad do
   end
 
   def input_state(pid) do
-    packet = Protocol.build_get_input_state()
-
-    with {:ok, %{status: :ok, payload: payload}} <- Connection.send_command(pid, packet) do
+    with {:ok, payload} <- request(pid, Protocol.build_get_input_state()) do
       {:ok, Protocol.parse_input_state_payload(payload)}
     end
   end
 
   def ping(pid, data \\ <<>>) do
     packet = if data == <<>>, do: Protocol.build_ping(), else: Protocol.build_ping(data)
-
-    with {:ok, %{status: :ok, payload: payload}} <- Connection.send_command(pid, packet) do
-      {:ok, payload}
-    end
+    request(pid, packet)
   end
 
   def version(pid) do
-    packet = Protocol.build_get_version()
-
-    with {:ok, %{status: :ok, payload: payload}} <- Connection.send_command(pid, packet) do
+    with {:ok, payload} <- request(pid, Protocol.build_get_version()) do
       {:ok, Protocol.parse_version_payload(payload)}
     end
   end
 
-  def mcu_state(pid) do
-    packet = Protocol.build_get_mcu_state()
+  def firmware(pid) do
+    with {:ok, %{version: version}} <- version(pid) do
+      {:ok, Protocol.firmware_from_version(version)}
+    end
+  end
 
-    with {:ok, %{status: :ok, payload: payload}} <- Connection.send_command(pid, packet) do
+  def mcu_state(pid) do
+    with {:ok, payload} <- request(pid, Protocol.build_get_mcu_state()) do
       {:ok, Protocol.parse_mcu_state_payload(payload)}
     end
   end
 
   def mcu_debug(pid) do
-    packet = Protocol.build_get_mcu_debug()
-
-    with {:ok, %{status: :ok, payload: payload}} <- Connection.send_command(pid, packet) do
+    with {:ok, payload} <- request(pid, Protocol.build_get_mcu_debug()) do
       {:ok, Protocol.parse_mcu_debug_payload(payload)}
     end
   end
@@ -176,10 +176,8 @@ defmodule Picopad do
   end
 
   def amiibo_status(pid) do
-    packet = Protocol.build_amiibo_get_status()
-
-    with {:ok, %{status: :ok, payload: <<state, uid::binary-size(7), size::little-16>>}} <-
-           Connection.send_command(pid, packet) do
+    with {:ok, <<state, uid::binary-size(7), size::little-16>>} <-
+           request(pid, Protocol.build_amiibo_get_status()) do
       {:ok,
        %{
          state: amiibo_state_to_atom(state),
@@ -193,24 +191,21 @@ defmodule Picopad do
     chunk_size = Keyword.get(opts, :chunk_size, 128)
     size = byte_size(data)
 
-    with {:ok, %{status: :ok, payload: <<pico_chunk_size>>}} <-
-           Connection.send_command(pid, Protocol.build_amiibo_load_start(size)) do
+    with {:ok, <<pico_chunk_size>>} <- request(pid, Protocol.build_amiibo_load_start(size)) do
       actual_chunk_size = min(chunk_size, pico_chunk_size)
       chunks = chunk_binary(data, actual_chunk_size)
 
       result =
         Enum.reduce_while(Enum.with_index(chunks), :ok, fn {chunk, idx}, _acc ->
-          case Connection.send_command(pid, Protocol.build_amiibo_load_chunk(idx, chunk)) do
-            {:ok, %{status: :ok}} -> {:cont, :ok}
-            {:ok, %{status: status}} -> {:halt, {:error, status}}
+          case send_simple_command(pid, Protocol.build_amiibo_load_chunk(idx, chunk)) do
+            :ok -> {:cont, :ok}
             error -> {:halt, error}
           end
         end)
 
       case result do
         :ok ->
-          with {:ok, %{status: :ok, payload: uid}} <-
-                 Connection.send_command(pid, Protocol.build_amiibo_load_finish()) do
+          with {:ok, uid} <- request(pid, Protocol.build_amiibo_load_finish()) do
             {:ok, %{uid: uid}}
           end
 
@@ -221,16 +216,14 @@ defmodule Picopad do
   end
 
   def read_amiibo(pid) do
-    with {:ok, %{status: :ok, payload: payload}} <-
-           Connection.send_command(pid, Protocol.build_amiibo_read()) do
+    with {:ok, payload} <- request(pid, Protocol.build_amiibo_read()) do
       %{size: size, chunk_size: chunk_size} = Protocol.parse_amiibo_read_payload(payload)
       num_chunks = div(size + chunk_size - 1, chunk_size)
 
       chunks =
-        Enum.reduce_while(0..(num_chunks - 1), [], fn idx, acc ->
-          case Connection.send_command(pid, Protocol.build_amiibo_read_chunk(idx)) do
-            {:ok, %{status: :ok, payload: chunk_data}} -> {:cont, [chunk_data | acc]}
-            {:ok, %{status: status}} -> {:halt, {:error, status}}
+        Enum.reduce_while(0..(num_chunks - 1)//1, [], fn idx, acc ->
+          case request(pid, Protocol.build_amiibo_read_chunk(idx)) do
+            {:ok, chunk_data} -> {:cont, [chunk_data | acc]}
             error -> {:halt, error}
           end
         end)
@@ -301,11 +294,17 @@ defmodule Picopad do
     Connection.register_event_handler(pid, :log, wrapped_handler)
   end
 
-  defp send_simple_command(pid, packet) do
+  defp request(pid, packet) do
     case Connection.send_command(pid, packet) do
-      {:ok, %{status: :ok}} -> :ok
+      {:ok, %{status: :ok, payload: payload}} -> {:ok, payload}
       {:ok, %{status: status}} -> {:error, status}
       error -> error
+    end
+  end
+
+  defp send_simple_command(pid, packet) do
+    with {:ok, _payload} <- request(pid, packet) do
+      :ok
     end
   end
 
@@ -329,39 +328,4 @@ defmodule Picopad do
   defp amiibo_state_to_atom(0x02), do: :reading
   defp amiibo_state_to_atom(0x03), do: :writing
   defp amiibo_state_to_atom(_), do: :unknown
-
-  @button_map %{
-    y: {0, 0},
-    x: {0, 1},
-    b: {0, 2},
-    a: {0, 3},
-    r: {0, 6},
-    zr: {0, 7},
-    minus: {1, 0},
-    plus: {1, 1},
-    r_stick: {1, 2},
-    l_stick: {1, 3},
-    home: {1, 4},
-    capture: {1, 5},
-    down: {2, 0},
-    up: {2, 1},
-    right: {2, 2},
-    left: {2, 3},
-    l: {2, 6},
-    zl: {2, 7}
-  }
-
-  defp buttons_to_bytes(button_atoms) do
-    {b0, b1, b2} =
-      Enum.reduce(button_atoms, {0, 0, 0}, fn button, {b0, b1, b2} ->
-        case Map.get(@button_map, button) do
-          {0, bit} -> {Bitwise.bor(b0, Bitwise.bsl(1, bit)), b1, b2}
-          {1, bit} -> {b0, Bitwise.bor(b1, Bitwise.bsl(1, bit)), b2}
-          {2, bit} -> {b0, b1, Bitwise.bor(b2, Bitwise.bsl(1, bit))}
-          nil -> {b0, b1, b2}
-        end
-      end)
-
-    {<<b0, b1, b2>>, <<b0, b1, b2>>}
-  end
 end
