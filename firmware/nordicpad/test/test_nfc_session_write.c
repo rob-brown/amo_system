@@ -157,10 +157,29 @@ static bool test_a_read_only_amiibo_refuses_the_write_and_keeps_its_data(void) {
     return true;
 }
 
-static bool test_app_data_without_the_slot_step_is_refused(void) {
+static bool test_app_data_alone_is_applied_for_an_unregistered_figure(void) {
     // Arrange
     load_session();
     feed_app_data_write();
+
+    // Act
+    bool finished = nfc_session_finish_write(&session);
+
+    // Assert
+    ASSERT(finished);
+    ASSERT_EQ(poll_status(), 0x05);
+    ASSERT_EQ(store.data[0x14], 0x11);
+    ASSERT_EQ(store.data[0x248], original[0x248]);
+    return true;
+}
+
+static bool test_a_malformed_app_data_write_is_refused(void) {
+    // Arrange
+    load_session();
+    uint8_t data[64];
+    size_t length = build_app_data_write(data, original);
+    data[2] ^= 0xFF;
+    feed(data, length);
 
     // Act
     bool finished = nfc_session_finish_write(&session);
@@ -213,7 +232,8 @@ TEST_MAIN_BEGIN("nfc_session_write")
     RUN_TEST(test_the_page_three_read_between_the_writes_does_not_cancel_the_second);
     RUN_TEST(test_the_page_three_pre_read_serves_exactly_that_page);
     RUN_TEST(test_a_read_only_amiibo_refuses_the_write_and_keeps_its_data);
-    RUN_TEST(test_app_data_without_the_slot_step_is_refused);
+    RUN_TEST(test_app_data_alone_is_applied_for_an_unregistered_figure);
+    RUN_TEST(test_a_malformed_app_data_write_is_refused);
     RUN_TEST(test_ending_the_session_discards_a_partial_write);
     RUN_TEST(test_each_write_step_raises_an_event);
 TEST_MAIN_END()

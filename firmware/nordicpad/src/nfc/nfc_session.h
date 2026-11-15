@@ -40,7 +40,6 @@ typedef struct {
     nfc_session_listener_t listener;
     nfc_state_t state;
     bool configured;
-    bool slots_applied;
     uint32_t seen_generation;
     nfc_write_buffer_t write;
     uint8_t buffer[NFC_BUFFER_CAPACITY];

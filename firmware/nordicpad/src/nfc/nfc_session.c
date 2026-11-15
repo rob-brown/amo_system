@@ -80,7 +80,7 @@ void nfc_session_configure(nfc_session_t *session, const uint8_t *payload, size_
 void nfc_session_tick(nfc_session_t *session, uint32_t elapsed_ms) {
     if (session->amiibo->generation != session->seen_generation) {
         session->seen_generation = session->amiibo->generation;
-        if (session->configured && amiibo_store_is_loaded(session->amiibo)) {
+        if (session->configured && session->amiibo->state != AMIIBO_STORE_LOADING) {
             schedule_event(session, NFC_REPEAT_CONFIGURE_DELAY_MS);
         }
     }
@@ -104,7 +104,6 @@ uint8_t nfc_session_event_counter(const nfc_session_t *session) {
 
 void nfc_session_end(nfc_session_t *session) {
     session->configured = false;
-    session->slots_applied = false;
     nfc_write_buffer_reset(&session->write);
     session->state = NFC_STATE_IDLE;
     session->buffer_length = 0;
@@ -153,7 +152,6 @@ bool nfc_session_add_write_piece(nfc_session_t *session, const uint8_t *payload,
 }
 
 bool nfc_session_commit_write(nfc_session_t *session) {
-    session->slots_applied = false;
     nfc_write_buffer_reset(&session->write);
     return enter_phase(session, NFC_STATE_SRAM, nfc_build_sram_buffer(session->amiibo, session->buffer, sizeof(session->buffer)));
 }
@@ -164,15 +162,13 @@ bool nfc_session_commit_slots(nfc_session_t *session) {
     }
 
     bool applied = !session->amiibo->readonly && nfc_write_apply_slots(&session->write, session->amiibo);
-    session->slots_applied = applied;
     enter_write_state(session, applied ? NFC_STATE_SLOT_WRITTEN : NFC_STATE_WRITE_REFUSED);
     return applied;
 }
 
 bool nfc_session_finish_write(nfc_session_t *session) {
-    bool applied = session->slots_applied && !session->amiibo->readonly && nfc_write_apply_app_data(&session->write, session->amiibo);
+    bool applied = !session->amiibo->readonly && nfc_write_apply_app_data(&session->write, session->amiibo);
 
-    session->slots_applied = false;
     enter_write_state(session, applied ? NFC_STATE_WRITE_DONE : NFC_STATE_WRITE_REFUSED);
     if (session->listener.on_write_finished != NULL) {
         session->listener.on_write_finished(session->listener.context, applied);
