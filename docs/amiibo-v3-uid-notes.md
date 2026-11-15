@@ -6,7 +6,7 @@ Working notes on how the UID behaves on v3 amiibo (NTAG I²C Plus 2K, Kirby Air 
 
 | Dump | UID (tag bytes 0-6) | Byte 7 | Byte 8 | SRAM code (tag 0x3D3, 6 chars) | Machine in KAR |
 |---|---|---|---|---|---|
-| kirby.bin (unregistered) | `04 68 99 5A AB 1F 90` | `00` | `44` | `PB4W17` | Warp Star |
+| kirby.bin (registered, nickname "Skirby", KAR app ID set) | `04 68 99 5A AB 1F 90` | `00` | `44` | `PB4W17` | Warp Star |
 | metaknight-registered.bin | `04 67 39 5A EF 1F 90` | `00` | `44` | `PB5T42` | Shadow Star |
 | dedede-registered.bin | `04 54 37 62 7C 20 90` | `00` | `44` | `PC6U55` | Tank Star |
 
@@ -96,6 +96,32 @@ Findings:
 - Offline search: the UID, its last four bytes, the code string and the 13 SRAM bytes do not occur anywhere in the decrypted payload of any dump. They appear only at their known places (tag offsets 0 and 0x3C2/0x3D3). Only one byte of the app area (decrypted offset `0x1B0`) is equal in Meta Knight and Dedede but different in Kirby, probably the registered flag.
 - Consequence: a brand-new UID is read but flagged as unable to join matches when the payload is registered. Whether an unregistered payload with a new UID gets registered by the game is untested.
 - The game remembers a rider and machine combination in its session, which may affect repeat scans.
+
+## The full figure set (7 fresh figures, Flashiibo scans)
+
+All seven are unregistered: KAR app ID 0, empty nickname, settings header `A5 00 00 00`, decrypted app area all zero, reserved block `0x80-0xBF` all zero, no slot blobs. So the reserved block, the slots and the high-entropy KAR payload all appear when the game registers a figure.
+
+Between the seven, only these differ: the UID, the amiibo ID, tag bytes `0x60-0x7F` (a 32-byte block, the key-derivation salt), the encrypted and hash bytes that follow from those, and the SRAM block. Nothing else.
+
+| Figure | Amiibo ID | Default machine | SRAM `[16]` `[18]` | Code | `[28]` |
+|---|---|---|---|---|---|
+| Kirby | `1F00 0000 04C4` | Warp Star | `9C` `01` | PB4W17 | `02` |
+| Sword Kirby | `1F00 0100 04C5` | Dragoon | `AC` `16` | PC6U55 | `04` |
+| Meta Knight | `1F01 0000 04C6` | Shadow Star | `81` `0A` | PB5T42 | `04` |
+| King Dedede | `1F02 0000 04C7` | Tank Star | `61` `09` | PC6V28 | `04` |
+| Noir Dedede | `1F02 0100 04C8` | Hydra | `37` `12` | PC6U55 | `04` |
+| Waddle Dee | `1F03 0100 04C9` | Wing Star | `9F` `07` | PB4W17 | `04` |
+| Kawasaki | `1F04 0000 04CA` | Hop Star | `9C` `05` | PC6V28 | `04` |
+
+Patterns:
+
+- The ID is `1F`, character, variant, `00`, then a serial that counts up (`04C4` to `04CA`) in release order, then `1E 03`. Character `00` Kirby, `01` Meta Knight, `02` Dedede, `03` Waddle Dee, `04` Kawasaki. Variant `01` marks Sword Kirby, Noir Dedede and Waddle Dee.
+- The code string is not a machine identifier. `PB4W17` is on Warp Star and Wing Star, `PC6V28` on Tank Star and Hop Star, `PC6U55` on Hydra and Dragoon. Your earlier Dedede dump had `PC6U55` and still showed a Tank Star, so one machine can carry two codes.
+- `[28]` is `02` only for the Warp Star and `04` for every other machine.
+- `[16]` and `[18]` are distinct per machine within this set but differ between two physical copies of the same figure: the earlier Kirby has `82`/`03`, this one `9C`/`01`; the earlier Dedede `4A`/`11`, this one `61`/`09`. The earlier Meta Knight and this one have an identical SRAM block, down to the 13 random-looking bytes, although their UIDs differ. So the SRAM block is not tied to the UID (consistent with the console runs) and the figure-to-figure variation is not a simple function of the machine.
+- The 13 bytes at `[2..14]` differ for every figure and I found no relationship to the UID, ID, salt, SRAM fields or the retail keys (HMAC, SHA, MD5 and AES-derived candidates over all 10 dumps). They look like a MAC the game verifies.
+- Consequence for identification: the reliable way to tell a machine from an SRAM block is an exact match against known blocks, which `KAR.Machines` does. Matching on the code or on `[16]`/`[18]` alone is not safe. For a fresh figure, the machine is also implied by the rider's amiibo ID (default machine).
+- Console: scanning a fresh figure from the KAR amiibo menu opens the system registration flow (select owner, nickname, then "Saving... Hold the amiibo to the NFC touchpoint"). It ends in "Couldn't save. Please try again." until the dongle supports writes.
 
 ## Open questions
 
