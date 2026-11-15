@@ -46,21 +46,25 @@ static inline size_t build_app_data_write(uint8_t *out, const uint8_t uid[7]) {
     return length + 12;
 }
 
-static inline size_t build_slot_write(uint8_t *out, const uint8_t uid[7]) {
+static inline size_t build_slot_write_for(uint8_t *out, const uint8_t uid[7], uint8_t slot) {
     static const uint8_t SLOT_HEADER[4] = {0xA5, 0x00, 0x04, 0x00};
     size_t length = write_header(out, 22, uid, SLOT_HEADER, 18);
 
     out[length++] = 2;
     out[length++] = 0;
-    out[length++] = 0x92;
+    out[length++] = (uint8_t)(0x92 + 8 * slot);
     out[length++] = 8;
     memset(&out[length], 0x33, 8);
     length += 8;
     out[length++] = 1;
-    out[length++] = 1;
+    out[length++] = (uint8_t)(25 * slot + 1);
     out[length++] = 12;
     memset(&out[length], 0x44, 12);
     return length + 12;
+}
+
+static inline size_t build_slot_write(uint8_t *out, const uint8_t uid[7]) {
+    return build_slot_write_for(out, uid, 0);
 }
 
 #endif

@@ -45,11 +45,11 @@ static bool walk_chunks(const nfc_write_buffer_t *buffer, amiibo_store_t *store,
     size_t count_index = format->header_size;
     size_t position = count_index + 1;
 
-    if (buffer->length < position || format->header_page_destination + PAGE_BYTE_COUNT > store->size) {
+    size_t header_destination = format->header_page_destination;
+    bool slot_found = false;
+
+    if (buffer->length < position) {
         return false;
-    }
-    if (apply) {
-        memcpy(&store->data[format->header_page_destination], &buffer->data[format->header_page_offset], PAGE_BYTE_COUNT);
     }
 
     for (size_t index = 0; index < buffer->data[count_index]; index++) {
@@ -66,10 +66,21 @@ static bool walk_chunks(const nfc_write_buffer_t *buffer, amiibo_store_t *store,
         if (size % PAGE_SIZE != 0 || position + size > buffer->length || destination + size > store->size) {
             return false;
         }
+        if (format->has_sector && sector == 1 && page >= 1 && !slot_found) {
+            header_destination = destination - PAGE_SIZE;
+            slot_found = true;
+        }
         if (apply) {
             memcpy(&store->data[destination], &buffer->data[position], size);
         }
         position += size;
+    }
+
+    if (header_destination + PAGE_BYTE_COUNT > store->size) {
+        return false;
+    }
+    if (apply) {
+        memcpy(&store->data[header_destination], &buffer->data[format->header_page_offset], PAGE_BYTE_COUNT);
     }
     return true;
 }

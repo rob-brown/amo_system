@@ -117,6 +117,24 @@ static bool test_slot_write_replaces_both_sectors(void) {
     return true;
 }
 
+static bool test_slot_header_goes_to_the_start_of_the_written_slot(void) {
+    // Arrange
+    load_v3_store();
+    uint8_t data[64];
+    add_pieces(data, build_slot_write_for(data, original, 3));
+
+    // Act
+    bool applied = nfc_write_apply_slots(&buffer, &store);
+
+    // Assert
+    ASSERT(applied);
+    ASSERT_MEM_EQ(&store.data[0x52C], ((const uint8_t[]){0xA5, 0x00, 0x04, 0x00}), 4);
+    ASSERT_EQ(store.data[0x530], 0x44);
+    ASSERT_MEM_EQ(&store.data[0x400], &original[0x400], 4);
+    ASSERT_EQ(store.data[0x248 + 32 * 3], 0x33);
+    return true;
+}
+
 static bool test_a_write_for_another_uid_changes_nothing(void) {
     // Arrange
     load_v3_store();
@@ -205,6 +223,7 @@ TEST_MAIN_BEGIN("nfc_write")
     RUN_TEST(test_malformed_pieces_are_refused);
     RUN_TEST(test_app_data_write_replaces_page_four_and_every_chunk);
     RUN_TEST(test_slot_write_replaces_both_sectors);
+    RUN_TEST(test_slot_header_goes_to_the_start_of_the_written_slot);
     RUN_TEST(test_a_write_for_another_uid_changes_nothing);
     RUN_TEST(test_a_misaligned_chunk_leaves_the_dump_untouched);
     RUN_TEST(test_a_chunk_beyond_a_v2_dump_leaves_the_dump_untouched);
