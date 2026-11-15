@@ -34,10 +34,25 @@ size_t nfc_read_handle(void *context, const command_request_t *request, uint8_t 
 }
 
 size_t nfc_write_handle(void *context, const command_request_t *request, uint8_t *payload, size_t capacity) {
-    (void)context;
+    (void)payload;
+    (void)capacity;
+    nfc_session_add_write_piece(context, request->payload, request->payload_length);
+    return 0;
+}
+
+size_t nfc_commit_slots_handle(void *context, const command_request_t *request, uint8_t *payload, size_t capacity) {
     (void)request;
     (void)payload;
     (void)capacity;
+    nfc_session_commit_slots(context);
+    return 0;
+}
+
+size_t nfc_finish_write_handle(void *context, const command_request_t *request, uint8_t *payload, size_t capacity) {
+    (void)request;
+    (void)payload;
+    (void)capacity;
+    nfc_session_finish_write(context);
     return 0;
 }
 

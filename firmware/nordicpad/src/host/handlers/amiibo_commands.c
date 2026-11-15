@@ -1,6 +1,9 @@
 #include "host/handlers/host_handlers.h"
 
+#include <string.h>
+
 #define LOAD_HEADER_SIZE 2
+#define READ_REPLY_SIZE 3
 #define CHUNK_HEADER_SIZE 1
 #define STATUS_REPLY_SIZE 10
 
@@ -71,8 +74,48 @@ uint8_t host_handle_amiibo_load_finish(host_commands_t *commands, const host_req
     return HOST_STATUS_OK;
 }
 
+uint8_t host_handle_amiibo_read(host_commands_t *commands, const host_request_t *request) {
+    (void)request;
+    if (!amiibo_store_is_loaded(commands->amiibo)) {
+        return HOST_STATUS_AMIIBO_ERROR;
+    }
+    commands->reply[0] = (uint8_t)(commands->amiibo->size & 0xFF);
+    commands->reply[1] = (uint8_t)(commands->amiibo->size >> 8);
+    commands->reply[2] = AMIIBO_CHUNK_SIZE;
+    commands->reply_length = READ_REPLY_SIZE;
+    return HOST_STATUS_OK;
+}
+
+uint8_t host_handle_amiibo_read_chunk(host_commands_t *commands, const host_request_t *request) {
+    if (request->payload_length < 1) {
+        return HOST_STATUS_INVALID_PARAMS;
+    }
+    if (!amiibo_store_is_loaded(commands->amiibo)) {
+        return HOST_STATUS_AMIIBO_ERROR;
+    }
+
+    size_t offset = (size_t)request->payload[0] * AMIIBO_CHUNK_SIZE;
+    if (offset >= commands->amiibo->size) {
+        return HOST_STATUS_INVALID_PARAMS;
+    }
+
+    size_t remaining = commands->amiibo->size - offset;
+    size_t length = remaining < AMIIBO_CHUNK_SIZE ? remaining : AMIIBO_CHUNK_SIZE;
+    memcpy(commands->reply, &commands->amiibo->data[offset], length);
+    commands->reply_length = length;
+    return HOST_STATUS_OK;
+}
+
 uint8_t host_handle_amiibo_clear(host_commands_t *commands, const host_request_t *request) {
     (void)request;
     amiibo_store_clear(commands->amiibo);
+    return HOST_STATUS_OK;
+}
+
+uint8_t host_handle_amiibo_set_readonly(host_commands_t *commands, const host_request_t *request) {
+    if (request->payload_length < 1 || request->payload[0] > 1) {
+        return HOST_STATUS_INVALID_PARAMS;
+    }
+    commands->amiibo->readonly = request->payload[0] == 1;
     return HOST_STATUS_OK;
 }

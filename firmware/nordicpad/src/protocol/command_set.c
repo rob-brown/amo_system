@@ -69,7 +69,9 @@ bool command_set_add_nfc(command_set_t *set, nfc_session_t *nfc) {
         {NFC_COMMAND, NFC_SUBCOMMAND_POLL, nfc_poll_handle, nfc},
         {NFC_COMMAND, NFC_SUBCOMMAND_START_READ, nfc_start_read_handle, nfc},
         {NFC_COMMAND, NFC_SUBCOMMAND_READ, nfc_read_handle, nfc},
+        {NFC_COMMAND, NFC_SUBCOMMAND_FINISH_WRITE, nfc_finish_write_handle, nfc},
         {NFC_COMMAND, NFC_SUBCOMMAND_WRITE, nfc_write_handle, nfc},
+        {NFC_COMMAND, NFC_SUBCOMMAND_COMMIT_SLOTS, nfc_commit_slots_handle, nfc},
         {NFC_COMMAND, NFC_SUBCOMMAND_COMMIT_WRITE, nfc_commit_write_handle, nfc},
         {NFC_COMMAND, NFC_SUBCOMMAND_READ_REGISTRY, nfc_read_registry_handle, nfc},
     };

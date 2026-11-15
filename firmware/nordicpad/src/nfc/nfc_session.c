@@ -32,13 +32,31 @@ static uint8_t poll_status(const nfc_session_t *session) {
         return NFC_STATUS_SRAM_READY;
     case NFC_STATE_REGISTRY:
         return NFC_STATUS_REGISTRY_READY;
+    case NFC_STATE_SLOT_WRITTEN:
+        return NFC_STATUS_SLOT_WRITTEN;
+    case NFC_STATE_WRITE_DONE:
+        return NFC_STATUS_WRITE_DONE;
+    case NFC_STATE_WRITE_REFUSED:
+        return NFC_STATUS_TAG_LOST;
     case NFC_STATE_IDLE:
     default:
         return NFC_STATUS_TAG_FOUND;
     }
 }
 
-void nfc_session_init(nfc_session_t *session, const amiibo_store_t *amiibo) {
+static bool is_status_only_state(nfc_state_t state) {
+    return state == NFC_STATE_SRAM || state == NFC_STATE_REGISTRY || state == NFC_STATE_SLOT_WRITTEN || state == NFC_STATE_WRITE_DONE ||
+           state == NFC_STATE_WRITE_REFUSED;
+}
+
+static void enter_write_state(nfc_session_t *session, nfc_state_t state) {
+    session->state = state;
+    session->buffer_length = 0;
+    nfc_write_buffer_reset(&session->write);
+    schedule_event(session, NFC_PHASE_DELAY_MS);
+}
+
+void nfc_session_init(nfc_session_t *session, amiibo_store_t *amiibo) {
     memset(session, 0, sizeof(*session));
     session->amiibo = amiibo;
     session->state = NFC_STATE_IDLE;
@@ -86,6 +104,8 @@ uint8_t nfc_session_event_counter(const nfc_session_t *session) {
 
 void nfc_session_end(nfc_session_t *session) {
     session->configured = false;
+    session->slots_applied = false;
+    nfc_write_buffer_reset(&session->write);
     session->state = NFC_STATE_IDLE;
     session->buffer_length = 0;
     session->event_pending = false;
@@ -103,7 +123,7 @@ size_t nfc_session_poll(const nfc_session_t *session, uint8_t *out, size_t capac
     }
 
     out[0] = poll_status(session);
-    if (session->state == NFC_STATE_SRAM || session->state == NFC_STATE_REGISTRY) {
+    if (is_status_only_state(session->state)) {
         return NFC_POLL_REPLY_SIZE;
     }
 
@@ -128,12 +148,36 @@ bool nfc_session_start_read(nfc_session_t *session, const uint8_t *payload, size
     return true;
 }
 
+bool nfc_session_add_write_piece(nfc_session_t *session, const uint8_t *payload, size_t length) {
+    return amiibo_store_is_loaded(session->amiibo) && nfc_write_buffer_add_piece(&session->write, payload, length);
+}
+
 bool nfc_session_commit_write(nfc_session_t *session) {
-    if (session->state != NFC_STATE_READING) {
-        return false;
+    session->slots_applied = false;
+    nfc_write_buffer_reset(&session->write);
+    return enter_phase(session, NFC_STATE_SRAM, nfc_build_sram_buffer(session->amiibo, session->buffer, sizeof(session->buffer)));
+}
+
+bool nfc_session_commit_slots(nfc_session_t *session) {
+    if (session->listener.on_write_started != NULL) {
+        session->listener.on_write_started(session->listener.context);
     }
 
-    return enter_phase(session, NFC_STATE_SRAM, nfc_build_sram_buffer(session->amiibo, session->buffer, sizeof(session->buffer)));
+    bool applied = !session->amiibo->readonly && nfc_write_apply_slots(&session->write, session->amiibo);
+    session->slots_applied = applied;
+    enter_write_state(session, applied ? NFC_STATE_SLOT_WRITTEN : NFC_STATE_WRITE_REFUSED);
+    return applied;
+}
+
+bool nfc_session_finish_write(nfc_session_t *session) {
+    bool applied = session->slots_applied && !session->amiibo->readonly && nfc_write_apply_app_data(&session->write, session->amiibo);
+
+    session->slots_applied = false;
+    enter_write_state(session, applied ? NFC_STATE_WRITE_DONE : NFC_STATE_WRITE_REFUSED);
+    if (session->listener.on_write_finished != NULL) {
+        session->listener.on_write_finished(session->listener.context, applied);
+    }
+    return applied;
 }
 
 bool nfc_session_read_registry(nfc_session_t *session, const uint8_t *payload, size_t length) {

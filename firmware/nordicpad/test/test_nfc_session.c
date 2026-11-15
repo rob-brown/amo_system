@@ -286,7 +286,7 @@ static bool test_v3_four_range_read_covers_every_requested_page(void) {
     return true;
 }
 
-static bool test_commit_before_a_read_is_refused(void) {
+static bool test_commit_in_a_fresh_session_serves_the_sram(void) {
     // Arrange
     load_v3_fixture();
 
@@ -294,7 +294,8 @@ static bool test_commit_before_a_read_is_refused(void) {
     bool committed = nfc_session_commit_write(&v3.session);
 
     // Assert
-    ASSERT(!committed);
+    ASSERT(committed);
+    ASSERT_EQ(v3.session.state, NFC_STATE_SRAM);
     return true;
 }
 
@@ -608,7 +609,7 @@ TEST_MAIN_BEGIN("nfc_session")
     RUN_TEST(test_listener_is_silent_when_the_read_is_refused);
     RUN_TEST(test_v3_read_header_carries_the_v3_flag_and_a_contiguous_uid);
     RUN_TEST(test_v3_four_range_read_covers_every_requested_page);
-    RUN_TEST(test_commit_before_a_read_is_refused);
+    RUN_TEST(test_commit_in_a_fresh_session_serves_the_sram);
     RUN_TEST(test_commit_on_a_v2_dump_is_refused);
     RUN_TEST(test_commit_exposes_the_sram_after_the_header);
     RUN_TEST(test_poll_in_the_sram_and_registry_phases_has_no_uid);

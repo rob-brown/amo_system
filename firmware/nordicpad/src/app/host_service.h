@@ -27,6 +27,8 @@ void host_service_publish_bonding_cleared(host_service_t *service);
 
 void host_service_publish_amiibo_scanned(host_service_t *service, bool write_request);
 
+void host_service_publish_amiibo_write_complete(host_service_t *service, bool succeeded);
+
 void host_service_publish_reconnect_result(host_service_t *service, bool succeeded);
 
 #endif

@@ -20,6 +20,7 @@ set(NORDICPAD_CORE_SOURCES
     ${NORDICPAD_SOURCE_DIR}/nfc/amiibo_store.c
     ${NORDICPAD_SOURCE_DIR}/nfc/nfc_buffer.c
     ${NORDICPAD_SOURCE_DIR}/nfc/nfc_session.c
+    ${NORDICPAD_SOURCE_DIR}/nfc/nfc_write.c
     ${NORDICPAD_SOURCE_DIR}/protocol/aes128.c
     ${NORDICPAD_SOURCE_DIR}/protocol/command_frame.c
     ${NORDICPAD_SOURCE_DIR}/protocol/command_router.c

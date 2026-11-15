@@ -207,6 +207,18 @@ static void on_read_started(void *context) {
     host_service_publish_amiibo_scanned(&host, false);
 }
 
+static void on_write_started(void *context) {
+    UNUSED(context);
+
+    host_service_publish_amiibo_scanned(&host, true);
+}
+
+static void on_write_finished(void *context, bool succeeded) {
+    UNUSED(context);
+
+    host_service_publish_amiibo_write_complete(&host, succeeded);
+}
+
 static uint8_t on_reconnect(void *context) {
     UNUSED(context);
     uint8_t link_key[PAIRING_KEY_SIZE];
@@ -296,7 +308,7 @@ int app_run(const app_platform_t *platform) {
     host_commands_set_radio(&host.commands, &radio);
     host_commands_set_controller_type(&host.commands, app.profile->type);
     nfc_session_init(&app.nfc, &host.amiibo);
-    const nfc_session_listener_t nfc_listener = {on_read_started, NULL};
+    const nfc_session_listener_t nfc_listener = {on_read_started, on_write_started, on_write_finished, NULL};
     nfc_session_set_listener(&app.nfc, &nfc_listener);
     host_service_start(&host);
     start_heartbeat();

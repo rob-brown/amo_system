@@ -29,6 +29,9 @@ uint8_t host_handle_amiibo_load(host_commands_t *commands, const host_request_t 
 uint8_t host_handle_amiibo_load_start(host_commands_t *commands, const host_request_t *request);
 uint8_t host_handle_amiibo_load_chunk(host_commands_t *commands, const host_request_t *request);
 uint8_t host_handle_amiibo_load_finish(host_commands_t *commands, const host_request_t *request);
+uint8_t host_handle_amiibo_read(host_commands_t *commands, const host_request_t *request);
+uint8_t host_handle_amiibo_read_chunk(host_commands_t *commands, const host_request_t *request);
 uint8_t host_handle_amiibo_clear(host_commands_t *commands, const host_request_t *request);
+uint8_t host_handle_amiibo_set_readonly(host_commands_t *commands, const host_request_t *request);
 
 #endif

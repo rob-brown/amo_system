@@ -61,8 +61,8 @@ size_t nfc_build_range_buffer(const amiibo_store_t *amiibo, const uint8_t *echo,
     memcpy(&out[NFC_READ_HEADER_SIZE + NFC_BLOCK_SIZE], echo, echo_length);
 
     for (size_t index = 0; index < count; index++) {
-        uint8_t first = index == 0 ? 0 : echo[1 + 2 * index];
-        uint8_t last = index == 0 ? echo[2] : echo[2 + 2 * index];
+        uint8_t first = echo[1 + 2 * index];
+        uint8_t last = echo[2 + 2 * index];
         size_t added = append_sector0_range(amiibo, first, last, out, used, capacity);
         if (added == 0) {
             return 0;

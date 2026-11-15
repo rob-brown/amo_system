@@ -64,6 +64,11 @@ void host_service_publish_amiibo_scanned(host_service_t *service, bool write_req
     host_link_send_event(&service->link, HOST_EVT_AMIIBO_SCANNED, payload, sizeof(payload));
 }
 
+void host_service_publish_amiibo_write_complete(host_service_t *service, bool succeeded) {
+    uint8_t payload[] = {succeeded ? 0 : 1};
+    host_link_send_event(&service->link, HOST_EVT_AMIIBO_WRITE_COMPLETE, payload, sizeof(payload));
+}
+
 void host_service_publish_reconnect_result(host_service_t *service, bool succeeded) {
     host_link_send_event(&service->link, succeeded ? HOST_EVT_RECONNECT_SUCCESS : HOST_EVT_RECONNECT_FAILED, NULL, 0);
 }
