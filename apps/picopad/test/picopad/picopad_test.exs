@@ -116,11 +116,9 @@ defmodule Picopad.ApiTest do
         bonding_status: fn -> Picopad.bonding_status(pid) end,
         mcu_state: fn -> Picopad.mcu_state(pid) end,
         mcu_debug: fn -> Picopad.mcu_debug(pid) end,
-        read_amiibo: fn -> Picopad.read_amiibo(pid) end,
         set_led: fn -> Picopad.set_led(pid, :on) end,
         set_log_level: fn -> Picopad.set_log_level(pid, :info) end,
         set_controller_type: fn -> Picopad.set_controller_type(pid, :pro_controller) end,
-        amiibo_set_readonly: fn -> Picopad.amiibo_set_readonly(pid, true) end,
         bt_disconnect: fn -> Picopad.bt_disconnect(pid) end
       ]
 
@@ -285,10 +283,10 @@ defmodule Picopad.ApiTest do
   end
 
   describe "amiibo transfer" do
-    for size <- [540, 2048] do
-      test "a #{size} byte dump loads and reads back unchanged" do
+    for kind <- [:picopad, :nordicpad], size <- [540, 2048] do
+      test "a #{size} byte dump loads and reads back unchanged on the #{kind} firmware" do
         # Arrange
-        {_port, pid} = connect(:picopad)
+        {_port, pid} = connect(unquote(kind))
         data = dump(unquote(size))
 
         # Act
@@ -315,15 +313,28 @@ defmodule Picopad.ApiTest do
       assert {:ok, %{uid: _uid}} = result
     end
 
-    test "reading without a loaded amiibo reports amiibo_error" do
-      # Arrange
-      {_port, pid} = connect(:picopad)
+    for kind <- [:picopad, :nordicpad] do
+      test "reading without a loaded amiibo reports amiibo_error on the #{kind} firmware" do
+        # Arrange
+        {_port, pid} = connect(unquote(kind))
 
-      # Act
-      result = Picopad.read_amiibo(pid)
+        # Act
+        result = Picopad.read_amiibo(pid)
 
-      # Assert
-      assert result == {:error, :amiibo_error}
+        # Assert
+        assert result == {:error, :amiibo_error}
+      end
+
+      test "setting an amiibo read only is accepted on the #{kind} firmware" do
+        # Arrange
+        {_port, pid} = connect(unquote(kind))
+
+        # Act
+        result = Picopad.amiibo_set_readonly(pid, true)
+
+        # Assert
+        assert result == :ok
+      end
     end
 
     test "clearing removes the loaded amiibo" do
