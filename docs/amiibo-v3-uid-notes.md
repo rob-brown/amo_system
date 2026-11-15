@@ -6,7 +6,7 @@ Working notes on how the UID behaves on v3 amiibo (NTAG I²C Plus 2K, Kirby Air 
 
 | Dump | UID (tag bytes 0-6) | Byte 7 | Byte 8 | SRAM code (tag 0x3D3, 6 chars) | Machine in KAR |
 |---|---|---|---|---|---|
-| kirby.bin (unregistered) | `04 68 99 5A AB 1F 90` | `00` | `44` | `PB4W17` | Warp Star |
+| kirby.bin (registered, nickname "Skirby", KAR app ID set) | `04 68 99 5A AB 1F 90` | `00` | `44` | `PB4W17` | Warp Star |
 | metaknight-registered.bin | `04 67 39 5A EF 1F 90` | `00` | `44` | `PB5T42` | Shadow Star |
 | dedede-registered.bin | `04 54 37 62 7C 20 90` | `00` | `44` | `PC6U55` | Tank Star |
 
@@ -90,12 +90,68 @@ Findings:
   - So the SRAM block is not what binds the UID. Inference: the console's KAR save keeps per-UID figure data, and a new UID would need the game's own registration step.
   - Caveat: all three UIDs were scanned on this console before. A never-registered UID with an unregistered payload has not been tested (the advisor's scan 2), and scanning under real UIDs may have changed what the console holds for the real figures.
   - Scan 1 from the advisor's plan: (Kirby, UID Meta Knight, SRAM Dedede) scans normally (Skirby on a Tank Star, no dialog).
-- Settings flags: decrypted offset `0x2C` (tag `0x14`) is `0x30` on all three dumps (bits 4 and 5 set), so all three count as initialised and this byte is not a registered flag. The four bytes before it differ: Kirby `A5 83 F3 00`, Meta Knight and Dedede `A5 00 02 00`. The flag meanings come from the advisor's memory of yuzu's `amiibo_types.h`; that file is not on this machine, so they are unverified.
+- Settings flags: decrypted offset `0x2C` (tag `0x14`, the first settings byte) is the registered flag. It is `0x30` on all three registered dumps and `0x00` on all seven fresh figures. In yuzu (`src/core/hle/service/nfp/nfp_types.h`, lines 185-186) bit 4 (`0x10`) is `amiibo_initialized` and bit 5 (`0x20`) is `appdata_initialized`; yuzu's `device.cpp` clears the app area by setting `appdata_initialized` to 0. This is the v2 layout, and the v3 dumps match it. The four bytes before the flags differ: fresh figures `A5 00 00 00`, Kirby `A5 83 F3 00`, Meta Knight and Dedede `A5 00 02 00` (`A5`, a 16-bit write counter, then a version byte).
 - Test that would separate payload-side from save-side 0548 without touching the main save: a second console user with a fresh KAR save scans (Kirby, random UID, SRAM Kirby) and (Kirby, random UID, SRAM Dedede). It needs the user.
 - Swapping slot blobs or the reserved block did not change any result, so the payload-side binding is not in those regions (probably in the game-layer encrypted payload).
 - Offline search: the UID, its last four bytes, the code string and the 13 SRAM bytes do not occur anywhere in the decrypted payload of any dump. They appear only at their known places (tag offsets 0 and 0x3C2/0x3D3). Only one byte of the app area (decrypted offset `0x1B0`) is equal in Meta Knight and Dedede but different in Kirby, probably the registered flag.
 - Consequence: a brand-new UID is read but flagged as unable to join matches when the payload is registered. Whether an unregistered payload with a new UID gets registered by the game is untested.
 - The game remembers a rider and machine combination in its session, which may affect repeat scans.
+
+## The full figure set (7 fresh figures, Flashiibo scans)
+
+All seven are unregistered: KAR app ID 0, empty nickname, settings header `A5 00 00 00`, decrypted app area all zero, reserved block `0x80-0xBF` all zero, no slot blobs. So the reserved block, the slots and the high-entropy KAR payload all appear when the game registers a figure.
+
+Between the seven, only these differ: the UID, the amiibo ID, tag bytes `0x60-0x7F` (a 32-byte block, the key-derivation salt), the encrypted and hash bytes that follow from those, and the SRAM block. Nothing else.
+
+| Figure | Amiibo ID | Default machine | SRAM `[16]` `[18]` | Code | `[28]` |
+|---|---|---|---|---|---|
+| Kirby | `1F00 0000 04C4` | Warp Star | `9C` `01` | PB4W17 | `02` |
+| Sword Kirby | `1F00 0100 04C5` | Dragoon | `AC` `16` | PC6U55 | `04` |
+| Meta Knight | `1F01 0000 04C6` | Shadow Star | `81` `0A` | PB5T42 | `04` |
+| King Dedede | `1F02 0000 04C7` | Tank Star | `61` `09` | PC6V28 | `04` |
+| Noir Dedede | `1F02 0100 04C8` | Hydra | `37` `12` | PC6U55 | `04` |
+| Waddle Dee | `1F03 0100 04C9` | Wing Star | `9F` `07` | PB4W17 | `04` |
+| Kawasaki | `1F04 0000 04CA` | Hop Star | `9C` `05` | PC6V28 | `04` |
+
+Patterns:
+
+- The ID is `1F`, character, variant, `00`, then a serial that counts up (`04C4` to `04CA`) in release order, then `1E 03`. Character `00` Kirby, `01` Meta Knight, `02` Dedede, `03` Waddle Dee, `04` Kawasaki. Variant `01` marks Sword Kirby, Noir Dedede and Waddle Dee.
+- The code string is not a machine identifier. `PB4W17` is on Warp Star and Wing Star, `PC6V28` on Tank Star and Hop Star, `PC6U55` on Hydra and Dragoon. Your earlier Dedede dump had `PC6U55` and still showed a Tank Star, so one machine can carry two codes.
+- `[28]` is `02` only for the Warp Star and `04` for every other machine.
+- `[16]` and `[18]` are distinct per machine within this set but differ between two physical copies of the same figure: the earlier Kirby has `82`/`03`, this one `9C`/`01`; the earlier Dedede `4A`/`11`, this one `61`/`09`. The earlier Meta Knight and this one have an identical SRAM block, down to the 13 random-looking bytes, although their UIDs differ. So the SRAM block is not tied to the UID (consistent with the console runs) and the figure-to-figure variation is not a simple function of the machine.
+- The 13 bytes at `[2..14]` differ for every figure and I found no relationship to the UID, ID, salt, SRAM fields or the retail keys (HMAC, SHA, MD5 and AES-derived candidates over all 10 dumps). They look like a MAC the game verifies.
+- Consequence for identification: the reliable way to tell a machine from an SRAM block is an exact match against known blocks, which `KAR.Machines` does. Matching on the code or on `[16]`/`[18]` alone is not safe. For a fresh figure, the machine is also implied by the rider's amiibo ID (default machine).
+- Console: scanning a fresh figure from the KAR amiibo menu opens the system registration flow (select owner, nickname, then "Saving... Hold the amiibo to the NFC touchpoint"). It ends in "Couldn't save. Please try again." until the dongle supports writes.
+
+## A real console write (nordicpad capture, 2026-11-14)
+
+Source: `/Users/robert/Documents/nordicpad-captures/2026-11-14-real-write/` (sniffed Joy-Con 2 R, the registered Kirby figure with UID `04 68 99 5A AB 1F 90`, two hat changes in KAR). Decoded by the nordicpad agent; the findings below on the changed bytes are mine.
+
+- Each save is two writes. Write A updates the registry slot: 32 bytes at `0x248` (sector 0 pages 0x92-0x99) and a 100-byte slot in sector 1 (`A5`, a 16-bit counter, `00`, then 96 bytes; the counter went 4 to 5). Write B is a normal amiibo-layer write of 454 bytes: page 4 (the `A5` header with the write counter), pages 5-12 (`0x14-0x33`, the encrypted settings) and pages 48-145 (`0xC0-0x247`, the data HMAC and app data).
+- Applying the two captured write B buffers to the matching `kirby.bin` gives dumps that decrypt with valid data and tag hashes. So the capture decoding, our v3 offsets and our crypto agree with what a real console writes. (Write A cannot be checked: its 32-byte value is not an amiibo-layer HMAC we can compute.)
+- What changed in the decrypted image per write, out of 2048 bytes: the HMAC (`0x08-0x27`), the write counter (`0x29-0x2A`, `83F3` to `83F6` to `83F7`), the last-write date (`0x32-0x33`, `0x3424` to `0x356E`; with the date format year<<9 | month<<5 | day, base 2000, that is today, 2026-11-14), the application write counter at `0xB4-0xB5` (big-endian, 2 to 5 to 6), and five single bytes inside the KAR payload: `0xEE`, `0xF9`, `0x111`, `0x151` and `0x171`. The byte at `0x151` counts up by one per write (`BA`, `BB`, `BC`); the other four change to unrelated values each time.
+- Consequence: a game save touches only a handful of bytes of the 216-byte area at `0xDC-0x1B3`, so that area is not one block encrypted with chaining. It could be a fixed-keystream stream cipher over the whole area (a changed plaintext byte then changes only its own byte), a bit-packed structure with a few mutable fields, or a mix. Not separated yet. The four pseudo-random bytes may be integrity bytes.
+- For the dongle write path: the acceptance test for a write B is `AmiiboSerialization.decrypt_binary/2` on the resulting dump returning `{:ok, _}`.
+
+## Registered through the real console flow (nordicpad, all seven figures)
+
+Each fresh figure went through the system registration (owner Robb, nickname "1") and then the game's own save, with the dongle emulating. Dumps: `~/Documents/kirby-scans/Flashiibo/<name>-registered.bin` and, after the system step only, `~/Documents/nordicpad-captures/2026-11-14-registered-steps/<name>-after-system-registration.bin`. All of them decrypt with valid hashes.
+
+- Slot index per figure, confirmed on all seven (the three older dumps agree): Warp Star 0, Wing Star 1, Hop Star 2, Shadow Star 3, Tank Star 4, Dragoon 5, Hydra 6. Each figure fills slot n in both regions (32 bytes at `0x248 + 32n`, 100 bytes at `0x400 + 100n`) and nothing else. Every one of these figures was only used on its own machine, so this data alone could not separate rider from machine. The console test below does: the slot follows the machine.
+- Two steps: the system registration (write B) sets the settings flags to `0x10` (amiibo initialized), the owner and nickname, the write counter (`A5 00 01 00`) and the dates, and leaves the KAR app area all zero. The game's save (writes A and B) sets the flags to `0x30`, the app ID to `42C40700`, bumps the counter (`A5 00 02 00`), fills the app area at `0xDC-0x1B3` (about 214-216 of 216 bytes non-zero) and writes the slot.
+- The game-layer payload depends on the figure: the seven registered app areas agree in at most 2 of 216 bytes between any two figures (chance level). So it is not one common keystream over a common starting state. The positions where all seven agree are the generic amiibo fields (the shared owner Mii, program ID and app ID area), not the KAR payload.
+- Slot header: on your real Meta Knight and Dedede the 4-byte header `A5 00 01 00` is at the start of the figure's own slot (`0x52C`, `0x590`) and `0x400` is all zero. On the dongle-registered figures with slot n above 0 the header is at `0x400` and the slot starts with `00 00 00 00`. For the Kirby (slot 0) the two places coincide. This looks like a header placement bug in the dongle's write A for slots other than 0 (reported to nordicpad); the console accepted the result.
+- The reserved block `0x80-0xBF` is random on your real figures and all zero on every Flashiibo template and every dongle-registered figure, so the console does not write it, and a fresh template without it is accepted.
+
+## Test: which slot does a save use? (2026-11-14)
+
+Setup: the dongle-registered Kirby (`Kirby+WarpStar-registered.bin`, slot 0 in use, nickname "1") with Tank Star's SRAM block (`KAR.set_machine(kirby, :tank_star)`). Loaded in KAR: it showed Kirby on a Tank Star, proficiency 0. Fashion: red cap. Back out with B, which triggers the save ("Writing... Writing complete"). The dump was read back from the dongle (0x35/0x36) and compared with the loaded file.
+
+- Changed bytes: 554, in `0x12-0x33`, `0xC0-0x247` (rider data), `0x2C8-0x2E7` (32-byte slot 4) and `0x590-0x5F3` (100-byte slot 4).
+- Slot 0 was not touched. Slot 4 now exists with its header `A5 00 01 00` at its own slot start (`0x590`), so on this build the dongle places the slot header correctly for n above 0.
+- The read-back decrypts with valid hashes. In the decrypted payload (`0xDC-0x1B3`) five single bytes changed (`0x10D`, `0x11C`, `0x148`, `0x152`, `0x18A`) plus the counters and dates outside it.
+- Conclusion: the registry slots are per machine, so one rider can hold a record for each machine it rides (10 slots, seven machines known). The main payload is the rider's. Not decoded: what the 32-byte and 100-byte records contain.
+- A note on method: a training session is not needed to trigger a save. Opening Fashion, choosing something and backing out writes the tag, and so does the nickname edit. The running daemon's `Picopad` module predates `read_amiibo`, so the read-back used `main`'s `apps/picopad/lib/picopad/protocol.ex` compiled under another module name inside the running node.
 
 ## Open questions
 
