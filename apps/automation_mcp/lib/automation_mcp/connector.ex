@@ -46,6 +46,10 @@ defmodule AutomationMCP.Connector do
     GenServer.call(__MODULE__, :amiibo_status)
   end
 
+  def read_amiibo do
+    GenServer.call(__MODULE__, :read_amiibo, :timer.seconds(15))
+  end
+
   def press(button, duration) when is_atom(button) and is_integer(duration) do
     GenServer.call(__MODULE__, {:press, button, duration}, duration + :timer.seconds(5))
   end
@@ -111,6 +115,10 @@ defmodule AutomationMCP.Connector do
 
   def handle_call(:amiibo_status, _from, state) do
     with_pid(state, fn pid -> Picopad.amiibo_status(pid) end)
+  end
+
+  def handle_call(:read_amiibo, _from, state) do
+    with_pid(state, fn pid -> Picopad.read_amiibo(pid) end)
   end
 
   def handle_call({:press, button, duration}, _from, state) do

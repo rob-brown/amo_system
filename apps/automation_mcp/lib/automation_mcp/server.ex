@@ -20,6 +20,7 @@ defmodule AutomationMCP.Server do
   component(Tools.LoadAmiibo)
   component(Tools.ClearAmiibo)
   component(Tools.AmiiboStatus)
+  component(Tools.ReadAmiibo)
 
   component(Tools.ConnectionStatus)
   component(Tools.Reconnect)
