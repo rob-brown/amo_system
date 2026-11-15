@@ -49,7 +49,7 @@ Events (the dongle only sends the connection-changed event, 0xE0, with a 7-byte 
 
 ## Firmware and tooling
 
-- [ ] **Soft DFU.** The factory Nordic bootloader only enters DFU on the RESET button; every flash needs a press. Options: MCUboot (needs a programmer or one-time DFU), or accept the button.
+- [x] **Soft DFU.** Done and verified (2026-11-14): host reset with the bootloader target (0xF2, payload `<<1>>`, `Picopad.reset(pid, true)`) erases the last flash page of the app image and reboots; the factory Nordic bootloader sees an invalid app and stays in DFU (`nrfutil device list` shows "Open DFU Bootloader"), then `nrfutil device program --firmware <zip> --traits nordicDfu` flashes and the app boots. GPREGRET 0xB1 is ignored by this bootloader. Needs a working app to trigger: a dongle running a broken image still needs the RESET button. The first flash of this image needed one RESET press.
 - [ ] **Dongle build and flash script.** Building (`west build ...`) and packaging (`nrfutil nrf5sdk-tools pkg generate ...`) are manual commands recorded only in `handoff.md`. `scripts/build.sh` and `scripts/flash.sh` still target the Pico.
 - [ ] **Vendor BTstack.** `dongle_app/CMakeLists.txt` reads BTstack source from `~/code/pico-sdk/lib/btstack` (the pico-sdk checkout on the dev machine), so the dongle firmware cannot be rebuilt elsewhere without it. Vendor the tree or pin it as a submodule, and note the BTstack version.
 - [ ] **Pico port:** `src/platform/pico_ble_platform.c` and the Pico build are untested since the CYW43 has no 2M PHY. Remove or keep.
