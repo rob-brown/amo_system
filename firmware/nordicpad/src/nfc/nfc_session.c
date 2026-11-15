@@ -69,7 +69,7 @@ void nfc_session_set_listener(nfc_session_t *session, const nfc_session_listener
 
 void nfc_session_configure(nfc_session_t *session, const uint8_t *payload, size_t length) {
     session->configured = true;
-    if (!amiibo_store_is_loaded(session->amiibo)) {
+    if (!amiibo_store_is_loaded(session->amiibo) && !session->tag_reported) {
         return;
     }
 
