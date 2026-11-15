@@ -110,17 +110,20 @@ void nfc_session_end(nfc_session_t *session) {
     session->event_pending = false;
 }
 
-size_t nfc_session_poll(const nfc_session_t *session, uint8_t *out, size_t capacity) {
+size_t nfc_session_poll(nfc_session_t *session, uint8_t *out, size_t capacity) {
     if (capacity < NFC_POLL_REPLY_SIZE) {
         return 0;
     }
 
     memset(out, 0, NFC_POLL_REPLY_SIZE);
     if (!amiibo_store_is_loaded(session->amiibo)) {
-        out[0] = NFC_STATUS_NO_TAG;
+        out[0] = session->tag_reported ? NFC_STATUS_TAG_LOST : NFC_STATUS_NO_TAG;
+        out[1] = session->tag_reported ? NFC_TAG_LOST_DETAIL : 0;
+        session->tag_reported = false;
         return NFC_POLL_REPLY_SIZE;
     }
 
+    session->tag_reported = true;
     out[0] = poll_status(session);
     if (is_status_only_state(session->state)) {
         return NFC_POLL_REPLY_SIZE;

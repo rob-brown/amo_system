@@ -559,6 +559,27 @@ static bool test_clearing_the_amiibo_while_the_console_waits_raises_an_event_and
     return true;
 }
 
+static bool test_a_removed_tag_is_reported_lost_once_after_it_was_seen(void) {
+    // Arrange
+    load_fixture();
+    uint8_t reply[NFC_POLL_REPLY_SIZE];
+    nfc_session_poll(&fixture.session, reply, sizeof(reply));
+    amiibo_store_clear(&fixture.amiibo);
+
+    // Act
+    nfc_session_poll(&fixture.session, reply, sizeof(reply));
+    uint8_t first_status = reply[0];
+    uint8_t first_detail = reply[1];
+    nfc_session_poll(&fixture.session, reply, sizeof(reply));
+
+    // Assert
+    ASSERT_EQ(first_status, 0x07);
+    ASSERT_EQ(first_detail, 0x41);
+    ASSERT_EQ(reply[0], 0x00);
+    ASSERT_EQ(reply[1], 0x00);
+    return true;
+}
+
 static bool test_an_upload_in_progress_raises_no_event(void) {
     // Arrange
     load_fixture();
@@ -623,6 +644,7 @@ TEST_MAIN_BEGIN("nfc_session")
     RUN_TEST(test_loading_an_amiibo_before_the_console_scans_raises_no_early_event);
     RUN_TEST(test_loading_an_amiibo_after_the_scan_ended_raises_no_event);
     RUN_TEST(test_clearing_the_amiibo_while_the_console_waits_raises_an_event_and_polls_as_no_tag);
+    RUN_TEST(test_a_removed_tag_is_reported_lost_once_after_it_was_seen);
     RUN_TEST(test_an_upload_in_progress_raises_no_event);
     RUN_TEST(test_listener_hears_about_each_read_that_starts);
     RUN_TEST(test_listener_is_silent_when_the_read_is_refused);

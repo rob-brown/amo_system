@@ -40,6 +40,7 @@ typedef struct {
     nfc_session_listener_t listener;
     nfc_state_t state;
     bool configured;
+    bool tag_reported;
     uint32_t seen_generation;
     nfc_write_buffer_t write;
     uint8_t buffer[NFC_BUFFER_CAPACITY];
@@ -61,7 +62,7 @@ uint8_t nfc_session_event_counter(const nfc_session_t *session);
 
 void nfc_session_end(nfc_session_t *session);
 
-size_t nfc_session_poll(const nfc_session_t *session, uint8_t *out, size_t capacity);
+size_t nfc_session_poll(nfc_session_t *session, uint8_t *out, size_t capacity);
 
 bool nfc_session_start_read(nfc_session_t *session, const uint8_t *payload, size_t length);
 
