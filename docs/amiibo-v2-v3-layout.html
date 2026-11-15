@@ -76,7 +76,29 @@
   .bar div { height: 22px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; display: flex; }
   .bar i { display: block; height: 100%; }
   ul { margin: 0; padding-left: 18px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+  .how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .box h3 { font-family: var(--font-display); font-size: 15px; margin: 0; }
+  .box p { font-size: 13.5px; color: var(--muted); }
+  .tag { align-self: flex-start; font-family: var(--font-mono); font-size: 11.5px; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+  .box.rider { border-top: 4px solid var(--app); }
+  .box.registry { border-top: 4px solid var(--opaque); }
+  .box.attached { border-top: 4px solid var(--sram); }
+  .slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .slot { border: 1px solid var(--line); border-radius: 6px; padding: 6px 4px; text-align: center; background: var(--bg); min-width: 0; }
+  .slot b { display: block; font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+  .slot span { display: block; font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .slot.used { border-color: var(--opaque); background: var(--panel); }
+  .slot.used b { color: var(--opaque); }
+  .slot.new { outline: 2px solid var(--opaque); outline-offset: 1px; }
+  .slot.unknown span { font-style: italic; }
+  .slots-key { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+  .slots-key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; border: 1px solid var(--opaque); background: var(--panel); }
+  .slots-key i.new { outline: 2px solid var(--opaque); outline-offset: 1px; }
+  .steps { margin: 0; padding-left: 20px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 74ch; }
+  .steps li b { color: var(--fg); font-weight: 600; }
   @media (max-width: 760px) {
+    .how { grid-template-columns: 1fr; }
     .head { display: none; }
     .row { grid-template-columns: 1fr; }
     .row > div { padding: 8px 14px; }
@@ -123,7 +145,7 @@
     <div class="row">
       <div class="cell enc" data-ver="v2"><b>0x010–0x033</b><span>36 bytes. 0x010–0x013 plaintext, 0x014–0x033 encrypted</span></div>
       <div class="what">Settings<small>Write counter and flags</small></div>
-      <div class="cell enc" data-ver="v3"><b>0x010–0x033</b><span>Same layout and encryption</span></div>
+      <div class="cell enc" data-ver="v3"><b>0x010–0x033</b><span>Same layout and encryption. 0x010 is A5, a write counter and 00. The first encrypted byte (0x014) is the registered flag: 0x00 fresh, 0x10 after system registration, 0x30 after the game's first save. 0x01A–0x01B hold the last-write date</span></div>
     </div>
     <div class="row">
       <div class="cell hmac" data-ver="v2"><b>0x034–0x053</b><span>Tag HMAC, 32 bytes</span></div>
@@ -148,17 +170,17 @@
     <div class="row">
       <div class="cell app" data-ver="v2"><b>0x0A0–0x207</b><span>360 bytes. SSBU stores readable fields here</span></div>
       <div class="what">App data<small>Nickname, owner, Mii, app ID, game payload</small></div>
-      <div class="cell app" data-ver="v3"><b>0x0E0–0x247</b><span>360 bytes. After amiibo decryption the KAR payload (offsets 0xDC–0x1B3 of the decrypted image) is still high-entropy</span></div>
+      <div class="cell app" data-ver="v3"><b>0x0E0–0x247</b><span>360 bytes. The rider's own data: owner, nickname, app write counter, and the KAR payload (offsets 0xDC–0x1B3 of the decrypted image). The payload differs per figure and a save changes only a few bytes of it</span></div>
     </div>
     <div class="row">
       <div class="cell cfg" data-ver="v2"><b>0x208–0x21B</b><span>Dynamic lock, CFG0, CFG1, PWD, PACK. End of tag at 0x21C</span></div>
       <div class="what">Tail<small>Everything after the app data</small></div>
-      <div class="cell opaque" data-ver="v3"><b>0x248–0x267</b><span>10 slots of 32 bytes at 0x248 + 32n (to 0x387). Kirby uses slot 0, Meta Knight 3, Dedede 4. Not decryptable by us</span></div>
+      <div class="cell opaque" data-ver="v3"><b>0x248–0x267</b><span>10 slots of 32 bytes at 0x248 + 32n (to 0x387), one per machine (see below). Kirby on a Tank Star writes slot 4. Not decryptable by us</span></div>
     </div>
     <div class="row">
       <div class="cell none" data-ver="v2">Not present</div>
       <div class="what">Game data<small>Appears when a figure is registered</small></div>
-      <div class="cell opaque" data-ver="v3"><b>0x400–0x7E7</b><span>Sector 1: 10 slots of 100 bytes at 0x400 + 100n, each starting A5 00 01 00. Same slot index as the 32-byte slot. Probably one per machine. Not decryptable by us</span></div>
+      <div class="cell opaque" data-ver="v3"><b>0x400–0x7E7</b><span>Sector 1: 10 slots of 100 bytes at 0x400 + 100n. Each used slot starts with the header A5 00 01 00 and holds 96 bytes. Same slot index as the 32-byte slot, so each machine has one 32 + 100 byte record. Not decryptable by us</span></div>
     </div>
     <div class="row">
       <div class="cell none" data-ver="v2">Not present</div>
@@ -175,6 +197,51 @@
       <div class="what">Unused<small>The spec put config pages here</small></div>
       <div class="cell none" data-ver="v3"><b>0x7E8–0x7FF and the unused slots</b><span>Zero in all three dumps, including 0x710–0x723</span></div>
     </div>
+  </section>
+
+  <section aria-label="How a rider, machines and a save fit together">
+    <h2>How a rider, its machines and a save fit together</h2>
+    <p style="margin-bottom:14px">The rider is the amiibo. A machine is what the figure carries in its SRAM. Tested on a registered Kirby (Warp Star is its own machine) loaded with a Tank Star SRAM, then a fashion change and a back-out to save.</p>
+    <div class="how">
+      <div class="box rider">
+        <span class="tag">0x000–0x247</span>
+        <h3>Rider data</h3>
+        <p>One copy per amiibo. Owner, nickname, flags, counters and the KAR payload at 0xDC–0x1B3 (decrypted image). The payload belongs to the rider and differs between figures.</p>
+        <p>Every save rewrites the settings and a few payload bytes. The fashion change in the test changed 5 payload bytes and the counters.</p>
+      </div>
+      <div class="box registry">
+        <span class="tag">0x248–0x387 and 0x400–0x7E7</span>
+        <h3>Machine records</h3>
+        <p>Ten slots. A slot holds the rider's record for one machine (a 32-byte value plus a 100-byte record). The slot is chosen by the machine that is attached, not by the rider.</p>
+        <div class="slots" role="img" aria-label="Ten machine slots, slot 0 and slot 4 in use for Kirby">
+          <div class="slot used"><b>0</b><span>Warp Star</span></div>
+          <div class="slot"><b>1</b><span>Wing Star</span></div>
+          <div class="slot"><b>2</b><span>Hop Star</span></div>
+          <div class="slot"><b>3</b><span>Shadow Star</span></div>
+          <div class="slot used new"><b>4</b><span>Tank Star</span></div>
+          <div class="slot"><b>5</b><span>Dragoon</span></div>
+          <div class="slot"><b>6</b><span>Hydra</span></div>
+          <div class="slot unknown"><b>7</b><span>unknown</span></div>
+          <div class="slot unknown"><b>8</b><span>unknown</span></div>
+          <div class="slot unknown"><b>9</b><span>unknown</span></div>
+        </div>
+        <div class="slots-key"><span><i></i>record exists</span><span><i class="new"></i>written by the test</span></div>
+      </div>
+      <div class="box attached">
+        <span class="tag">0x3C0–0x3FF</span>
+        <h3>Machine attached now</h3>
+        <p>The SRAM block says which machine the rider is on. It is the figure's own machine unless we replace it. The game reads it on every scan and picks the slot from it.</p>
+        <p>In the test: Tank Star's SRAM on Kirby. The screen showed Kirby on a Tank Star, proficiency 0.</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top:22px">What happened in the test</h2>
+    <ol class="steps">
+      <li><b>Load.</b> Registered Kirby (slot 0 in use) with the SRAM of the Tank Star. The game accepts it and shows Kirby on a Tank Star.</li>
+      <li><b>Change the fashion and back out.</b> The game writes the amiibo. The dump read back from the dongle decrypts with valid hashes.</li>
+      <li><b>Result.</b> 554 bytes changed: the settings and rider data (0x12–0x33, 0xC0–0x247) and <b>slot 4</b> in both regions (0x2C8–0x2E7 and 0x590–0x5F3). <b>Slot 0 was not touched.</b> So the record follows the machine, and a rider can hold up to ten machine records.</li>
+    </ol>
+    <p style="margin-top:12px">Slot numbers by machine come from seven figures that each registered on their own machine: Warp Star 0, Wing Star 1, Hop Star 2, Shadow Star 3, Tank Star 4, Dragoon 5, Hydra 6. Slots 7 to 9 are not seen yet. What the 32-byte and 100-byte values contain is not decoded.</p>
   </section>
 
   <section>
@@ -203,6 +270,7 @@
     <ul>
       <li>Format is detected by size, and for encrypted v3 by the ID format byte at 0x05B being 03.</li>
       <li>A decrypted v3 binary is 2048 bytes: the 520-byte internal layout, the 64 reserved bytes, then everything from 0x248.</li>
+      <li>Saved records follow the machine: Kirby on a Tank Star wrote slot 4 and left slot 0 alone. The rider's own payload stays in the main data.</li>
       <li>The machine in Kirby Air Riders follows the SRAM block, not the encrypted data. Changing the UID is risky: with the payload's own machine the game shows error 2115-0548, and a UID the console has never seen gets "can't participate in matches". UIDs it already knows work (see the UID notes).</li>
     </ul>
   </section>

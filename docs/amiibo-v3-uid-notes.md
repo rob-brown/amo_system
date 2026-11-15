@@ -137,11 +137,21 @@ Source: `/Users/robert/Documents/nordicpad-captures/2026-11-14-real-write/` (sni
 
 Each fresh figure went through the system registration (owner Robb, nickname "1") and then the game's own save, with the dongle emulating. Dumps: `~/Documents/kirby-scans/Flashiibo/<name>-registered.bin` and, after the system step only, `~/Documents/nordicpad-captures/2026-11-14-registered-steps/<name>-after-system-registration.bin`. All of them decrypt with valid hashes.
 
-- Slot index per figure, confirmed on all seven (the three older dumps agree): Warp Star 0, Wing Star 1, Hop Star 2, Shadow Star 3, Tank Star 4, Dragoon 5, Hydra 6. Each figure fills slot n in both regions (32 bytes at `0x248 + 32n`, 100 bytes at `0x400 + 100n`) and nothing else. Since every figure is one fixed rider and machine pair, rider and machine are not separated yet (the "same rider and machine combination" notice suggests the slot belongs to the pair).
+- Slot index per figure, confirmed on all seven (the three older dumps agree): Warp Star 0, Wing Star 1, Hop Star 2, Shadow Star 3, Tank Star 4, Dragoon 5, Hydra 6. Each figure fills slot n in both regions (32 bytes at `0x248 + 32n`, 100 bytes at `0x400 + 100n`) and nothing else. Every one of these figures was only used on its own machine, so this data alone could not separate rider from machine. The console test below does: the slot follows the machine.
 - Two steps: the system registration (write B) sets the settings flags to `0x10` (amiibo initialized), the owner and nickname, the write counter (`A5 00 01 00`) and the dates, and leaves the KAR app area all zero. The game's save (writes A and B) sets the flags to `0x30`, the app ID to `42C40700`, bumps the counter (`A5 00 02 00`), fills the app area at `0xDC-0x1B3` (about 214-216 of 216 bytes non-zero) and writes the slot.
 - The game-layer payload depends on the figure: the seven registered app areas agree in at most 2 of 216 bytes between any two figures (chance level). So it is not one common keystream over a common starting state. The positions where all seven agree are the generic amiibo fields (the shared owner Mii, program ID and app ID area), not the KAR payload.
 - Slot header: on your real Meta Knight and Dedede the 4-byte header `A5 00 01 00` is at the start of the figure's own slot (`0x52C`, `0x590`) and `0x400` is all zero. On the dongle-registered figures with slot n above 0 the header is at `0x400` and the slot starts with `00 00 00 00`. For the Kirby (slot 0) the two places coincide. This looks like a header placement bug in the dongle's write A for slots other than 0 (reported to nordicpad); the console accepted the result.
 - The reserved block `0x80-0xBF` is random on your real figures and all zero on every Flashiibo template and every dongle-registered figure, so the console does not write it, and a fresh template without it is accepted.
+
+## Test: which slot does a save use? (2026-11-14)
+
+Setup: the dongle-registered Kirby (`Kirby+WarpStar-registered.bin`, slot 0 in use, nickname "1") with Tank Star's SRAM block (`KAR.set_machine(kirby, :tank_star)`). Loaded in KAR: it showed Kirby on a Tank Star, proficiency 0. Fashion: red cap. Back out with B, which triggers the save ("Writing... Writing complete"). The dump was read back from the dongle (0x35/0x36) and compared with the loaded file.
+
+- Changed bytes: 554, in `0x12-0x33`, `0xC0-0x247` (rider data), `0x2C8-0x2E7` (32-byte slot 4) and `0x590-0x5F3` (100-byte slot 4).
+- Slot 0 was not touched. Slot 4 now exists with its header `A5 00 01 00` at its own slot start (`0x590`), so on this build the dongle places the slot header correctly for n above 0.
+- The read-back decrypts with valid hashes. In the decrypted payload (`0xDC-0x1B3`) five single bytes changed (`0x10D`, `0x11C`, `0x148`, `0x152`, `0x18A`) plus the counters and dates outside it.
+- Conclusion: the registry slots are per machine, so one rider can hold a record for each machine it rides (10 slots, seven machines known). The main payload is the rider's. Not decoded: what the 32-byte and 100-byte records contain.
+- A note on method: a training session is not needed to trigger a save. Opening Fashion, choosing something and backing out writes the tag, and so does the nickname edit. The running daemon's `Picopad` module predates `read_amiibo`, so the read-back used `main`'s `apps/picopad/lib/picopad/protocol.ex` compiled under another module name inside the running node.
 
 ## Open questions
 
