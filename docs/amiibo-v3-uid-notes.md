@@ -123,6 +123,16 @@ Patterns:
 - Consequence for identification: the reliable way to tell a machine from an SRAM block is an exact match against known blocks, which `KAR.Machines` does. Matching on the code or on `[16]`/`[18]` alone is not safe. For a fresh figure, the machine is also implied by the rider's amiibo ID (default machine).
 - Console: scanning a fresh figure from the KAR amiibo menu opens the system registration flow (select owner, nickname, then "Saving... Hold the amiibo to the NFC touchpoint"). It ends in "Couldn't save. Please try again." until the dongle supports writes.
 
+## A real console write (nordicpad capture, 2026-11-14)
+
+Source: `/Users/robert/Documents/nordicpad-captures/2026-11-14-real-write/` (sniffed Joy-Con 2 R, the registered Kirby figure with UID `04 68 99 5A AB 1F 90`, two hat changes in KAR). Decoded by the nordicpad agent; the findings below on the changed bytes are mine.
+
+- Each save is two writes. Write A updates the registry slot: 32 bytes at `0x248` (sector 0 pages 0x92-0x99) and a 100-byte slot in sector 1 (`A5`, a 16-bit counter, `00`, then 96 bytes; the counter went 4 to 5). Write B is a normal amiibo-layer write of 454 bytes: page 4 (the `A5` header with the write counter), pages 5-12 (`0x14-0x33`, the encrypted settings) and pages 48-145 (`0xC0-0x247`, the data HMAC and app data).
+- Applying the two captured write B buffers to the matching `kirby.bin` gives dumps that decrypt with valid data and tag hashes. So the capture decoding, our v3 offsets and our crypto agree with what a real console writes. (Write A cannot be checked: its 32-byte value is not an amiibo-layer HMAC we can compute.)
+- What changed in the decrypted image per write, out of 2048 bytes: the HMAC (`0x08-0x27`), the write counter (`0x29-0x2A`, `83F3` to `83F6` to `83F7`), the last-write date (`0x32-0x33`, `0x3424` to `0x356E`; with the date format year<<9 | month<<5 | day, base 2000, that is today, 2026-11-14), the application write counter at `0xB4-0xB5` (big-endian, 2 to 5 to 6), and five single bytes inside the KAR payload: `0xEE`, `0xF9`, `0x111`, `0x151` and `0x171`. The byte at `0x151` counts up by one per write (`BA`, `BB`, `BC`); the other four change to unrelated values each time.
+- Consequence: a game save touches only a handful of bytes of the 216-byte area at `0xDC-0x1B3`, so that area is not one block encrypted with chaining. It could be a fixed-keystream stream cipher over the whole area (a changed plaintext byte then changes only its own byte), a bit-packed structure with a few mutable fields, or a mix. Not separated yet. The four pseudo-random bytes may be integrity bytes.
+- For the dongle write path: the acceptance test for a write B is `AmiiboSerialization.decrypt_binary/2` on the resulting dump returning `{:ok, _}`.
+
 ## Open questions
 
 - Where the payload-side UID binding lives (the game-layer bytes `0xDC-0x1B3` of the decrypted image, or the slot blobs together with something else).
