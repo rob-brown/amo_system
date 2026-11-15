@@ -133,6 +133,16 @@ Source: `/Users/robert/Documents/nordicpad-captures/2026-11-14-real-write/` (sni
 - Consequence: a game save touches only a handful of bytes of the 216-byte area at `0xDC-0x1B3`, so that area is not one block encrypted with chaining. It could be a fixed-keystream stream cipher over the whole area (a changed plaintext byte then changes only its own byte), a bit-packed structure with a few mutable fields, or a mix. Not separated yet. The four pseudo-random bytes may be integrity bytes.
 - For the dongle write path: the acceptance test for a write B is `AmiiboSerialization.decrypt_binary/2` on the resulting dump returning `{:ok, _}`.
 
+## Registered through the real console flow (nordicpad, all seven figures)
+
+Each fresh figure went through the system registration (owner Robb, nickname "1") and then the game's own save, with the dongle emulating. Dumps: `~/Documents/kirby-scans/Flashiibo/<name>-registered.bin` and, after the system step only, `~/Documents/nordicpad-captures/2026-11-14-registered-steps/<name>-after-system-registration.bin`. All of them decrypt with valid hashes.
+
+- Slot index per figure, confirmed on all seven (the three older dumps agree): Warp Star 0, Wing Star 1, Hop Star 2, Shadow Star 3, Tank Star 4, Dragoon 5, Hydra 6. Each figure fills slot n in both regions (32 bytes at `0x248 + 32n`, 100 bytes at `0x400 + 100n`) and nothing else. Since every figure is one fixed rider and machine pair, rider and machine are not separated yet (the "same rider and machine combination" notice suggests the slot belongs to the pair).
+- Two steps: the system registration (write B) sets the settings flags to `0x10` (amiibo initialized), the owner and nickname, the write counter (`A5 00 01 00`) and the dates, and leaves the KAR app area all zero. The game's save (writes A and B) sets the flags to `0x30`, the app ID to `42C40700`, bumps the counter (`A5 00 02 00`), fills the app area at `0xDC-0x1B3` (about 214-216 of 216 bytes non-zero) and writes the slot.
+- The game-layer payload depends on the figure: the seven registered app areas agree in at most 2 of 216 bytes between any two figures (chance level). So it is not one common keystream over a common starting state. The positions where all seven agree are the generic amiibo fields (the shared owner Mii, program ID and app ID area), not the KAR payload.
+- Slot header: on your real Meta Knight and Dedede the 4-byte header `A5 00 01 00` is at the start of the figure's own slot (`0x52C`, `0x590`) and `0x400` is all zero. On the dongle-registered figures with slot n above 0 the header is at `0x400` and the slot starts with `00 00 00 00`. For the Kirby (slot 0) the two places coincide. This looks like a header placement bug in the dongle's write A for slots other than 0 (reported to nordicpad); the console accepted the result.
+- The reserved block `0x80-0xBF` is random on your real figures and all zero on every Flashiibo template and every dongle-registered figure, so the console does not write it, and a fresh template without it is accepted.
+
 ## Open questions
 
 - Where the payload-side UID binding lives (the game-layer bytes `0xDC-0x1B3` of the decrypted image, or the slot blobs together with something else).
